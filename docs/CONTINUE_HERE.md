@@ -13,8 +13,8 @@ several PASS rows need correct/more complete evidence. See
 Owner reported real owner-only recovery/new-password login, college selection
 and answer/acceptance/comment notifications working. These updates supersede the
 older pending notes below but do not certify every related test. Atlas expiry
-and all-user email/domain remain pending. New fix CI/live retest must be checked
-for its own revision. Older 75/76/77 counts and deployment IDs are history.
+and all-user email/domain remain pending. Menu fix bc1733d passed live trigger/link Escape and focus retesting.
+CI must be recorded against its own revision. Older 75/76/77 counts and deployment IDs are history.
 
 ## Owner return checklist (simple Hinglish)
 

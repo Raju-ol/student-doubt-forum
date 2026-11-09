@@ -30,7 +30,10 @@ the theme button. No visual/menu-navigation behavior otherwise changed.
 
 After the fix: npm test exited 0, **78 passed / 0 failed**; npm run build exited 0.
 This is the developer's new run, not a result attributed to Claude's QA run.
-Live retest follows deployment and must be recorded separately.
+Live retest on deployed bc1733d passed at the mobile viewport: Escape from
+the Menu trigger and Explore navigation link both collapsed the menu and returned
+focus to the trigger. Saved local screenshot menu-escape-fixed.png. No private
+account or QA content was changed.
 
 ## Evidence problems to correct in the next QA run
 

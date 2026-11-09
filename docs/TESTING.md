@@ -7,7 +7,8 @@ production build passes (exit 0). The new real-DOM test failed before the fix,
 then verifies Escape from trigger/link and focus restoration. External QA run-01
 reported 40 PASS / 98 BLOCKED / 23 NOT RUN, with partial/misaligned observations;
 these are NOT equivalent to 40 fully certified workflows. See
-[QA review](QA_REVIEW_RUN01.md). Live fix retest follows deployment.
+[QA review](QA_REVIEW_RUN01.md). Live bc1733d retest passed: Escape from trigger and navigation link closes menu
+and restores trigger focus.
 
 Older counts below are dated history, not the current result. Developer unit/API
 checks, owner-reported live checks and external browser evidence stay separate.
