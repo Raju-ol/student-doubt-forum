@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import mongoose from 'mongoose';
 import { createApp } from '../src/app.js';
 import { User } from '../src/models.js';
+import { createServer } from 'node:http';
 
 test('Student Doubt Forum integration flow', async t => {
   process.env.JWT_SECRET = randomBytes(48).toString('hex');
@@ -111,5 +112,20 @@ test('Student Doubt Forum integration flow', async t => {
   await t.test('unowned image IDs rejected and upload delete cannot target other users', async () => {
     await request('/doubts', 'POST', { title: 'Question with a forged screenshot', body: 'This question tries to attach an image that does not belong to the user.', subject: 'DBMS', semester: 2, imageIds: ['foreign-image'] }, a.token, 400);
     await request('/uploads', 'DELETE', { publicId: 'foreign-image' }, a.token, 404);
+  });
+  await t.test('Vercel handler serves API requests using the shared database connection', async () => {
+    process.env.MONGO_URI = `mongodb://127.0.0.1:27017/${dbName}`;
+    const { default: handler } = await import('../../api/index.js');
+    const functionServer = createServer(handler).listen(0, '127.0.0.1');
+    await new Promise(resolve => functionServer.once('listening', resolve));
+    try {
+      const response = await fetch(`http://127.0.0.1:${functionServer.address().port}/api/v1/health`);
+      assert.equal(response.status, 200);
+      assert.equal((await response.json()).data.database, 'connected');
+      const profile = await fetch(`http://127.0.0.1:${functionServer.address().port}/api/v1/users/${a.user._id}`);
+      assert.equal((await profile.json()).data.user.name, 'Renamed Student');
+      const fallback = await fetch(`http://127.0.0.1:${functionServer.address().port}/api/unknown`);
+      assert.equal(fallback.status, 404);
+    } finally { await new Promise(resolve => functionServer.close(resolve)); }
   });
 });

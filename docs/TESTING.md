@@ -14,6 +14,8 @@ Date: 9 November 2026. Local Windows machine, Node 24.19.0, npm 11.17.0, local M
 
 ## Pending or limited
 
+Vercel preparation update: API handler tested locally against the shared MongoDB connection, including health, profile data and unknown API route behavior. Updated integration run reports 26 subtests plus parent (27 passes). Production frontend build passes. Actual Vercel routing, Atlas connectivity and public deployment remain pending until configured and deployed.
+
 - Cloudinary upload/remote deletion end to end: credentials unavailable. File type/signature/size and ownership checks are implemented; remote service integration has not been verified.
 - Live Atlas/hosting/deployment acceptance: accounts not configured.
 - Full browser moderation mutations, edit/profile forms and error-state coverage: pending; automated checks do not establish every browser interaction.

@@ -17,7 +17,7 @@ import { findDoc, decorate, toggleVote, removeAnswer, removeDoubt, reputation, a
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const limiter = (limit, windowMs) => rateLimit({ windowMs, limit, standardHeaders: 'draft-7', legacyHeaders: false, message: { success: false, message: 'Too many requests. Please try again later.' } });
-export function createApp() {
+export function createApp({ serveClient = true } = {}) {
   const app = express();
   app.disable('x-powered-by');
   if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
@@ -167,7 +167,7 @@ export function createApp() {
   }));
   app.use('/api', (req, res) => res.status(404).json({ success: false, message: 'API route not found.' }));
   const clientDist = fileURLToPath(new URL('../../client/dist', import.meta.url));
-  if (existsSync(clientDist)) { app.use(express.static(clientDist)); app.get('/{*path}', (req, res) => res.sendFile(path.join(clientDist, 'index.html'))); }
+  if (serveClient && existsSync(clientDist)) { app.use(express.static(clientDist)); app.get('/{*path}', (req, res) => res.sendFile(path.join(clientDist, 'index.html'))); }
   app.use((err, req, res, next) => {
     let status = err.status || 500;
     let message = status < 500 || err.expose ? err.message : 'Something went wrong. Please try again.';

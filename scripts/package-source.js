@@ -3,7 +3,7 @@ import path from 'node:path';
 const root = process.cwd();
 const output = path.resolve(root, '..', 'deliverables', 'student-doubt-forum');
 if (existsSync(output)) throw new Error('Package staging already exists. Preserve or rename the earlier package before making another.');
-const entries = ['package.json', 'package-lock.json', '.gitignore', 'README.md', 'PROJECT_CONTEXT.md', 'render.yaml', 'Start Application.cmd', 'client', 'server', 'docs', 'scripts'];
+const entries = ['package.json', 'package-lock.json', '.gitignore', 'README.md', 'PROJECT_CONTEXT.md', 'render.yaml', 'vercel.json', 'Start Application.cmd', 'api', 'client', 'server', 'docs', 'scripts'];
 function copy(source, destination) {
   const name = path.basename(source);
   if (['node_modules', 'dist', '.git', 'coverage'].includes(name) || (name.startsWith('.env') && name !== '.env.example') || name.endsWith('.log')) return;
