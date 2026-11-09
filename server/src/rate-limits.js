@@ -49,13 +49,14 @@ export function createLimiterFactory({ env = process.env, fetchImpl = fetch } = 
   } else if (shared) sendCommand = async () => { throw unavailable(); };
   const environment = env.VERCEL_ENV || (deployed ? 'production' : 'development');
   const prefix = `forum:rl:v1:${environment}:`;
-  const factory = (scope, limit, windowMs, { account = false } = {}) => rateLimit({
+  const factory = (scope, limit, windowMs, { account = false, email = false } = {}) => rateLimit({
     windowMs, limit, standardHeaders: 'draft-7', legacyHeaders: false,
     passOnStoreError: false,
     message: { success: false, message: 'Too many requests. Please try again later.' },
     ...(shared ? { store: new ProtectedRedisStore({ sendCommand, prefix: `${prefix}${scope}:` }) } : {}),
     keyGenerator: req => {
-      const identity = account && req.user ? `user:${req.user._id}` : `ip:${ipKeyGenerator(req.ip)}`;
+      const address = email && typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase().slice(0, 254) : '';
+      const identity = account && req.user ? `user:${req.user._id}` : address ? `email:${address}` : `ip:${ipKeyGenerator(req.ip)}`;
       // Pseudonymous Redis keys; no email addresses, tokens or raw IP addresses.
       return createHmac('sha256', env.JWT_SECRET || 'local-development-only').update(identity).digest('hex');
     },

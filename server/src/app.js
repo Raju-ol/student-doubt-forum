@@ -33,13 +33,14 @@ export function createApp({ serveClient = true } = {}) {
   });
   api.use(limiter('api', 600, 15 * 60 * 1000), wrap(identify));
   const authLimit = limiter('auth', 30, 15 * 60 * 1000);
-  api.post('/auth/signup', authLimit, wrap(async (req, res) => {
+  const authEmailLimit = limiter('auth-email', 30, 15 * 60 * 1000, { email: true });
+  api.post('/auth/signup', authLimit, authEmailLimit, wrap(async (req, res) => {
     const fields = { name: text(req.body.name, 'Name', 2, 60), email: email(req.body.email), semester: semester(req.body.semester) };
     const hash = await bcrypt.hash(password(req.body.password), 12);
     const user = await User.create({ ...fields, passwordHash: hash, reputation: 0 });
     ok(res, { user: safeUser(user), token: tokenFor(user) }, 'Welcome to Doubt Forum!', 201);
   }));
-  api.post('/auth/login', authLimit, wrap(async (req, res) => {
+  api.post('/auth/login', authLimit, authEmailLimit, wrap(async (req, res) => {
     const address = email(req.body.email);
     const secret = password(req.body.password);
     const user = await User.findOne({ email: address }).select('+passwordHash');

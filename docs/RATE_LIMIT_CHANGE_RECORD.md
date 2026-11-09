@@ -51,3 +51,6 @@ rotation also starts new rate-limit identities.
 Sources: [Redis store](https://github.com/express-rate-limit/rate-limit-redis),
 [Upstash REST](https://upstash.com/docs/redis/features/restapi),
 [Vercel request headers](https://vercel.com/docs/headers/request-headers).
+
+Follow-up: login/signup also share a separate 30/15-minute HMAC-normalized-email bucket, in addition to the IP bucket. Tests verify casing/whitespace normalization and matching across client IPs without storing an email in Redis keys. This can throttle a targeted account temporarily; recovery is automatic at expiry. Live health returned rateLimitStore=redis and protected feed returned HTTP 200 after deployment. No live brute-force/load test was run.
+

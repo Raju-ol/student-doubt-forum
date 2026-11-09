@@ -49,7 +49,8 @@ test('two app instances share limits, separate scopes and recover after expiry',
   const servers = [];
   for (let i = 0; i < 2; i++) {
     const app = express(), limiter = createLimiterFactory({ env, fetchImpl });
-    app.set('trust proxy', 1);
+    app.set('trust proxy', 1); app.use(express.json());
+    app.post('/email', limiter('email', 1, 1000, { email: true }), (req, res) => res.json({ ok: true }));
     app.get('/auth', limiter('auth', 2, 1000), (req, res) => res.json({ ok: true }));
     app.get('/upload', (req, res, next) => { req.user = { _id: req.get('test-user') }; next(); }, limiter('upload', 1, 1000, { account: true }), (req, res) => res.json({ ok: true }));
     app.use((error, req, res, next) => res.status(error.status || 500).json({ message: error.message }));
@@ -66,6 +67,11 @@ test('two app instances share limits, separate scopes and recover after expiry',
   assert.equal((await get(1, '/upload', { 'test-user': 'a', 'X-Forwarded-For': '192.0.2.3' })).status, 429);
   assert.equal((await get(1, '/upload', { 'test-user': 'b' })).status, 200);
   assert.ok([...counters.keys()].every(key => /^forum:rl:v1:preview:(auth|upload):[a-f0-9]{64}$/.test(key)));
+  const emailRequest = (i, address, ip) => fetch(`http://127.0.0.1:${servers[i].address().port}/email`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': ip }, body: JSON.stringify({ email: address }) });
+  assert.equal((await emailRequest(0, 'Student@example.test', '192.0.2.4')).status, 200);
+  assert.equal((await emailRequest(1, ' student@EXAMPLE.test ', '192.0.2.5')).status, 429);
+  assert.equal((await emailRequest(1, 'another@example.test', '192.0.2.5')).status, 200);
+  assert.ok([...counters.keys()].every(key => !key.includes('@')));
   now += 1001; scripts.clear(); // Exercise NOSCRIPT recovery as well as expiry.
   assert.equal((await get(1, '/auth')).status, 200);
   fail = true;

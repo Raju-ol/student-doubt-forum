@@ -52,3 +52,6 @@ Vercel preparation update: API handler tested locally against the shared MongoDB
 - Concurrency, high load and cross-collection partial failures: not exhaustively tested.
 
 Windows restricted execution blocked network/native build components; authorized normal execution completed package installation, build and database checks. No application success is inferred from a failed restricted attempt.
+
+9 November 2026: shared Upstash rate limiting implemented; 65 tests pass/build succeeds. Live health reports Redis mode and protected feed HTTP 200. Cross-instance counters/email buckets, expiry/reload/outage validated using a REST contract fake; real production saturation not tested. See RATE_LIMIT_CHANGE_RECORD.md.
+

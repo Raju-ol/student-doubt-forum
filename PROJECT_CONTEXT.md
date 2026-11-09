@@ -45,3 +45,6 @@ React/Vite, plain CSS, Express and MongoDB. Cloudinary uploads. Same-origin prod
 - GitHub upload verified on Raju-ol/student-doubt-forum, initial main commit bcee01ab9283e586d72dfd6d2102613cc965d654. Git credential manager authenticated Raju-ol through user-completed device login. Use credential.username=Raju-ol for Git network operations; other GitHub accounts are also configured.
 - User created Atlas account, existing free Cluster0 and Node.js URI template. Actual password not supplied or configured. User logged into Vercel and chose it instead of Render. Prepared Vercel static frontend + API function configuration; live deployment remains unverified.
 User signs into hosting/database/image accounts and enters secrets privately. Never paste credentials into chat. Do not promise deadline completion without verification.
+
+9 November 2026: Upstash shared API/auth/upload counters deployed. Separate normalized email/IP auth buckets, pseudonymous keys, safe outage 503. 65 tests/build pass. Health reports redis and feed returns 200; see docs/RATE_LIMIT_CHANGE_RECORD.md.
+
