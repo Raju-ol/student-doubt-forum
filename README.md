@@ -40,6 +40,11 @@ GitHub Actions runs `npm ci`, `npm run build` and `npm test` against a MongoDB 7
 
 `npm run build` verifies the frontend production build. Browser verification is separately documented; automated API tests do not prove every screen is correct.
 
+## Licence
+
+MIT. See `LICENSE`. Any college may use, modify and deploy this software, including
+commercially, as long as the copyright notice and licence text are kept.
+
 ## Project files
 
 - `client/src`: React screens, shared components, session context, API client, plain responsive CSS.

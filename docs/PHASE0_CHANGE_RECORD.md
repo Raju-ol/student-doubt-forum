@@ -85,12 +85,15 @@ Correctness was checked on the same run: vote totals, `myVote` for a signed-in v
 `myVote` of 0 for an anonymous viewer, `answerCount`, solved/open status, per-answer comment
 grouping and comment author population all matched the previous behaviour.
 
-## 3. LICENSE (§7, §10) — NOT DONE YET
+## 3. LICENSE (§7, §10)
 
-The user chose the **MIT** licence but asked to supply the copyright holder name later.
-`LICENSE` has therefore not been created. Until it exists the repository is
-all-rights-reserved and no other college may legally use or deploy it. This remains the
-single largest open item from §10.
+Added `LICENSE` with the standard MIT text and `Copyright (c) 2026 UJA`, the holder the
+user named. README gained a short "Licence" section pointing at it.
+
+This closes the §10 item that mattered most: before this file existed the repository was
+all-rights-reserved by default, so no other college could legally use, modify or deploy it.
+MIT was chosen over AGPL-3.0 for maximum adoption — a hosted fork is not obliged to publish
+its changes back.
 
 ## Verification run on this change
 
