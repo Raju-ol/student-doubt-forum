@@ -6,6 +6,7 @@ import { markdownToText } from './excerpt';
 import { EDITOR_TOOLS, applyTool, EDITOR_TABS, nextTab } from './editor';
 import { signInPath } from './navigation';
 import { ThemeControl } from './theme-control';
+export { ThemeControl } from './theme-control';
 import { NotificationBell } from './notifications';
 import { levelLabel } from './academics';
 export { TabList } from './tab-list';

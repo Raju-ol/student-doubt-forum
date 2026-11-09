@@ -23,3 +23,8 @@ check follows deployment. No claim of complete browser/accessibility coverage.
 
 Live visual check complete: dark feed reviewed, 390px viewport has 375px content width and matching scroll width (no horizontal page overflow). Reload retained Dark selection. Restored System afterward. Screenshot saved locally as dark-theme-qa.png in the parent workspace. Authenticated editor/moderation dark states are not all visually audited.
 
+
+## 10 November 2026 — click-to-cycle control
+
+Replaced the dropdown with one native button cycling System -> Light -> Dark -> System. A sliding indicator moves across monitor/sun/moon icons; the visible label and accessible name report the current/next modes. Native Enter/Space activation and saved preference remain; system changes still apply in System mode. Animation respects reduced-motion preference. 77 tests pass/build succeeds, including a real DOM click-cycle, persistence/remount and media-listener cleanup test. Live visual verification follows deployment.
+

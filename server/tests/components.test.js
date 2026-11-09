@@ -24,13 +24,41 @@ await build({
   external: ['react', 'react-dom', 'react-dom/*', 'react/*', 'react-router-dom'],
   define: { 'import.meta.env.VITE_API_URL': '""' }, logLevel: 'silent'
 });
-const { Markdown, MarkdownEditor, TabList } = await import(pathToFileURL(outfile).href);
+const { Markdown, MarkdownEditor, TabList, ThemeControl } = await import(pathToFileURL(outfile).href);
 test.after(() => rm(directory, { recursive: true, force: true }));
 
 // The renderer is loaded lazily in the browser, so static rendering shows the
 // plain-text fallback. Mount into jsdom when the rendered HTML is what matters.
 const dom = new JSDOM('<!doctype html><div id="root"></div>');
 const markup = node => renderToStaticMarkup(node);
+
+test('theme button cycles, saves preference, follows system and restores after remount', async () => {
+  const { createRoot } = await import('react-dom/client');
+  const previousWindow = globalThis.window, previousDocument = globalThis.document, previousStorage = globalThis.localStorage;
+  const storage = new Map(); const listeners = new Set();
+  globalThis.window = dom.window; globalThis.document = dom.window.document;
+  globalThis.localStorage = { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) };
+  dom.window.matchMedia = () => ({ matches: true, addEventListener: (type, listener) => listeners.add(listener), removeEventListener: (type, listener) => listeners.delete(listener) });
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  const host = dom.window.document.createElement('div'); dom.window.document.body.append(host);
+  let root = createRoot(host);
+  try {
+    await React.act(async () => root.render(React.createElement(ThemeControl)));
+    assert.equal(host.querySelector('select'), null);
+    const click = async mode => {
+      await React.act(async () => host.querySelector('button').click());
+      assert.equal(host.querySelector('button').dataset.mode, mode); assert.equal(storage.get('forum-theme'), mode);
+    };
+    assert.equal(document.documentElement.dataset.theme, 'dark'); // System preference.
+    await click('light'); assert.equal(document.documentElement.dataset.theme, 'light');
+    await click('dark'); assert.equal(document.documentElement.dataset.theme, 'dark');
+    await click('system'); assert.match(host.querySelector('button').getAttribute('aria-label'), /Switch to Light/);
+    await click('light');
+    await React.act(async () => root.unmount()); assert.equal(listeners.size, 0);
+    root = createRoot(host); await React.act(async () => root.render(React.createElement(ThemeControl)));
+    assert.equal(host.querySelector('button').dataset.mode, 'light');
+  } finally { await React.act(async () => root.unmount()); host.remove(); globalThis.window = previousWindow; globalThis.document = previousDocument; globalThis.localStorage = previousStorage; delete globalThis.IS_REACT_ACT_ENVIRONMENT; }
+});
 
 test('tabs move focus and selected panel association with the keyboard', async () => {
   const { createRoot } = await import('react-dom/client');

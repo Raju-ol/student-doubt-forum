@@ -85,3 +85,6 @@ Optional self-reported institution metadata, admin college catalogue and college
 
 
 Owner-only recovery trial added via EMAIL_TEST_RECIPIENT while EMAIL_ENABLED stays off. Resend key/from/APP_URL reportedly saved privately; 76 tests/build pass, live inbox test pending.
+
+10 November: owner requested click-to-cycle System/Light/Dark button with sliding indicator, replacing theme dropdown. Implemented with native keyboard behavior and reduced-motion handling; 77 tests/build pass. docs/THEME_CHANGE_RECORD.md.
+

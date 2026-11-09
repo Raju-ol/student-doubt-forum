@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { themePreference, resolvedTheme } from '../../client/src/theme.js';
+import { themePreference, resolvedTheme, nextTheme } from '../../client/src/theme.js';
 
 test('theme preference follows system and tolerates invalid or blocked storage', async () => {
   assert.equal(themePreference('invalid'), 'system');
   assert.equal(resolvedTheme('system', true), 'dark');
   assert.equal(resolvedTheme('light', true), 'light');
+  assert.equal(nextTheme('system'), 'light'); assert.equal(nextTheme('light'), 'dark'); assert.equal(nextTheme('dark'), 'system');
   const script = await readFile(new URL('../../client/public/theme-init.js', import.meta.url), 'utf8');
   for (const [stored, systemDark, expected] of [['dark', false, 'dark'], ['light', true, 'light'], ['invalid', true, 'dark'], [null, false, 'light']]) {
     const document = { documentElement: { dataset: {} } };
