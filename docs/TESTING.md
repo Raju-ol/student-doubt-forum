@@ -61,3 +61,6 @@ Email flows: 66 tests pass/build succeeds. Capturing email adapter verifies hash
 
 Account data controls: 67 tests/build pass, including private export, anonymization, owned image cleanup via fake Cloudinary and session denial. Live deletion and large exports not tested; see ACCOUNT_DATA_CHANGE_RECORD.md.
 
+
+Theme support: 69 tests/build pass, preference/storage fallback and selected dark contrast pairs verified. Local IAB connection timed out; live visual check pending. THEME_CHANGE_RECORD.md.
+

@@ -603,3 +603,6 @@ The foundation here is better than most of what gets built in a term. The securi
 
 Account export/delete implemented 9 November: 67 tests/build pass. Anonymous tombstone preserves discussions/votes; no live deletion performed. See docs/ACCOUNT_DATA_CHANGE_RECORD.md.
 
+
+Dark mode implemented 9 November: 69 tests/build pass; centralized palette, System/Light/Dark and persisted preference. Selected contrast pairs tested; visual review pending. docs/THEME_CHANGE_RECORD.md.
+

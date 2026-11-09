@@ -54,3 +54,6 @@ Email verification/recovery implemented behind EMAIL_ENABLED (off until owner co
 
 Account data controls implemented with anonymous tombstone, password/DELETE confirmation, private NDJSON export and owned-image cleanup. 67 tests/build pass; no live deletion. docs/ACCOUNT_DATA_CHANGE_RECORD.md records limitations.
 
+
+System/light/dark themes implemented with 104 centralized color roles, saved preference and CSP-compatible early theme resolution. 69 tests/build pass; docs/THEME_CHANGE_RECORD.md.
+
