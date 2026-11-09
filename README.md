@@ -46,6 +46,8 @@ Set the three `CLOUDINARY_` values in private server configuration. Restart the 
 
 ## Tests
 
+Running the test suite needs Node 22.22.2+ or 24.15+, because jsdom (used by the client rendering tests) requires it. The application itself still runs on Node 22.12+.
+
 `npm test` creates a unique `forum_test_*` database on the local MongoDB server, runs integration checks and deletes that test database only. It never clears the application database. An optional `MONGO_TEST_URI` may point to an authorized test server. The test user needs permission to create/drop the uniquely named test database.
 
 GitHub Actions runs `npm ci`, `npm run build` and `npm test` against a MongoDB 7 service container on every push and pull request, plus `npm audit --audit-level=high`. See `.github/workflows/ci.yml`.

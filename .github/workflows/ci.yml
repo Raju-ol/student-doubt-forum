@@ -8,6 +8,13 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Both supported Node lines, at their latest patch. jsdom, used by the
+    # client tests, needs Node 22.22.2+ or 24.15+, so 22.12 is no longer enough
+    # to run the suite even though the app itself still runs on it.
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
     services:
       mongo:
         image: mongo:7
@@ -21,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.12'
+          node-version: ${{ matrix.node }}
           cache: 'npm'
       - run: npm ci
       - run: npm run build
@@ -44,7 +51,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-output
+          name: test-output-node-${{ matrix.node }}
           path: test-output.txt
 
   audit:
@@ -53,7 +60,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.12'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
       - run: npm audit --audit-level=high

@@ -14,7 +14,7 @@
     "dev:server": "npm run dev --workspace server",
     "build": "npm run build --workspace client",
     "start": "npm start --workspace server",
-    "test": "node --test server/tests/*.test.js"
+    "test": "node --test --test-reporter=spec server/tests/*.test.js"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
