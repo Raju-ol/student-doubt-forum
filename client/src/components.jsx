@@ -1,0 +1,27 @@
+import React, { useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from './context';
+import { api } from './api';
+export const subjects = ['Data Structures', 'DBMS', 'Java', 'Operating Systems', 'Computer Networks', 'Mathematics', 'Web Development', 'Other'];
+export const date = value => new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+export function Mark({ small = false }) { return <span className={`brand ${small ? 'brand--small' : ''}`}><span className="brand__icon">?</span><span>Doubt<span className="brand__accent">Forum</span></span></span>; }
+export function Navbar() {
+  const { user, logout } = useAuth(); const navigate = useNavigate();
+  return <header className="header"><div className="header__inner"><Link to="/" aria-label="Doubt Forum home"><Mark /></Link><nav aria-label="Main navigation"><NavLink to="/" end>Explore</NavLink>{user?.role === 'admin' && <NavLink to="/admin">Moderation</NavLink>}<Link className="button button--small" to="/ask">+ Ask a doubt</Link>{user ? <><Link className="user-link" to={`/users/${user._id}`}><Avatar name={user.name} /><span>{user.name.split(' ')[0]}</span></Link><button className="text-button" onClick={() => { logout(); navigate('/'); }}>Sign out</button></> : <Link className="text-button" to="/login">Sign in</Link>}</nav></div></header>;
+}
+export function Avatar({ name = '?', large = false }) { return <span className={`avatar ${large ? 'avatar--large' : ''}`} aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>; }
+export function Badge({ role }) { return role === 'teacher' || role === 'admin' ? <span className={`badge badge--${role}`}>{role === 'teacher' ? '✓ Teacher' : 'Admin'}</span> : null; }
+export function Author({ user, createdAt }) { return <div className="author"><Avatar name={user?.name || 'Deleted user'} /><Link to={user ? `/users/${user._id}` : '/'}>{user?.name || 'Deleted user'}</Link><Badge role={user?.role} />{createdAt && <span className="muted">{date(createdAt)}</span>}</div>; }
+export function ErrorBox({ message }) { return message ? <div className="error" role="alert">{message}</div> : null; }
+export function Loading() { return <div className="state" role="status"><span className="spinner" /> Loading…</div>; }
+export function Empty({ title = 'No doubts here yet', children }) { return <div className="empty"><span className="empty__icon">?</span><h3>{title}</h3><p className="muted">{children || 'Start the conversation. Your question could help someone else, too.'}</p></div>; }
+export function Tags({ values = [] }) { return <div className="tags">{values.map(tag => <Link key={tag} className="tag" to={`/?tag=${encodeURIComponent(tag)}`}>{tag}</Link>)}</div>; }
+export function DoubtCard({ doubt }) { return <article className="doubt-card"><div className="doubt-card__stats"><span><strong>{doubt.votes}</strong> votes</span><span className={doubt.status === 'solved' ? 'doubt-card__solved' : ''}><strong>{doubt.answerCount}</strong> answers</span></div><div className="doubt-card__main"><div className="eyebrow"><span>{doubt.subject}</span><span>Semester {doubt.semester}</span>{doubt.status === 'solved' && <span className="badge badge--solved">✓ Solved</span>}</div><h2><Link to={`/doubts/${doubt._id}`}>{doubt.title}</Link></h2><p className="doubt-card__preview">{doubt.body}</p><Tags values={doubt.tags} /><Author user={doubt.author} createdAt={doubt.createdAt} /></div></article>; }
+export function Pager({ page, pages, onChange }) { return pages > 1 && <div className="pager"><button className="button button--secondary" disabled={page <= 1} onClick={() => onChange(page - 1)}>← Previous</button><span>Page {page} of {pages}</span><button className="button button--secondary" disabled={page >= pages} onClick={() => onChange(page + 1)}>Next →</button></div>; }
+export function VoteButtons({ item, type, refresh }) {
+  const { token, user, notify } = useAuth(); const navigate = useNavigate(); const [busy, setBusy] = useState(false);
+  async function vote(value) { if (!user) { navigate('/login'); return; } setBusy(true); try { await api(`/${type}s/${item._id}/vote`, { method: 'POST', token, body: { value } }); await refresh(); } catch (error) { notify(error.message); } finally { setBusy(false); } }
+  return <div className="vote" aria-label="Voting"><button aria-label="Upvote" aria-pressed={item.myVote === 1} disabled={busy || item.author?._id === user?._id} onClick={() => vote(1)}>▲</button><strong>{item.votes}</strong><button aria-label="Downvote" aria-pressed={item.myVote === -1} disabled={busy || item.author?._id === user?._id} onClick={() => vote(-1)}>▼</button></div>;
+}
+export function Protected({ children, admin = false }) { const { user, loading } = useAuth(); if (loading) return <Loading />; if (!user) return <div className="panel state"><h2>Join the conversation</h2><p>Sign in to ask questions and help other students.</p><Link className="button" to="/login">Sign in</Link></div>; if (admin && user.role !== 'admin') return <ErrorBox message="This page is for administrators." />; return children; }
+export function SemesterSelect({ value, onChange, id = 'semester', defaultValue }) { return <select id={id} name="semester" value={value} defaultValue={defaultValue} onChange={onChange} required>{Array.from({ length: 8 }, (_, i) => <option key={i + 1} value={i + 1}>Semester {i + 1}</option>)}</select>; }
