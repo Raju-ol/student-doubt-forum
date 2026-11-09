@@ -25,7 +25,11 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build
+      # shell: bash is required, not cosmetic: the default run shell lacks
+      # pipefail, so `npm test | tee` would report tee's exit code and a
+      # failing suite would pass silently.
       - name: Test
+        shell: bash
         run: npm test 2>&1 | tee test-output.txt
         env:
           MONGO_TEST_URI: mongodb://127.0.0.1:27017
