@@ -27,8 +27,8 @@ proposal; this table and docs/CONTINUE_HERE.md describe current implementation.
 | Full original roadmap beyond the handoff scope | Still proposals; see pending items in docs/CONTINUE_HERE.md |
 
 Latest local result: **75 tests pass**, build passes, npm audit 0 vulnerabilities.
-CI at f50d427 passed on Node 22/24 plus audit. Final follow-up commits need their
-own exact-commit CI verification. No claim of load testing or full legal/WCAG compliance.
+Final code commit c6e559a passed CI on Node 22/24 plus audit (run 42612388866);
+Vercel deployment completed. This record is a documentation-only follow-up. No claim of load testing or full legal/WCAG compliance.
 
 ---
 

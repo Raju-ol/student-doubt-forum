@@ -51,8 +51,9 @@ screenshots, git or this document mein paste na karein.
 ## Validation snapshot
 
 - Local **75 tests pass**, production build passes, npm audit reports **0 vulnerabilities**.
-- CI for feature commit f50d427: [run 42611361164](https://github.com/Raju-ol/student-doubt-forum/actions/runs/42611361164)
-  succeeded for Node 22, Node 24 and audit. Later commits need their own CI check.
+- CI for final code commit c6e559a: [run 42612388866](https://github.com/Raju-ol/student-doubt-forum/actions/runs/42612388866)
+  succeeded for Node 22, Node 24 and audit. Vercel reports deployment completed.
+  This validation record is a documentation-only follow-up to that code commit.
 - Live health returned database connected + rateLimitStore=redis; protected feed
   returned 200. Subjects returned 30; institutions returned 0; all-feed 1 existing
   question at the time of check. These counts are observations, not fixed limits.

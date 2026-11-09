@@ -3,7 +3,7 @@
 ## Latest verification — 9 November 2026
 
 75 tests pass, production build passes, npm audit reports 0 vulnerabilities.
-CI at f50d427 passed Node 22 and 24 plus audit. Live Redis health/protected feed,
+CI at final code commit c6e559a passed Node 22 and 24 plus audit: [run 42612388866](https://github.com/Raju-ol/student-doubt-forum/actions/runs/42612388866). Vercel deployment completed. Live Redis health/protected feed,
 30-subject catalogue, empty institution catalogue, optional signup fields,
 worldwide subject + legacy semester filtering and mobile width checked. Dark
 persistence and Markdown maths/code preview verified. Additional regression
