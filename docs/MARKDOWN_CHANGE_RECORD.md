@@ -92,6 +92,29 @@ readable post and never an unsafe one.
   `'unsafe-inline'` and `font-src` includes `'self'`, so KaTeX's inline styles and bundled
   fonts are not blocked, while `script-src` stays `'self'`.
 
+## CI follow-up
+
+The first CI run on `6bcd2ae` failed on Linux although every test passed locally. The cause was
+jsdom 31, which requires Node 22.22.2+ or 24.15+, while CI pinned Node 22.12; all three
+jsdom-based test files failed there. The owner's laptop runs Node 24.19, which is why the
+failure did not reproduce locally.
+
+Diagnosing it took four further commits, and two of those introduced problems of their own:
+
+- `ac5749b` tried to surface failures as annotations, because job logs need a token to read.
+  A literal newline slipped into a quoted shell string and made the workflow invalid YAML, so
+  no jobs ran at all.
+- `17958ee` fixed the YAML but piped `npm test` into `tee` without `pipefail`, which the
+  default `run` shell does not set. That run reported green while the suite was still failing.
+  It was a **false pass**.
+- `aff0686` declared `shell: bash` to restore `pipefail`; the run then failed honestly.
+- `c262778` fixed the cause: CI now tests on the latest Node 22 and Node 24 in a matrix, and
+  `npm test` pins `--test-reporter=spec`, because Node 22 switches to TAP output when piped,
+  which had left the failure annotation empty.
+
+Run 42601860245 on `c262778` passed `test (22)`, `test (24)` and `audit`. The README now states
+the Node requirement for running the suite; the application itself still runs on 22.12+.
+
 ## Not verified
 
 - **No browser check.** Nothing here has been opened in a real browser. The components
@@ -100,7 +123,7 @@ readable post and never an unsafe one.
   unconfirmed. This is the main thing to check next.
 - Keyboard behaviour is asserted structurally (roving tabindex, arrow-key handler) but was
   not exercised with a real keyboard or a screen reader.
-- Not deployed or checked live at the time of writing.
+- Deployed to production by the push of `6bcd2ae`. The live site serves the new main bundle and the lazily loaded `markdown-view` chunk returns HTTP 200; that confirms delivery, not appearance.
 - The server still accepts any text in `body`; no server-side Markdown validation was added,
   and none is needed, because rendering and sanitising happen in the browser and the stored
   value is plain text.
