@@ -7,6 +7,13 @@ import { markdownToText } from '../../client/src/excerpt.js';
 const render = createMarkdownRenderer(new JSDOM('').window);
 
 test('Markdown rendering is safe and preserves existing plain text', async t => {
+  await t.test('raw HTML cannot position an overlay or impersonate application controls', () => {
+    const source = '<span class="katex" style="position:fixed;inset:0;z-index:999999">Sign in here</span>';
+    const document = new JSDOM(render(source)).window.document;
+    assert.equal(document.querySelector('[style], .katex'), null);
+    assert.ok(document.body.textContent.includes('Sign in here'));
+    assert.ok(new JSDOM(render('$x^2$')).window.document.querySelector('.katex'));
+  });
   await t.test('plain text posted before Markdown still reads correctly', () => {
     const html = render('I tried a loop but it crashed.\nWhat am I missing?');
     assert.match(html, /I tried a loop but it crashed\./);
@@ -92,7 +99,6 @@ test('Markdown rendering is safe and preserves existing plain text', async t => 
       assert.ok(!/<script/i.test(html), `script survived: ${attack}`);
       assert.ok(!/<iframe/i.test(html), `iframe survived: ${attack}`);
       assert.ok(!/<object|<embed|<form|<input|<style/i.test(html), `dangerous tag survived: ${attack}`);
-      assert.ok(!/\son\w+\s*=/i.test(html), `event handler survived: ${attack}`);
       // Inspect the parsed result rather than the string: a blocked payload may
       // survive as inert text, which is harmless, but no element may end up
       // with an attribute that actually navigates or executes.

@@ -80,4 +80,13 @@ test('test-only recovery is restricted to one recipient without gating other use
   await request('/auth/reset-password', { token, password: 'NewOwnerPassword123' }, null, 400);
   process.env.EMAIL_TEST_RECIPIENT = 'invalid';
   await request('/auth/forgot-password', { email: 'owner@example.test' }, null, 503);
+  process.env.EMAIL_RECOVERY_ENABLED = '1';
+  t.after(() => { delete process.env.EMAIL_RECOVERY_ENABLED; });
+  await request('/auth/forgot-password', { email: 'other@example.test' });
+  assert.equal(messages.at(-1).to, 'other@example.test');
+  const publicToken = messages.at(-1).text.match(/#([a-f0-9]{64})/)[1];
+  await request('/auth/reset-password', { token: publicToken, password: 'PublicRecoveryPass123' });
+  const login = (await request('/auth/login', { email: 'other@example.test', password: 'PublicRecoveryPass123' })).data;
+  assert.equal(login.user.verificationRequired, false);
+  await request('/doubts', { title: 'Recovery does not gate posting', body: 'Users can recover passwords without mandatory email verification being activated.', subject: 'DBMS' }, login.token, 201);
 });

@@ -58,6 +58,9 @@ export function createMarkdownRenderer(windowRef = globalThis.window) {
     // under `white-space: pre-wrap`.
     breaks: true,
     renderer: {
+      // User HTML must not inherit the inline styles needed by generated KaTeX.
+      // In particular, a positioned span could cover the application's controls.
+      html({ text }) { return escapeHtml(text); },
       code({ text, lang }) {
         const language = String(lang || '').trim().split(/\s+/)[0].toLowerCase();
         const known = language && hljs.getLanguage(language);

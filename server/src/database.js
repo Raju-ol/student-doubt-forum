@@ -1,6 +1,25 @@
 import mongoose from 'mongoose';
 
-let connectionPromise;
+// Cache only an in-flight attempt. A resolved promise must not mask a later
+// disconnect in a warm serverless instance.
+export function connectionManager(driver, initialize) {
+  let pending;
+  return async function connect(uri, options) {
+    if (pending) return pending;
+    if (driver.connection.readyState === 1) return;
+    pending = (async () => {
+      try {
+        await driver.connect(uri, options);
+        await initialize();
+      } catch (error) {
+        try { await driver.disconnect(); } catch { /* Preserve the original failure. */ }
+        throw error;
+      }
+    })();
+    try { await pending; } finally { pending = undefined; }
+  };
+}
+const connect = connectionManager(mongoose, () => Promise.all(Object.values(mongoose.models).map(model => model.init())));
 
 export function validateConfiguration() {
   if (!process.env.MONGO_URI) throw Object.assign(new Error('Set MONGO_URI in the private server configuration.'), { code: 'MONGO_URI_MISSING' });
@@ -20,21 +39,10 @@ export function connectionErrorCode(error) {
 
 export async function connectDatabase() {
   validateConfiguration();
-  if (mongoose.connection.readyState === 1 && !connectionPromise) return;
-  // Reuse a connection across requests within a warm Vercel function instance.
-  if (!connectionPromise) {
-    connectionPromise = mongoose.connect(process.env.MONGO_URI, {
+  await connect(process.env.MONGO_URI, {
       // Match the Atlas readWrite grant even when the copied URI ends in '/'.
       dbName: 'student_doubt_forum',
       serverSelectionTimeoutMS: 10000,
       maxPoolSize: 2
-    }).then(async () => {
-      await Promise.all(Object.values(mongoose.models).map(model => model.init()));
-    }).catch(async error => {
-      await mongoose.disconnect();
-      connectionPromise = undefined;
-      throw error;
     });
-  }
-  await connectionPromise;
 }

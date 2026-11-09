@@ -1,5 +1,20 @@
 # Student Doubt Forum — current handoff
 
+## Production hardening review — 10 November 2026
+
+Current review and remaining launch gates: [PRODUCTION_READINESS_REVIEW.md](PRODUCTION_READINESS_REVIEW.md).
+Local regression: **86 tests pass**, production build passes, production
+`npm audit --omit=dev` reports 0 known vulnerabilities. Fixes cover static-page
+security headers, API no-store, raw-HTML style overlays, reconnect handling,
+transient auth lookup errors, invalid JSON bodies, blocked browser storage,
+independent email-recovery activation and per-account content-write limits.
+`npm run check:production` is a low-volume read-only deployment check.
+No provider secrets, live email switches, Atlas rules or production data were
+changed. All-user email, durable networking, backup/restore, staging/release
+controls and data-consistency work remain launch gates. Earlier counts below
+are historical; this is still a limited beta, not a fully certified launch.
+
+
 Updated 10 November 2026. Read this before older plan/history files. Code is the
 authority; some historical sections intentionally describe earlier versions.
 

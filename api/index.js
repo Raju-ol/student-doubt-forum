@@ -4,6 +4,7 @@ import { connectDatabase, connectionErrorCode } from '../server/src/database.js'
 const app = createApp({ serveClient: false });
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   try {
     await connectDatabase();
   } catch (error) {

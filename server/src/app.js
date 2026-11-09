@@ -1,4 +1,5 @@
 import express from 'express';
+import { verificationRequired } from './email-policy.js';
 import cors from 'cors';
 import helmet from 'helmet';
 import { createLimiterFactory } from './rate-limits.js';
@@ -29,7 +30,15 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   if (process.env.TRUST_PROXY === '1' || process.env.VERCEL === '1') app.set('trust proxy', 1);
   app.use(helmet({ contentSecurityPolicy: { directives: { 'img-src': ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'], 'script-src': ["'self'"], 'upgrade-insecure-requests': process.env.NODE_ENV === 'production' ? [] : null } } }));
   app.use(cors({ origin: process.env.CLIENT_URL || 'http://127.0.0.1:5173' }));
+  app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'private, no-store, max-age=0'); next(); });
   app.use(express.json({ limit: '100kb' }));
+  app.use('/api', (req, res, next) => {
+    if (!req.is('multipart/form-data') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (req.body === undefined) req.body = {};
+      if (!req.body || Array.isArray(req.body) || typeof req.body !== 'object') return next(Object.assign(new Error('Send a JSON object.'), { status: 400 }));
+    }
+    next();
+  });
   cloudinary.config({ cloud_name: process.env.CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });
   const api = express.Router();
   app.use('/api/v1', api);
@@ -38,13 +47,24 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     ok(res, { database: 'connected', rateLimitStore: limiter.mode }, 'Doubt Forum API is running.');
   });
   api.use(limiter('api', 600, 15 * 60 * 1000), wrap(identify));
+  const contentWriteLimit = limiter('content-write', 120, 15 * 60 * 1000, { account: true });
+  const contentCreateLimit = limiter('content-create', 60, 60 * 60 * 1000, { account: true });
+  api.use((req, res, next) => {
+    if (!req.user || !['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) || !/^\/(doubts|answers|reports|uploads|users\/me)(\/|$)/.test(req.path)) return next();
+    contentWriteLimit(req, res, error => {
+      if (error) return next(error);
+      const createsContent = req.method === 'POST' && (req.path === '/doubts' || /^\/doubts\/[^/]+\/answers$/.test(req.path) || /^\/answers\/[^/]+\/comments$/.test(req.path));
+      if (createsContent) return contentCreateLimit(req, res, next);
+      next();
+    });
+  });
   const authLimit = limiter('auth', 30, 15 * 60 * 1000);
   const authEmailLimit = limiter('auth-email', 30, 15 * 60 * 1000, { email: true });
   api.post('/auth/signup', authLimit, authEmailLimit, wrap(async (req, res) => {
     const fields = { name: text(req.body.name, 'Name', 2, 60), email: email(req.body.email), ...academicFields(req.body), ...await institutionFields(req.body) };
     const hash = await bcrypt.hash(password(req.body.password), 12);
     const user = await User.create({ ...fields, passwordHash: hash, reputation: 0 });
-    if (process.env.EMAIL_ENABLED === '1') { try { await issueEmail(user, 'verify', sendEmail); } catch { console.error('Email delivery failed: signup_verification'); } }
+    if (verificationRequired()) { try { await issueEmail(user, 'verify', sendEmail); } catch { console.error('Email delivery failed: signup_verification'); } }
     ok(res, { user: safeUser(user), token: tokenFor(user) }, 'Welcome to Doubt Forum!', 201);
   }));
   api.post('/auth/login', authLimit, authEmailLimit, wrap(async (req, res) => {
