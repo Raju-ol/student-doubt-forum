@@ -25,19 +25,17 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build
-      # Job logs need a token to read, so a failure is also raised as an
-      # annotation, which is visible on the run without one.
       - name: Test
-        run: |
-          set -o pipefail
-          if ! npm test 2>&1 | tee test-output.txt; then
-            echo "::error::$(tail -c 3500 test-output.txt | tr '
-' '  ' | sed 's/::/;;/g')"
-            exit 1
-          fi
+        run: npm test 2>&1 | tee test-output.txt
         env:
           MONGO_TEST_URI: mongodb://127.0.0.1:27017
           JWT_SECRET: ci-only-secret-at-least-thirty-two-characters-long
+      # Job logs need a token to read, so the failing output is also raised as
+      # an annotation and kept as an artifact, both readable without one.
+      - name: Report failing tests
+        if: failure()
+        run: |
+          echo "::error::$(grep -a -A4 'failing tests' test-output.txt | head -c 2000 | tr -d '\r' | tr '\n' ' ' | sed 's/::/;;/g')"
       - name: Upload test output
         if: failure()
         uses: actions/upload-artifact@v4
