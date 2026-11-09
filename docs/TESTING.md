@@ -97,3 +97,6 @@ Owner-only email recovery: 76 tests/build pass; recipient/token restrictions and
 
 10 November: cycling theme button replaces dropdown. 77 tests pass/build succeeds. DOM click-cycle/persistence/media cleanup checked; browser check follows deployment.
 
+
+Theme cycle live check: all three modes, Enter/Space, reload persistence and mobile width passed on 6894467. See THEME_CHANGE_RECORD.md.
+
