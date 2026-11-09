@@ -1,5 +1,7 @@
 # Verification record
 
+For delegated manual testing, use [TESTER_PLAYBOOK.md](TESTER_PLAYBOOK.md): full browser checklist, conditional owner/staging cases and bug/report templates.
+
 ## Latest verification — 9 November 2026
 
 75 tests pass, production build passes, npm audit reports 0 vulnerabilities.
