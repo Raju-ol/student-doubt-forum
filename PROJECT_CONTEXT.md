@@ -1,5 +1,7 @@
 # Student Doubt Forum
 
+9 November: Database maxPoolSize reduced to two after 62-test/build regression run. This is per instance, not a cap on total serverless connections. See CONNECTION_POOL_CHANGE_RECORD.md.
+
 9 November: Session invalidation added via tokenVersion and POST /auth/logout-all, with own-profile UI. Full suite 62 passes/build passed. Legacy JWTs accepted only at version zero; revoked tokens fail immediately. No live multi-device acceptance yet.
 
 9 November 2026: Owner explicitly authorized autonomous commits/pushes after checks (main deploys without waiting for CI). Reputation optimization implemented with lazy history-preserving initialization, atomic deltas/CAS mutations and explicit dry-run reconciliation. Full local suite 61 passes/build passed. Production writes/backfill unrun; see docs/REPUTATION_CHANGE_RECORD.md. Do not claim full global-roadmap completion.

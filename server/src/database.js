@@ -27,7 +27,7 @@ export async function connectDatabase() {
       // Match the Atlas readWrite grant even when the copied URI ends in '/'.
       dbName: 'student_doubt_forum',
       serverSelectionTimeoutMS: 10000,
-      maxPoolSize: 5
+      maxPoolSize: 2
     }).then(async () => {
       await Promise.all(Object.values(mongoose.models).map(model => model.init()));
     }).catch(async error => {

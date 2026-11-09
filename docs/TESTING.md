@@ -1,5 +1,7 @@
 # Verification record
 
+Pool update: maxPoolSize=2, full local suite 62 passes/0 failures, production build passed. Live traffic/connection saturation not measured.
+
 Session invalidation update, 9 November: 62 passes/0 failures and production build passed. Tests include legacy JWT compatibility, revocation of all old tokens and a working fresh login. Production/browser multi-device testing remains unrun.
 
 ## 9 November reputation update
