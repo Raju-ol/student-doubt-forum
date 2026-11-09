@@ -20,3 +20,6 @@ values and maps dark tones; every component/state still needs visual review.
 
 Local IAB preview could not reach 127.0.0.1:5173 (connection timeout). Live visual
 check follows deployment. No claim of complete browser/accessibility coverage.
+
+Live visual check complete: dark feed reviewed, 390px viewport has 375px content width and matching scroll width (no horizontal page overflow). Reload retained Dark selection. Restored System afterward. Screenshot saved locally as dark-theme-qa.png in the parent workspace. Authenticated editor/moderation dark states are not all visually audited.
+

@@ -7,6 +7,7 @@ import { EDITOR_TOOLS, applyTool, EDITOR_TABS, nextTab } from './editor';
 import { signInPath } from './navigation';
 import { ThemeControl } from './theme-control';
 import { NotificationBell } from './notifications';
+export { TabList } from './tab-list';
 export const subjects = ['Data Structures', 'DBMS', 'Java', 'Operating Systems', 'Computer Networks', 'Mathematics', 'Web Development', 'Other'];
 export const date = value => new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 export function Mark({ small = false }) { return <span className={`brand ${small ? 'brand--small' : ''}`}><span className="brand__icon">?</span><span>Doubt<span className="brand__accent">Forum</span></span></span>; }

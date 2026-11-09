@@ -24,13 +24,35 @@ await build({
   external: ['react', 'react-dom', 'react-dom/*', 'react/*', 'react-router-dom'],
   define: { 'import.meta.env.VITE_API_URL': '""' }, logLevel: 'silent'
 });
-const { Markdown, MarkdownEditor } = await import(pathToFileURL(outfile).href);
+const { Markdown, MarkdownEditor, TabList } = await import(pathToFileURL(outfile).href);
 test.after(() => rm(directory, { recursive: true, force: true }));
 
 // The renderer is loaded lazily in the browser, so static rendering shows the
 // plain-text fallback. Mount into jsdom when the rendered HTML is what matters.
 const dom = new JSDOM('<!doctype html><div id="root"></div>');
 const markup = node => renderToStaticMarkup(node);
+
+test('tabs move focus and selected panel association with the keyboard', async () => {
+  const { createRoot } = await import('react-dom/client');
+  const previousWindow = globalThis.window, previousDocument = globalThis.document;
+  globalThis.window = dom.window; globalThis.document = dom.window.document; globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  const host = dom.window.document.createElement('div'); dom.window.document.body.append(host);
+  const root = createRoot(host);
+  function Harness() {
+    const [value, setValue] = React.useState('users');
+    return React.createElement(TabList, { id: 'test-tabs', label: 'Sections', value, onChange: setValue, items: [{ value: 'users', label: 'Users' }, { value: 'reports', label: 'Reports' }] });
+  }
+  try {
+    await React.act(async () => root.render(React.createElement(Harness)));
+    const buttons = host.querySelectorAll('[role=tab]'); buttons[0].focus();
+    assert.equal(buttons[0].tabIndex, 0); assert.equal(buttons[1].tabIndex, -1);
+    await React.act(async () => buttons[0].dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })));
+    assert.equal(dom.window.document.activeElement, buttons[1]); assert.equal(buttons[1].getAttribute('aria-selected'), 'true'); assert.equal(buttons[0].tabIndex, -1);
+    assert.equal(buttons[1].getAttribute('aria-controls'), 'test-tabs-panel');
+    await React.act(async () => buttons[1].dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Home', bubbles: true })));
+    assert.equal(dom.window.document.activeElement, buttons[0]); assert.equal(buttons[0].getAttribute('aria-selected'), 'true');
+  } finally { await React.act(async () => root.unmount()); host.remove(); globalThis.window = previousWindow; globalThis.document = previousDocument; delete globalThis.IS_REACT_ACT_ENVIRONMENT; }
+});
 
 test('Markdown components render', async t => {
   await t.test('a body renders as readable text before the renderer loads', () => {

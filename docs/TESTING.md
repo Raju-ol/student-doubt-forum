@@ -67,3 +67,6 @@ Theme support: 69 tests/build pass, preference/storage fallback and selected dar
 
 Notifications: 70 tests/build pass, private inbox and event flows verified locally. Live alert mutations not performed. See NOTIFICATION_CHANGE_RECORD.md.
 
+
+Tabs: 72 tests/build pass; real DOM focus/selection checked. Theme: live dark feed/mobile overflow and reload persistence checked; full authenticated dark-screen audit pending.
+

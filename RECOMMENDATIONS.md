@@ -609,3 +609,6 @@ Dark mode implemented 9 November: 69 tests/build pass; centralized palette, Syst
 
 In-app notifications implemented: answer/comment/acceptance bell and private inbox, 70 tests/build pass. Mentions/email digest/push remain future work. docs/NOTIFICATION_CHANGE_RECORD.md.
 
+
+Accessible Profile/Admin tabs implemented: 72 tests/build pass, including real DOM keyboard focus checks. Dark theme live mobile persistence/overflow checked. docs/TABS_CHANGE_RECORD.md and THEME_CHANGE_RECORD.md.
+
