@@ -13,6 +13,7 @@ document is still a proposal.
 
 | Item | Status |
 |---|---|
+| §3.2 Indexed word search | **Implemented locally** — weighted title/body/tag text index, relevance ordering and deliberate stemming/non-substring tests. 62 tests passed; see SEARCH_CHANGE_RECORD.md |
 | §6.2 Connection pool | **Implemented locally** — maxPoolSize reduced from five to two; 62 tests/build passed. Live saturation/load remains unverified |
 | §3.7 Session invalidation | **Implemented locally** — token versions and Sign out everywhere; full suite 62 passes/build passed. Password reset/change remains separate work |
 | §3.4 Stored reputation | **Implemented locally** — atomic credit deltas, lazy legacy initialization and reconciliation dry-run script; 61 tests passed, build passed. See docs/REPUTATION_CHANGE_RECORD.md. Production migration not run |

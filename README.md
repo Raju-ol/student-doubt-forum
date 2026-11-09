@@ -4,6 +4,8 @@ A college question-and-answer application built with React, Express and MongoDB.
 
 ## Current status
 
+Search now matches whole words and English word stems in title/body/tags using a weighted database text index. Partial-word substring matching is no longer guaranteed. Existing filters remain supported. See docs/SEARCH_CHANGE_RECORD.md.
+
 Own profiles now offer Sign out everywhere. This revokes existing bearer tokens server-side using a per-account token version; normal Sign out remains tab-local. Password recovery is still pending an email service.
 
 Reputation is now a stored counter updated on votes, acceptance and deletion. Legacy accounts initialize lazily from historical data. For an explicit dry-run/reconciliation procedure and cross-collection consistency limits, read docs/REPUTATION_CHANGE_RECORD.md. No live backfill is required at startup or has been run by this change.

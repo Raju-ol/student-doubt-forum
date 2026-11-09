@@ -1,5 +1,7 @@
 # Student Doubt Forum
 
+9 November: Weighted English text search implemented locally, preserving filters while changing substring semantics to word/stem matches. Test suite 62 passes. No destructive index replacement or production backfill performed; see SEARCH_CHANGE_RECORD.md.
+
 9 November: Database maxPoolSize reduced to two after 62-test/build regression run. This is per instance, not a cap on total serverless connections. See CONNECTION_POOL_CHANGE_RECORD.md.
 
 9 November: Session invalidation added via tokenVersion and POST /auth/logout-all, with own-profile UI. Full suite 62 passes/build passed. Legacy JWTs accepted only at version zero; revoked tokens fail immediately. No live multi-device acceptance yet.

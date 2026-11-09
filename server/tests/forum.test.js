@@ -50,11 +50,15 @@ test('Student Doubt Forum integration flow', async t => {
     doubt = await request('/doubts', 'POST', { title: 'Why do we normalize database tables?', body: 'I understand tables but I am confused about database normalization and redundancy.', subject: 'DBMS', semester: 3, tags: ['SQL', 'normalization'], author: b.user._id }, a.token, 201);
     assert.equal(doubt.author, a.user._id);
   });
-  await t.test('search, filters, pagination and regex literals work', async () => {
+  await t.test('indexed word search, filters, pagination and punctuation work', async () => {
     const list = await request('/doubts?search=normalize&subject=DBMS&semester=3&tag=sql'); assert.equal(list.total, 1); assert.equal(list.items[0]._id, doubt._id);
     assert.equal((await request('/doubts?search=%5B')).total, 0);
     await request('/doubts?page=-1', 'GET', null, null, 400);
     await request('/doubts?search[x]=y', 'GET', null, null, 200);
+    assert.equal((await request('/doubts?search=normalizing')).total, 1);
+    assert.equal((await request('/doubts?search=normali')).total, 0);
+    assert.equal((await request('/doubts?search=sql')).total, 1);
+    assert.equal((await request('/doubts?search=normalize&subject=Java')).total, 0);
   });
   await t.test('invalid IDs and missing records return safe errors', async () => { await request('/doubts/nope', 'GET', null, null, 400); await request('/doubts/000000000000000000000000', 'GET', null, null, 404); });
   await t.test('non-owner edits/deletes and self-votes blocked', async () => { await request(`/doubts/${doubt._id}`, 'PUT', {}, b.token, 403); await request(`/doubts/${doubt._id}`, 'DELETE', null, b.token, 403); await request(`/doubts/${doubt._id}/vote`, 'POST', { value: 1 }, a.token, 403); });

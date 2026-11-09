@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import mongoose from 'mongoose';
 import { User, Doubt, Answer, Comment, Report, Upload } from './models.js';
-import { fail, text, semester, email, password, tags, positiveInt, escapeRegex } from './validation.js';
+import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, owns, safeUser, tokenFor } from './auth.js';
 import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
 
@@ -56,13 +56,14 @@ export function createApp({ serveClient = true } = {}) {
     const page = positiveInt(req.query.page, 1, 10000);
     const limit = positiveInt(req.query.limit, 10, 30);
     const filter = {};
-    if (req.query.search) { const search = new RegExp(escapeRegex(text(req.query.search, 'Search', 1, 120)), 'i'); filter.$or = [{ title: search }, { body: search }]; }
+    if (req.query.search) filter.$text = { $search: text(req.query.search, 'Search', 1, 120) };
     if (req.query.subject) filter.subject = text(req.query.subject, 'Subject', 1, 60);
     if (req.query.semester) filter.semester = semester(req.query.semester);
     if (req.query.tag) filter.tags = text(req.query.tag, 'Tag', 1, 24).toLowerCase();
     if (req.query.status === 'solved') filter.acceptedAnswer = { $ne: null };
     if (req.query.status === 'open') filter.acceptedAnswer = null;
-    const [docs, total] = await Promise.all([Doubt.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).populate('author', authorFields), Doubt.countDocuments(filter)]);
+    const query = filter.$text ? Doubt.find(filter, { searchScore: { $meta: 'textScore' } }).sort({ searchScore: { $meta: 'textScore' }, createdAt: -1, _id: -1 }) : Doubt.find(filter).sort({ createdAt: -1, _id: -1 });
+    const [docs, total] = await Promise.all([query.skip((page - 1) * limit).limit(limit).populate('author', authorFields), Doubt.countDocuments(filter)]);
     ok(res, { items: await decorateMany(docs, 'doubt', req.user), total, page, pages: Math.ceil(total / limit) });
   }));
   async function doubtFields(body) {

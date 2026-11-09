@@ -2,6 +2,8 @@
 
 Base: `/api/v1`. Success: `{ success: true, data, message }`. Error: `{ success: false, message }`. Protected routes use `Authorization: Bearer <token>`.
 
+`GET /doubts?search=...` uses weighted English MongoDB text search on title/body/tags, ranked by textScore. Whole-word/stem matches replace substring matching. Existing subject/semester/tag/status filters combine with search. No search retains newest-first order.
+
 POST `/auth/logout-all` (authenticated) revokes all existing JWTs for the current account, including the caller's token. Sign in again to obtain a new token. Normal client sign-out still only clears the current tab. JWT versions are checked against the account on every request.
 
 | Method | Path | Access / action |

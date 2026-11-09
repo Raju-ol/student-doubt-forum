@@ -33,6 +33,7 @@ doubtSchema.index({ semester: 1, createdAt: -1 });
 doubtSchema.index({ tags: 1, createdAt: -1 });
 doubtSchema.index({ acceptedAnswer: 1, createdAt: -1 });
 doubtSchema.index({ author: 1, createdAt: -1 });
+doubtSchema.index({ title: 'text', body: 'text', tags: 'text' }, { name: 'doubt_search', weights: { title: 10, tags: 5, body: 1 }, default_language: 'english' });
 const answerSchema = new Schema({ doubt: ref('Doubt'), body: { type: String, required: true, maxlength: 12000 }, author: ref('User') }, options);
 answerSchema.index({ doubt: 1, createdAt: 1 });
 // Profile page lists a user's latest answers.
