@@ -1,0 +1,52 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
+import mongoose from 'mongoose';
+import { createApp } from '../src/app.js';
+import { User, Doubt } from '../src/models.js';
+import { migrateInstitution } from '../src/institutions.js';
+
+test('college feeds scope public discovery and migration only fills explicit legacy mappings', async t => {
+  process.env.JWT_SECRET = randomBytes(48).toString('hex');
+  const dbName = `forum_test_${Date.now()}_${randomBytes(3).toString('hex')}`;
+  await mongoose.connect(process.env.MONGO_TEST_URI || 'mongodb://127.0.0.1:27017', { dbName });
+  const server = createApp().listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); if (!/^forum_test_\d+_[a-f0-9]{6}$/.test(mongoose.connection.name)) throw new Error('Unsafe database'); await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
+  const req = async (route, method = 'GET', body, token, expected = 200) => {
+    const r = await fetch(`http://127.0.0.1:${server.address().port}/api/v1${route}`, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    const b = await r.json(); assert.equal(r.status, expected, b.message); return b.data;
+  };
+  const signup = (email, extra = {}) => req('/auth/signup', 'POST', { name: 'College Student', email, password: 'College123', ...extra }, null, 201);
+  const admin = await signup('admin@example.test');
+  await req('/admin/institutions', 'POST', { name: 'Test College' }, admin.token, 403);
+  await User.updateOne({ _id: admin.user._id }, { role: 'admin' });
+  const a = await req('/admin/institutions', 'POST', { name: 'College A', country: 'in', isVerified: true }, admin.token, 201);
+  const b = await req('/admin/institutions', 'POST', { name: 'College B' }, admin.token, 201);
+  assert.equal(a.isVerified, false); assert.equal(a.country, 'IN');
+  await req('/admin/institutions', 'POST', { name: 'College A' }, admin.token, 409);
+  const learnerA = await signup('a@example.test', { institution: a._id }), learnerB = await signup('b@example.test', { institution: b._id });
+  await req('/auth/signup', 'POST', { name: 'Invalid', email: 'invalid@example.test', password: 'College123', institution: 'bad-id' }, null, 400);
+  const content = { title: 'How should a college database be organized?', body: 'Both college feeds should contain only their own tagged questions.', subject: 'DBMS' };
+  const postA = await req('/doubts', 'POST', { ...content, institution: b._id }, learnerA.token, 201);
+  await req('/doubts', 'POST', content, learnerB.token, 201);
+  assert.equal(postA.institution, a._id); // body cannot forge a different college
+  assert.equal((await req('/doubts', 'GET', null, learnerA.token)).total, 1);
+  assert.equal((await req('/doubts', 'GET', null, learnerB.token)).total, 1);
+  assert.equal((await req('/doubts?scope=all', 'GET', null, learnerA.token)).total, 2);
+  assert.equal((await req('/doubts?scope=subject&subject=Databases', 'GET', null, learnerA.token)).total, 2);
+  await req('/doubts?scope=college', 'GET', null, null, 401);
+  await req('/doubts?scope=college', 'GET', null, admin.token, 400);
+  await req('/doubts?scope=subject', 'GET', null, learnerA.token, 400);
+  await req('/doubts?scope=invalid', 'GET', null, null, 400);
+  const legacy = await User.create({ name: 'Legacy', email: 'legacy@example.test', passwordHash: 'test-unused', semester: 1 });
+  const old = await Doubt.create({ ...content, author: legacy._id, semester: 1 });
+  const explicitGlobal = await Doubt.create({ ...content, author: legacy._id, institution: null });
+  const plan = await migrateInstitution({ institution: a._id, userIds: [String(legacy._id)] });
+  assert.equal(plan.users, 1); assert.equal(plan.questions, 1); assert.equal((await Doubt.findById(old._id)).institution, undefined);
+  await migrateInstitution({ institution: a._id, userIds: [String(legacy._id)], apply: true });
+  assert.equal(String((await Doubt.findById(old._id)).institution), a._id);
+  assert.equal((await Doubt.findById(explicitGlobal._id)).institution, null);
+  assert.equal((await migrateInstitution({ institution: a._id, userIds: [String(legacy._id)], apply: true })).questions, 0);
+  await req('/users/me', 'PUT', { name: 'College Student', institution: b._id }, learnerA.token);
+  assert.equal((await req('/doubts', 'GET', null, learnerA.token)).total, 1);
+});

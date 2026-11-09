@@ -12,6 +12,7 @@ const userSchema = new Schema({
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
   semester: { type: Number, min: 1, max: 8 },
   academicLevel: { type: academicLevel, default: undefined },
+  institution: ref('Institution', false),
   // null identifies an existing account awaiting lazy initialisation/backfill.
   reputation: { type: Number, default: null },
   tokenVersion: { type: Number, default: 0, min: 0 },
@@ -28,6 +29,7 @@ const doubtSchema = new Schema({
   body: { type: String, required: true, maxlength: 12000 },
   subject: { type: String, required: true, maxlength: 60 },
   subjectId: ref('Subject', false),
+  institution: ref('Institution', false),
   semester: { type: Number, min: 1, max: 8 },
   academicLevel: { type: academicLevel, default: undefined },
   tags: [{ type: String, maxlength: 24 }],
@@ -40,6 +42,7 @@ doubtSchema.index({ createdAt: -1 });
 // One compound index per feed filter, each ending in the createdAt sort key.
 doubtSchema.index({ subject: 1, createdAt: -1 });
 doubtSchema.index({ subjectId: 1, createdAt: -1 });
+doubtSchema.index({ institution: 1, createdAt: -1 });
 doubtSchema.index({ semester: 1, createdAt: -1 });
 doubtSchema.index({ 'academicLevel.system': 1, 'academicLevel.index': 1, createdAt: -1 });
 doubtSchema.index({ tags: 1, createdAt: -1 });
@@ -75,3 +78,5 @@ export const Notification = mongoose.model('Notification', notificationSchema);
 const subjectSchema = new Schema({ name: { type: String, required: true, maxlength: 60 }, slug: { type: String, required: true, unique: true }, aliases: [String], keys: { type: [String], required: true }, field: { type: String, maxlength: 60 }, icon: { type: String, maxlength: 8 } }, options);
 subjectSchema.index({ keys: 1 }, { unique: true });
 export const Subject = mongoose.model('Subject', subjectSchema);
+const institutionSchema = new Schema({ name: { type: String, required: true, maxlength: 140 }, slug: { type: String, required: true, unique: true }, country: { type: String, maxlength: 2 }, isVerified: { type: Boolean, default: false } }, options);
+export const Institution = mongoose.model('Institution', institutionSchema);

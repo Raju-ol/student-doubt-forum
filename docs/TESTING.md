@@ -76,3 +76,6 @@ Academic levels: 73 tests/build pass; mixed legacy/new fixture migration dry-run
 
 Subjects: 74 tests/build pass. Alias/collision permissions and guarded fixture migration verified; live admin mutation and production-data copy migration not tested. SUBJECT_CATALOG_CHANGE_RECORD.md.
 
+
+Institutions: 75 tests/build pass, permission/scope/mapping tests in disposable DB. No live membership/college addition or migration performed. INSTITUTION_CHANGE_RECORD.md.
+

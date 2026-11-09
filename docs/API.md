@@ -55,3 +55,6 @@ Academic levels: signup/profile/question accept optional academicLevel {system,i
 
 GET /subjects returns public catalogue (max 500). POST /admin/subjects {name,slug?,aliases?,field?,icon?} requires admin. Known subject aliases canonicalize question writes and filter reads; legacy unknown text accepted. SUBJECT_CATALOG_CHANGE_RECORD.md.
 
+
+Institutions: GET /institutions, admin POST /admin/institutions {name,slug?,country?}. Signup/profile optional institution ID/null. Feed scope=college|subject|all; college defaults for members with a selection, subject requires subject query. All posts remain public. New question inherits user's institution (explicit null selects global), edit preserves original scope. INSTITUTION_CHANGE_RECORD.md.
+

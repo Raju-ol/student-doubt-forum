@@ -7,8 +7,11 @@ export function Provider({ children }) {
   const [loading, setLoading] = useState(Boolean(token));
   const [notice, setNotice] = useState('');
   const [subjects, setSubjects] = useState([]);
+  const [institutions, setInstitutions] = useState([]);
+  const refreshInstitutions = () => api('/institutions').then(setInstitutions).catch(() => setNotice('College catalogue could not load. Refresh the page to try again.'));
   const refreshSubjects = () => api('/subjects').then(setSubjects).catch(() => setNotice('Subject catalogue could not load. Refresh the page to try again.'));
   useEffect(() => { refreshSubjects(); }, []);
+  useEffect(() => { refreshInstitutions(); }, []);
   useEffect(() => {
     if (!token) { setUser(null); setLoading(false); return; }
     let active = true;
@@ -18,6 +21,6 @@ export function Provider({ children }) {
   useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(''), 6500); return () => clearTimeout(timer); }, [notice]);
   function login(data) { sessionStorage.setItem('forum-token', data.token); setUser(data.user); setToken(data.token); }
   function logout() { sessionStorage.removeItem('forum-token'); setToken(''); setUser(null); setNotice('You have signed out.'); }
-  return <Context.Provider value={{ token, user, loading, login, logout, setUser, subjects, refreshSubjects, notify: setNotice }}>{children}{notice && <div className="toast" role="status">{notice}<button aria-label="Dismiss notification" onClick={() => setNotice('')}>×</button></div>}</Context.Provider>;
+  return <Context.Provider value={{ token, user, loading, login, logout, setUser, subjects, refreshSubjects, institutions, refreshInstitutions, notify: setNotice }}>{children}{notice && <div className="toast" role="status">{notice}<button aria-label="Dismiss notification" onClick={() => setNotice('')}>×</button></div>}</Context.Provider>;
 }
 export const useAuth = () => useContext(Context);

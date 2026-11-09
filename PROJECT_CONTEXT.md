@@ -69,3 +69,6 @@ Optional academicLevel replaces mandatory semester for new signup/questions. Leg
 
 Subject catalogue replaces hard-coded client list, with 30 additive starter seeds, normalized unique aliases, canonical subjectId and admin additions. 74 tests/build pass. Existing question migration remains explicit/pending. docs/SUBJECT_CATALOG_CHANGE_RECORD.md.
 
+
+Optional self-reported institution metadata, admin college catalogue and college/subject-worldwide/all feed scopes implemented. 75 tests/build pass. Explicit legacy mapping migration is dry-run by default and not run on production. docs/INSTITUTION_CHANGE_RECORD.md.
+

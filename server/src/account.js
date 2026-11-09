@@ -10,9 +10,9 @@ export function mountAccountRoutes(api, { limiter, wrap, ok, cloudinary }) {
     res.setHeader('Content-Disposition', 'attachment; filename="doubt-forum-data.ndjson"');
     res.setHeader('Cache-Control', 'no-store');
     // Explicit allow-list: no password hash, token version or recovery hashes.
-    res.write(JSON.stringify({ type: 'account', data: { id: req.user._id, name: req.user.name, email: req.user.email, role: req.user.role, semester: req.user.semester, academicLevel: req.user.academicLevel, createdAt: req.user.createdAt } }) + '\n');
+    res.write(JSON.stringify({ type: 'account', data: { id: req.user._id, name: req.user.name, email: req.user.email, role: req.user.role, semester: req.user.semester, academicLevel: req.user.academicLevel, institution: req.user.institution, createdAt: req.user.createdAt } }) + '\n');
     const lists = [
-      ['question', Doubt, { author: req.user._id }, 'title body subject semester academicLevel tags images author acceptedAnswer createdAt updatedAt'],
+      ['question', Doubt, { author: req.user._id }, 'title body subject subjectId institution semester academicLevel tags images author acceptedAnswer createdAt updatedAt'],
       ['answer', Answer, { author: req.user._id }, 'doubt body author createdAt updatedAt'],
       ['comment', Comment, { author: req.user._id }, 'answer body author createdAt updatedAt'],
       ['vote', Vote, { user: req.user._id }, 'targetType target value createdAt updatedAt'],
@@ -46,7 +46,7 @@ export function mountAccountRoutes(api, { limiter, wrap, ok, cloudinary }) {
       await Upload.deleteOne({ _id: upload._id, owner: user._id });
     }
     const removed = await User.findOneAndUpdate({ _id: user._id, passwordHash: user.passwordHash, isDeleted: { $ne: true } }, {
-      $set: { name: 'Deleted user', email: `deleted-${user._id}-${randomBytes(8).toString('hex')}@deleted.invalid`, passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12), role: 'student', isDeleted: true, deletedAt: new Date(), emailVerifiedAt: null, isBanned: true },
+      $set: { name: 'Deleted user', email: `deleted-${user._id}-${randomBytes(8).toString('hex')}@deleted.invalid`, passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12), role: 'student', isDeleted: true, deletedAt: new Date(), emailVerifiedAt: null, institution: null, academicLevel: null, semester: undefined, isBanned: true },
       $unset: { verificationHash: 1, verificationExpires: 1, resetHash: 1, resetExpires: 1 }, $inc: { tokenVersion: 1 },
     });
     if (!removed) fail(409, 'Your account changed during deletion. Sign in again and retry.');
