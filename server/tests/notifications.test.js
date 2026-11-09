@@ -1,0 +1,41 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
+import mongoose from 'mongoose';
+import { createApp } from '../src/app.js';
+import { Notification } from '../src/models.js';
+import { notifyUser } from '../src/notifications.js';
+
+test('notifications cover replies, acceptance, comments and private read state', async t => {
+  process.env.JWT_SECRET = randomBytes(48).toString('hex');
+  const dbName = `forum_test_${Date.now()}_${randomBytes(3).toString('hex')}`;
+  await mongoose.connect(process.env.MONGO_TEST_URI || 'mongodb://127.0.0.1:27017', { dbName });
+  await Notification.init();
+  const server = createApp().listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); if (!/^forum_test_\d+_[a-f0-9]{6}$/.test(mongoose.connection.name)) throw new Error('Unsafe test database'); await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
+  const req = async (route, method = 'GET', body, token, expected = 200) => {
+    const r = await fetch(`http://127.0.0.1:${server.address().port}/api/v1${route}`, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    const b = await r.json(); assert.equal(r.status, expected, b.message); return b.data;
+  };
+  const a = await req('/auth/signup', 'POST', { name: 'Question Author', email: 'a@example.test', password: 'Notifications123', semester: 1 }, null, 201);
+  const b = await req('/auth/signup', 'POST', { name: 'Answer Author', email: 'b@example.test', password: 'Notifications123', semester: 1 }, null, 201);
+  const question = await req('/doubts', 'POST', { title: 'How do notifications work?', body: 'I would like a notification whenever someone replies.', subject: 'DBMS', semester: 1 }, a.token, 201);
+  const answer = await req(`/doubts/${question._id}/answers`, 'POST', { body: 'The reply should notify the question author.' }, b.token, 201);
+  let inboxA = await req('/notifications', 'GET', null, a.token);
+  assert.equal(inboxA.unread, 1); assert.equal(inboxA.items[0].type, 'question_answered'); assert.equal(inboxA.items[0].actor.name, b.user.name); assert.equal(inboxA.items[0].actor.email, undefined);
+  await notifyUser({ user: a.user._id, actor: b.user._id, target: question._id, type: 'question_answered', eventKey: `answer:${answer._id}` });
+  assert.equal(await Notification.countDocuments({ user: a.user._id }), 1);
+  await req(`/answers/${answer._id}/comments`, 'POST', { body: 'My own comment should not notify me.' }, b.token, 201);
+  assert.equal((await req('/notifications', 'GET', null, b.token)).unread, 0);
+  await req(`/answers/${answer._id}/comments`, 'POST', { body: 'Thanks for explaining this clearly.' }, a.token, 201);
+  await req(`/answers/${answer._id}/accept`, 'PATCH', {}, a.token);
+  const inboxB = await req('/notifications', 'GET', null, b.token);
+  assert.equal(inboxB.unread, 2); assert.deepEqual(new Set(inboxB.items.map(n => n.type)), new Set(['answer_commented', 'answer_accepted']));
+  await req(`/notifications/${inboxA.items[0]._id}/read`, 'PATCH', {}, b.token, 404);
+  await req('/notifications', 'GET', null, null, 401);
+  await req('/notifications/read', 'POST', {}, b.token);
+  assert.equal((await req('/notifications', 'GET', null, b.token)).unread, 0);
+  assert.equal((await req('/notifications', 'GET', null, a.token)).unread, 1);
+  await req(`/notifications/${inboxA.items[0]._id}/read`, 'PATCH', {}, a.token);
+  assert.equal((await req('/notifications', 'GET', null, a.token)).unread, 0);
+});

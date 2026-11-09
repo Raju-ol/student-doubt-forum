@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import { User, Doubt, Answer, Comment, Vote, Report, Upload } from './models.js';
+import { User, Doubt, Answer, Comment, Vote, Report, Upload, Notification } from './models.js';
 import { requireUser } from './auth.js';
 import { fail, password } from './validation.js';
 
@@ -18,6 +18,7 @@ export function mountAccountRoutes(api, { limiter, wrap, ok, cloudinary }) {
       ['vote', Vote, { user: req.user._id }, 'targetType target value createdAt updatedAt'],
       ['report', Report, { reporter: req.user._id }, 'targetType target reason status createdAt updatedAt'],
       ['upload', Upload, { owner: req.user._id }, 'url doubt createdAt updatedAt'],
+      ['notification', Notification, { user: req.user._id }, 'actor type target readAt createdAt'],
     ];
     try {
       for (const [type, Model, filter, projection] of lists) {

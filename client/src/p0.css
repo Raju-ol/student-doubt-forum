@@ -54,3 +54,5 @@ body{font-size:16px;line-height:1.6}
 :root[data-theme=dark] .markdown .hljs{color:var(--text);background:transparent}:root[data-theme=dark] .hljs-keyword,:root[data-theme=dark] .hljs-title,:root[data-theme=dark] .hljs-built_in{color:var(--code-keyword)}:root[data-theme=dark] .hljs-string,:root[data-theme=dark] .hljs-attr{color:var(--code-string)}:root[data-theme=dark] .hljs-comment{color:var(--code-comment)}:root[data-theme=dark] .hljs-number,:root[data-theme=dark] .hljs-literal{color:var(--code-number)}
 
 .brand__icon{color:var(--on-primary)}
+
+.notification{margin-top:16px}.notification p{margin:8px 0}

@@ -606,3 +606,6 @@ Account export/delete implemented 9 November: 67 tests/build pass. Anonymous tom
 
 Dark mode implemented 9 November: 69 tests/build pass; centralized palette, System/Light/Dark and persisted preference. Selected contrast pairs tested; visual review pending. docs/THEME_CHANGE_RECORD.md.
 
+
+In-app notifications implemented: answer/comment/acceptance bell and private inbox, 70 tests/build pass. Mentions/email digest/push remain future work. docs/NOTIFICATION_CHANGE_RECORD.md.
+

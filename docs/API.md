@@ -46,3 +46,6 @@ Email endpoints: POST /auth/forgot-password {email}, /auth/reset-password {token
 
 GET /users/me/export: authenticated NDJSON attachment (3/hour). DELETE /users/me: {password,confirmation:'DELETE'}, non-admin accounts only (5/hour). Anonymizes account and removes owned images, retains discussions/votes; see ACCOUNT_DATA_CHANGE_RECORD.md.
 
+
+Notifications (authenticated): GET /notifications?page=1, PATCH /notifications/:id/read, POST /notifications/read. 25 items/page, own inbox/read state only.
+

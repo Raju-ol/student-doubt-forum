@@ -57,3 +57,6 @@ Account data controls implemented with anonymous tombstone, password/DELETE conf
 
 System/light/dark themes implemented with 104 centralized color roles, saved preference and CSP-compatible early theme resolution. 69 tests/build pass; docs/THEME_CHANGE_RECORD.md.
 
+
+In-app notifications added for answers, comments and first acceptance. Private paginated inbox/read controls, visible-page polling, 70 tests/build pass. docs/NOTIFICATION_CHANGE_RECORD.md.
+

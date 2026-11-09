@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { createLimiterFactory } from './rate-limits.js';
 import { issueEmail, mountEmailRoutes, requireVerified, sendTransactionalEmail } from './email.js';
 import { mountAccountRoutes } from './account.js';
+import { notifyUser, mountNotificationRoutes } from './notifications.js';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
@@ -58,6 +59,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   }));
   mountEmailRoutes(api, { limiter, wrap, ok, sendEmail });
   mountAccountRoutes(api, { limiter, wrap, ok, cloudinary });
+  mountNotificationRoutes(api, { wrap, ok });
   api.get('/doubts', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const limit = positiveInt(req.query.limit, 10, 30);
@@ -106,6 +108,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   api.post('/doubts/:id/answers', requireUser, requireVerified, wrap(async (req, res) => {
     const doubt = await findDoc(Doubt, req.params.id);
     const answer = await Answer.create({ doubt: doubt._id, author: req.user._id, body: text(req.body.body, 'Answer', 10, 12000) });
+    await notifyUser({ user: doubt.author, actor: req.user._id, type: 'question_answered', target: doubt._id, eventKey: `answer:${answer._id}` });
     ok(res, answer, 'Answer posted. Thank you for helping!', 201);
   }));
   api.put('/answers/:id', requireUser, wrap(async (req, res) => { const answer = await findDoc(Answer, req.params.id); owns(req.user, answer.author); answer.body = text(req.body.body, 'Answer', 10, 12000); await answer.save(); ok(res, answer, 'Answer updated.'); }));
@@ -115,9 +118,15 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const answer = await findDoc(Answer, req.params.id); const doubt = await findDoc(Doubt, String(answer.doubt));
     if (String(doubt.author) !== String(req.user._id)) fail(403, 'Only the student who asked can accept an answer.');
     const accepted = await toggleAcceptance(answer, doubt);
+    if (accepted) await notifyUser({ user: answer.author, actor: req.user._id, type: 'answer_accepted', target: doubt._id, eventKey: `accepted:${answer._id}` });
     ok(res, { accepted }, accepted ? 'Answer accepted.' : 'Answer acceptance removed.');
   }));
-  api.post('/answers/:id/comments', requireUser, requireVerified, wrap(async (req, res) => { await findDoc(Answer, req.params.id); ok(res, await Comment.create({ answer: req.params.id, author: req.user._id, body: text(req.body.body, 'Comment', 2, 1000) }), 'Comment added.', 201); }));
+  api.post('/answers/:id/comments', requireUser, requireVerified, wrap(async (req, res) => {
+    const answer = await findDoc(Answer, req.params.id);
+    const comment = await Comment.create({ answer: answer._id, author: req.user._id, body: text(req.body.body, 'Comment', 2, 1000) });
+    await notifyUser({ user: answer.author, actor: req.user._id, type: 'answer_commented', target: answer.doubt, eventKey: `comment:${comment._id}` });
+    ok(res, comment, 'Comment added.', 201);
+  }));
   api.get('/users/:id', wrap(async (req, res) => {
     const user = await findDoc(User, req.params.id);
     if (user.isDeleted) fail(404, 'This account has been deleted.');

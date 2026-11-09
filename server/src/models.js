@@ -62,3 +62,7 @@ export const Vote = mongoose.model('Vote', voteSchema);
 export const Comment = mongoose.model('Comment', commentSchema);
 export const Report = mongoose.model('Report', reportSchema);
 export const Upload = mongoose.model('Upload', uploadSchema);
+const notificationSchema = new Schema({ user: ref('User'), actor: ref('User'), type: { type: String, enum: ['question_answered', 'answer_accepted', 'answer_commented'], required: true }, target: ref('Doubt'), readAt: { type: Date, default: null }, eventKey: { type: String, required: true, unique: true } }, options);
+notificationSchema.index({ user: 1, createdAt: -1 });
+notificationSchema.index({ user: 1, readAt: 1, createdAt: -1 });
+export const Notification = mongoose.model('Notification', notificationSchema);
