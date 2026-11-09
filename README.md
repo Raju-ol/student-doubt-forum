@@ -36,6 +36,8 @@ Set the three `CLOUDINARY_` values in private server configuration. Restart the 
 
 `npm test` creates a unique `forum_test_*` database on the local MongoDB server, runs integration checks and deletes that test database only. It never clears the application database. An optional `MONGO_TEST_URI` may point to an authorized test server. The test user needs permission to create/drop the uniquely named test database.
 
+GitHub Actions runs `npm ci`, `npm run build` and `npm test` against a MongoDB 7 service container on every push and pull request, plus `npm audit --audit-level=high`. See `.github/workflows/ci.yml`.
+
 `npm run build` verifies the frontend production build. Browser verification is separately documented; automated API tests do not prove every screen is correct.
 
 ## Project files
