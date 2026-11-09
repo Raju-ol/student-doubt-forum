@@ -1,12 +1,12 @@
 # Student Doubt Forum — Complete Manual Testing Playbook
 
-Version 1.0 · Prepared 10 November 2026 · Share this file with the tester
+Version 1.1 · Updated 10 November 2026 · Share this file with the tester
 
 **Website:** https://student-doubt-forum-theta.vercel.app/
 
 **Goal:** Poora application test karna, reproducible bugs report karna, aur har test ka actual result record karna. Coding knowledge normal UI tests ke liye required nahi hai.
 
-This checklist is a test plan, **not a claim that these tests have passed**. Every case below starts as NOT RUN. Automated checks last passed at 77 tests; those do not replace browser testing. Recheck the release deployed when testing begins.
+This checklist is a test plan, **not a claim that these tests have passed**. Every case below starts as NOT RUN. Developer automated checks last passed at 78 tests (QA Escape fix); those do not replace browser testing. Recheck the release deployed when testing begins.
 
 ## 1. Read this first
 

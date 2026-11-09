@@ -1,7 +1,20 @@
 # Student Doubt Forum — current handoff
 
-Updated 9 November 2026. Read this before older plan/history files. Code is the
+Updated 10 November 2026. Read this before older plan/history files. Code is the
 authority; some historical sections intentionally describe earlier versions.
+
+## Current QA status — read before historical snapshots
+
+78 automated tests pass and build succeeds after fixing mobile Menu Escape from
+its trigger. External run-01 is partial: 40 reported PASS, 98 BLOCKED, 23 NOT RUN;
+several PASS rows need correct/more complete evidence. See
+[QA_REVIEW_RUN01.md](QA_REVIEW_RUN01.md) and [TESTING.md](TESTING.md).
+
+Owner reported real owner-only recovery/new-password login, college selection
+and answer/acceptance/comment notifications working. These updates supersede the
+older pending notes below but do not certify every related test. Atlas expiry
+and all-user email/domain remain pending. New fix CI/live retest must be checked
+for its own revision. Older 75/76/77 counts and deployment IDs are history.
 
 ## Owner return checklist (simple Hinglish)
 
@@ -49,7 +62,7 @@ screenshots, git or this document mein paste na karein.
 | Subjects | Mongo catalogue, 30 initial entries, unique aliases, stable icons, admin additions; guarded question migration |
 | Colleges | Optional self-reported selection, admin catalogue, college/subject-worldwide/all public feeds; explicit-user migration |
 
-## Validation snapshot
+## Historical validation snapshot — 9 November
 
 - Local **75 tests pass**, production build passes, npm audit reports **0 vulnerabilities**.
 - CI for final code commit c6e559a: [run 42612388866](https://github.com/Raju-ol/student-doubt-forum/actions/runs/42612388866)

@@ -1,5 +1,14 @@
 # Student Doubt Forum
 
+## QA follow-up — 10 November 2026
+
+External run-01 reviewed: 40 reported PASS / 98 BLOCKED / 23 NOT RUN, with partial
+and misaligned evidence; see docs/QA_REVIEW_RUN01.md. Confirmed Menu trigger Escape
+bug fixed with a before/after DOM regression. Current 78 tests/build pass. Original
+reports/evidence remain unmodified/untracked. Current verification is at the top
+of docs/TESTING.md; old totals/commits below are historical.
+
+
 ## Current handoff — 9 November 2026
 
 Read [docs/CONTINUE_HERE.md](docs/CONTINUE_HERE.md) first. Current code includes

@@ -1,8 +1,21 @@
 # Verification record
 
+## Current developer verification — 10 November 2026
+
+After the QA-reported mobile Escape fix: **78 tests pass, 0 fail** (exit 0),
+production build passes (exit 0). The new real-DOM test failed before the fix,
+then verifies Escape from trigger/link and focus restoration. External QA run-01
+reported 40 PASS / 98 BLOCKED / 23 NOT RUN, with partial/misaligned observations;
+these are NOT equivalent to 40 fully certified workflows. See
+[QA review](QA_REVIEW_RUN01.md). Live fix retest follows deployment.
+
+Older counts below are dated history, not the current result. Developer unit/API
+checks, owner-reported live checks and external browser evidence stay separate.
+
+
 For delegated manual testing, use [TESTER_PLAYBOOK.md](TESTER_PLAYBOOK.md): full browser checklist, conditional owner/staging cases and bug/report templates.
 
-## Latest verification — 9 November 2026
+## Historical verification — 9 November 2026
 
 75 tests pass, production build passes, npm audit reports 0 vulnerabilities.
 CI at final code commit c6e559a passed Node 22 and 24 plus audit: [run 42612388866](https://github.com/Raju-ol/student-doubt-forum/actions/runs/42612388866). Vercel deployment completed. Live Redis health/protected feed,

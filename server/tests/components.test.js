@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { JSDOM } from 'jsdom';
@@ -19,18 +19,47 @@ await mkdir(cache, { recursive: true });
 const directory = await mkdtemp(join(cache, 'forum-components-'));
 const outfile = join(directory, 'components.mjs');
 await build({
-  entryPoints: [entry], outfile, bundle: true, format: 'esm', platform: 'browser',
+  stdin: { contents: "export * from './components.jsx'; export { Provider } from './context.jsx';", resolveDir: dirname(entry), sourcefile: 'qa-components.jsx', loader: 'jsx' }, outfile, bundle: true, format: 'esm', platform: 'browser',
   jsx: 'automatic', loader: { '.jsx': 'jsx', '.css': 'empty' },
   external: ['react', 'react-dom', 'react-dom/*', 'react/*', 'react-router-dom'],
   define: { 'import.meta.env.VITE_API_URL': '""' }, logLevel: 'silent'
 });
-const { Markdown, MarkdownEditor, TabList, ThemeControl } = await import(pathToFileURL(outfile).href);
+const { Markdown, MarkdownEditor, TabList, ThemeControl, Navbar, Provider } = await import(pathToFileURL(outfile).href);
 test.after(() => rm(directory, { recursive: true, force: true }));
 
 // The renderer is loaded lazily in the browser, so static rendering shows the
 // plain-text fallback. Mount into jsdom when the rendered HTML is what matters.
 const dom = new JSDOM('<!doctype html><div id="root"></div>');
 const markup = node => renderToStaticMarkup(node);
+
+test('mobile menu Escape closes from trigger and links and restores focus', async () => {
+  const { createRoot } = await import('react-dom/client');
+  const { MemoryRouter } = await import('react-router-dom');
+  const keys = ['window', 'document', 'sessionStorage', 'localStorage', 'fetch', 'IS_REACT_ACT_ENVIRONMENT'];
+  const previous = Object.fromEntries(keys.map(key => [key, globalThis[key]]));
+  const previousMedia = dom.window.matchMedia;
+  globalThis.window = dom.window; globalThis.document = dom.window.document;
+  globalThis.sessionStorage = globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ success: true, data: [] }) });
+  dom.window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  const host = dom.window.document.createElement('div'); dom.window.document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await React.act(async () => root.render(React.createElement(MemoryRouter, null, React.createElement(Provider, null, React.createElement(Navbar)))));
+    const trigger = host.querySelector('.nav-toggle'), nav = host.querySelector('nav');
+    for (const source of [trigger, nav.querySelector('a')]) {
+      await React.act(async () => trigger.click()); assert.equal(trigger.getAttribute('aria-expanded'), 'true');
+      source.focus();
+      await React.act(async () => source.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })));
+      assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+      assert.equal(dom.window.document.activeElement, trigger);
+    }
+    const theme = host.querySelector('.theme-control'); theme.focus();
+    await React.act(async () => theme.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    assert.equal(dom.window.document.activeElement, theme); // Closed menu must not steal focus.
+  } finally { await React.act(async () => root.unmount()); host.remove(); dom.window.matchMedia = previousMedia; for (const key of keys) { if (previous[key] === undefined) delete globalThis[key]; else globalThis[key] = previous[key]; } }
+});
 
 test('theme button cycles, saves preference, follows system and restores after remount', async () => {
   const { createRoot } = await import('react-dom/client');
