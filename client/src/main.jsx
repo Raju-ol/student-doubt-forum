@@ -5,6 +5,7 @@ import { Provider } from './context';
 import { Navbar, Protected } from './components';
 import { Feed, AuthPage, Ask, Detail, Profile, Admin } from './pages';
 import './styles.css';
+import './p0.css';
 class ErrorBoundary extends React.Component {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
