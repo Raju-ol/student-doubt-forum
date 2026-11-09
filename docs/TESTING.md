@@ -10,6 +10,8 @@ Date: 9 November 2026. Local Windows machine, Node 24.19.0, npm 11.17.0, local M
 
 - Phase 0 index/CI change (9 November 2026): `npm run build` passed; `npm test` reported 29 passes and 0 failures. The nine new indexes were listed from a throwaway local database and `explain('queryPlanner')` showed IXSCAN for the subject, semester, tag, solved-status, profile-question, profile-answer, comment and moderation-queue queries. See docs/PHASE0_CHANGE_RECORD.md.
 
+- Markdown bodies (§2), 9 November 2026: `npm test` reported 59 passes and 0 failures (30 new subtests across markdown, editor and component tests); `npm run build` passed. Thirteen XSS payloads were checked by parsing the sanitised output and asserting no element carries an event handler or a javascript:/data:text/html URL. The React components were bundled with esbuild and rendered under jsdom to confirm the toolbar, tablist ARIA and textarea attributes. The server CSP was checked to allow KaTeX inline styles and same-origin fonts while keeping script-src 'self'. NOT verified: nothing was opened in a real browser, so the visual result, the preview tab, code block appearance and the 390px layout of the new toolbar are unconfirmed. See docs/MARKDOWN_CHANGE_RECORD.md.
+
 - Live check of commit 717b2fe on the public site: health connected; feed and detail routes returned votes, myVote, answerCount, status and answers with no missing fields; subject/semester/status/tag/search filters all returned 200. The live database holds one question with no answers, votes or comments, so the aggregation and comment-grouping paths were NOT exercised live. CI run 42598034270 passed both jobs.
 
 - Feed batching change (§3.1): `npm run build` passed and `npm test` reported 29 passes, 0 failures. MongoDB command monitoring on a seeded local database measured GET /doubts 28 → 6 queries, GET /doubts/:id 13 → 10 and GET /users/:id 32 → 10, with the feed staying at 6 queries for limit 5, 10 and 30. Vote totals, signed-in and anonymous myVote, answerCount, status and per-answer comment grouping were compared against the previous behaviour and matched. Not verified in a browser and not measured on live Atlas.
@@ -33,6 +35,7 @@ Vercel preparation update: API handler tested locally against the shared MongoDB
 - Full browser moderation mutations, edit/profile forms and error-state coverage: pending; automated checks do not establish every browser interaction.
 - Mobile: responsive CSS exists. Browser viewport override did not change the observed 699px width, so 390px layout is NOT verified. Observed 699px view had document width equal to viewport width.
 - Index behaviour on the live Atlas cluster has not been observed; re-check with explain() there after the deployment of commit a8a9975 settles.
+- The new editor's keyboard behaviour is asserted structurally (roving tabindex, arrow-key handler) but was not exercised with a real keyboard or screen reader.
 - Keyboard, assistive technology and all browser/device combinations: not fully audited.
 - Persistence across full database/service restart and clean ZIP installation: not yet exercised.
 - Concurrency, high load and cross-collection partial failures: not exhaustively tested.

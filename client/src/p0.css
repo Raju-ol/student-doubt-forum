@@ -6,3 +6,43 @@ body{font-size:16px;line-height:1.6}
 @media(max-width:1023px){.header__inner{flex-wrap:wrap}.hero h1{font-size:35px}.hero__art{transform:scale(.75)}.doubt-card__stats{min-width:50px}.doubt-card{gap:16px}}
 @media(max-width:639px){.nav-toggle{display:inline-flex;margin-left:auto;min-height:44px}.header nav.navigation{display:none;width:100%;margin:0;justify-content:flex-start;gap:8px;padding-top:12px;border-top:1px solid var(--border)}.header nav.navigation--open{display:flex}.header nav>a:first-child:not(.button){display:inline-flex}.header nav>a,.header nav>a:not(.button),.header nav .text-button{font-size:14px;padding:8px}.header nav .user-link>span{display:inline}.hero{padding:20px 0}.hero .overline,.hero>div>p,.hero .button{display:none}.hero h1{font-size:27px;line-height:1.2;letter-spacing:-1px}.hero h1 br{display:none}.hero h1>span:before{content:' '}.section-title{flex-wrap:wrap}.section-title h2{font-size:22px}.section-title p{font-size:13px}.count-chip{font-size:12px}.search{flex-wrap:wrap}.search input{min-width:100px;font-size:14px}.search button{font-size:13px}.filters select{min-width:135px;font-size:13px}.doubt-card{padding:18px 14px;gap:12px}.doubt-card h2{font-size:18px}.doubt-card__preview{font-size:14px}.doubt-card__stats{min-width:43px;font-size:11px}.author,.author .muted,.eyebrow,.badge,.tag{font-size:12px}.vote{width:44px}.vote button{width:44px;height:44px}.post-body{gap:10px}.question h1{font-size:25px}.prose{font-size:16px}.form-layout h1{font-size:28px}.form-row{grid-template-columns:1fr;gap:0}.content-actions{gap:12px}.answers-title{align-items:flex-start}.answers-title .muted{font-size:12px}.sidebar{display:none}.footer{font-size:12px;flex-wrap:wrap}.auth-form .button{min-height:44px}.table-wrap{max-width:100%}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* Markdown bodies. Sizes are in rem so a larger browser default font scales them. */
+.prose.markdown{white-space:normal}
+.markdown>*:first-child{margin-top:0}
+.markdown>*:last-child{margin-bottom:0}
+.markdown p{margin:0 0 .85em}
+.markdown h3{font-size:1.15rem;margin:1.2em 0 .5em}
+.markdown h4{font-size:1rem;margin:1.1em 0 .45em}
+.markdown ul,.markdown ol{margin:0 0 .85em;padding-left:1.5em}
+.markdown li{margin:.25em 0}
+.markdown blockquote{margin:0 0 .85em;padding:.4em 0 .4em 1em;border-left:3px solid var(--border);color:var(--muted)}
+.markdown hr{border:0;border-top:1px solid var(--border);margin:1.2em 0}
+.markdown a{overflow-wrap:anywhere}
+.markdown code{font-family:'Cascadia Mono',Consolas,'SF Mono',Menlo,monospace;font-size:.9em;background:var(--page);border:1px solid var(--border);border-radius:5px;padding:.1em .35em}
+.markdown pre.code-block{margin:0 0 .9em;padding:12px 14px;background:var(--page);border:1px solid var(--border);border-radius:10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.markdown pre.code-block code{display:block;padding:0;border:0;background:none;font-size:.875rem;line-height:1.6;white-space:pre}
+.markdown table{border-collapse:collapse;margin:0 0 .9em;display:block;overflow-x:auto;max-width:100%}
+.markdown th,.markdown td{border:1px solid var(--border);padding:6px 10px;text-align:left}
+.markdown th{background:var(--page)}
+.markdown .katex{font-size:1.05em}
+.markdown .katex-display{overflow-x:auto;overflow-y:hidden;padding:.2em 0}
+
+/* Write / Preview editor */
+.editor{border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden}
+.editor__bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between;padding:6px 8px;border-bottom:1px solid var(--border);background:var(--page)}
+.editor__tools{display:flex;flex-wrap:wrap;gap:4px}
+.editor__tool{min-width:36px;min-height:36px;padding:0 8px;border:1px solid transparent;border-radius:8px;background:none;color:var(--text);font-size:14px;line-height:1;cursor:pointer}
+.editor__tool:hover:not(:disabled){background:var(--card);border-color:var(--border)}
+.editor__tool:disabled{opacity:.4;cursor:not-allowed}
+.editor__tabs{display:flex;gap:4px}
+.editor__tabs [role=tab]{min-height:36px;padding:0 12px;border:1px solid transparent;border-radius:8px;background:none;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.editor__tabs [role=tab][aria-selected=true]{background:var(--card);border-color:var(--border);color:var(--text);font-weight:600}
+.editor__panel{padding:0}
+.editor__panel textarea{display:block;width:100%;border:0;border-radius:0;background:none;resize:vertical}
+.editor__panel textarea:focus{outline:2px solid var(--primary);outline-offset:-2px}
+.editor__panel .markdown{padding:12px 14px;min-height:120px}
+.editor__empty{padding:12px 14px;margin:0}
+.editor__hint{display:block;padding:8px 12px;border-top:1px solid var(--border);background:var(--page);color:var(--muted);font-size:12px}
+.editor__hint code{font-size:11px;padding:.05em .3em;border:1px solid var(--border);border-radius:4px;background:var(--card)}
+@media(max-width:639px){.editor__bar{gap:6px}.editor__tool{min-width:40px;min-height:40px}.editor__tabs [role=tab]{min-height:40px}}

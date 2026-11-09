@@ -28,6 +28,18 @@ In two terminals, run `npm run dev:server` and `npm run dev:client`. Open http:/
 
 Register the intended account using the application first. In the `server` directory run `node src/make-admin.js your-registered-email`. This changes only that existing account's role. Public signup cannot create administrators. Do not promote a stranger's account. There is no default production admin password.
 
+## Formatting in questions and answers
+
+Bodies are written in Markdown. The editor has buttons for bold, italic, inline code, fenced
+code blocks, mathematics, lists, links and quotes, plus a preview tab. Fenced code blocks are
+syntax highlighted for thirteen common languages; `$x^2$` and `$$...$$` render as mathematics
+through KaTeX. Stored bodies are plain text, so posts written before this existed are
+unaffected.
+
+Rendering happens in the browser and the result is sanitised with DOMPurify before it is
+inserted, with the server's `script-src 'self'` content security policy as a second layer.
+Images are not permitted inside bodies; screenshots go through the upload flow below.
+
 ## Images
 
 Set the three `CLOUDINARY_` values in private server configuration. Restart the server. Each doubt supports up to 3 JPEG/PNG/WebP files, maximum 3 MB each. The server checks file signatures and ownership, then uploads to Cloudinary. Unattached images can be removed by their uploader. Attached images are removed when their doubt is deleted. Editing preserves attachments; replace them by reposting if necessary. Unused uploads are not automatically expired in this first implementation.

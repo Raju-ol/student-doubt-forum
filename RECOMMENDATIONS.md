@@ -13,6 +13,7 @@ document is still a proposal.
 
 | Item | Status |
 |---|---|
+| §2 Markdown, code blocks, maths | **Done** — rendered and sanitised client-side, with a toolbar and preview; see `docs/MARKDOWN_CHANGE_RECORD.md`. Not yet checked in a browser |
 | §3.1 Feed N+1 queries | **Done** — `decorateMany` batches votes and answer counts; feed measured 28 → 6 queries and now constant with page size |
 | §3.3 Missing indexes | **Done** — nine indexes added in `server/src/models.js`, verified locally with `explain()` |
 | §6.3 CI | **Done** — `.github/workflows/ci.yml` and `.github/dependabot.yml` added; first GitHub Actions run passed both jobs |

@@ -10,6 +10,8 @@ Base: `/api/v1`. Success: `{ success: true, data, message }`. Error: `{ success:
 | GET | /auth/me | Signed-in account |
 | GET | /doubts | search, subject, semester, tag, status, page, limit |
 | POST | /doubts | Signed-in; title, body, subject, semester, tags[], imageIds[] |
+
+`body` is stored as the raw Markdown the student typed and is returned unchanged. The server does not render or sanitise it; the client renders it through marked and sanitises with DOMPurify before display. Any client consuming this API must sanitise it too.
 | GET | /doubts/:id | Public discussion including answers/comments |
 | PUT / DELETE | /doubts/:id | Owner or admin; edit text fields / remove discussion |
 | POST | /doubts/:id/vote | Signed-in non-author; value 1 or -1 |

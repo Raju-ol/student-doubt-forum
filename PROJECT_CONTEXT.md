@@ -1,5 +1,8 @@
 # Student Doubt Forum
 
+## Markdown bodies (9 November 2026)
+Implemented RECOMMENDATIONS.md §2: question and answer bodies are Markdown, rendered client-side through marked with highlight.js code blocks and KaTeX maths, sanitised with DOMPurify, with a toolbar and Write/Preview tabs. Stored content is unchanged, so old plain-text posts still render correctly. The renderer is a lazily loaded chunk, so the main bundle grew only 93.11 to 95.05 KB gzipped. 59 tests pass and the build passes. NOT opened in a browser yet: the visual result and the 390px layout of the toolbar are unconfirmed. See docs/MARKDOWN_CHANGE_RECORD.md.
+
 ## Phase 0 quick wins (9 November 2026)
 Applied the Phase 0 items from RECOMMENDATIONS.md that the user selected: nine missing MongoDB indexes in server/src/models.js (§3.3) and a GitHub Actions CI workflow plus Dependabot config (§6.3). Build and 29 tests pass; index usage confirmed locally with explain(). Pushed as commit a8a9975 and GitHub Actions passed both jobs on the first run. Live Atlas index behaviour after the resulting Vercel deploy is still unobserved. The MIT LICENSE file is still pending: the user chose MIT but will give the copyright name later, so the repo remains all-rights-reserved for now. Then applied §3.1: decorateMany batches the per-item vote and answer-count queries, measured 28 → 6 queries on the feed and constant with page size, with the API response shape unchanged. Added the MIT LICENSE file (Copyright (c) 2026 UJA) on the user's instruction, so the repository is no longer all-rights-reserved. Full detail in docs/PHASE0_CHANGE_RECORD.md.
 
