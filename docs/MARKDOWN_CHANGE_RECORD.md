@@ -134,3 +134,6 @@ the Node requirement for running the suite; the application itself still runs on
 
 A user-approved QA account revealed that the global textarea display rule overrode the browser hidden style. Added an explicit textarea[hidden] rule so Preview hides the source editor while keeping the draft mounted. No public QA question was posted. Validation: all 62 tests pass and production build succeeds. Live mobile recheck follows deployment.
 
+
+Live verification completed on c2c1884: at a 390px viewport (375px content area), Preview hides the source textarea, renders bold text, KaTeX maths and highlighted code, with no horizontal page overflow. All eight toolbar controls remain available across wrapped rows. Cleared the unsent draft and closed the temporary browser tab. The approved QA account remains; no question was posted.
+
