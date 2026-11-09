@@ -129,3 +129,8 @@ the Node requirement for running the suite; the application itself still runs on
   value is plain text.
 - Comments still render as plain text. Extending the renderer to comments was out of scope
   for this change.
+
+## Browser QA follow-up — 9 November 2026
+
+A user-approved QA account revealed that the global textarea display rule overrode the browser hidden style. Added an explicit textarea[hidden] rule so Preview hides the source editor while keeping the draft mounted. No public QA question was posted. Validation: all 62 tests pass and production build succeeds. Live mobile recheck follows deployment.
+
