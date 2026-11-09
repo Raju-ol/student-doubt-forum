@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
+import mongoose from 'mongoose';
+import { createApp } from '../src/app.js';
+import { User, Doubt } from '../src/models.js';
+import { academicFields } from '../src/academics.js';
+import { migrateAcademicLevels } from '../src/academic-migration.js';
+import { levelLabel } from '../../client/src/academics.js';
+
+test('optional academic levels preserve legacy semester data and migrate without overwrites', async t => {
+  assert.equal(academicFields({ academicLevel: { system: 'year', index: 4 } }).academicLevel.label, 'Year 4');
+  for (const value of [{ system: 'semester', index: 0 }, { system: 'grade', index: 31 }, { system: 'bad', index: 1 }, { system: 'other', label: '' }]) assert.throws(() => academicFields({ academicLevel: value }), { status: 400 });
+  assert.equal(levelLabel({ semester: 3 }), 'Semester 3'); assert.equal(levelLabel({}), 'Academic level not specified');
+  process.env.JWT_SECRET = randomBytes(48).toString('hex');
+  const dbName = `forum_test_${Date.now()}_${randomBytes(3).toString('hex')}`;
+  await mongoose.connect(process.env.MONGO_TEST_URI || 'mongodb://127.0.0.1:27017', { dbName });
+  const server = createApp().listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); if (!/^forum_test_\d+_[a-f0-9]{6}$/.test(mongoose.connection.name)) throw new Error('Unsafe database'); await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
+  const req = async (route, method = 'GET', body, token, expected = 200) => {
+    const r = await fetch(`http://127.0.0.1:${server.address().port}/api/v1${route}`, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    const b = await r.json(); assert.equal(r.status, expected, b.message); return b.data;
+  };
+  const user = await req('/auth/signup', 'POST', { name: 'Open Learner', email: 'open@example.test', password: 'Academic123' }, null, 201);
+  assert.equal(user.user.academicLevel, null);
+  const question = await req('/doubts', 'POST', { title: 'How does a year based course work?', body: 'I use a year based academic system instead of semesters.', subject: 'DBMS', academicLevel: { system: 'year', index: 2 } }, user.token, 201);
+  assert.equal(question.academicLevel.label, 'Year 2'); assert.equal(question.semester, undefined);
+  assert.equal((await req('/doubts?academicSystem=year&academicIndex=2')).total, 1);
+  assert.equal((await req('/doubts?academicSystem=grade')).total, 0);
+  await req('/doubts?academicSystem=invalid', 'GET', null, null, 400);
+  const legacyUser = await User.create({ name: 'Legacy Student', email: 'legacy@example.test', passwordHash: 'test-only-unused', semester: 3 });
+  const legacyQuestion = await Doubt.create({ title: 'Legacy semester question', body: 'Existing data should remain available.', author: legacyUser._id, subject: 'DBMS', semester: 3 });
+  assert.equal((await req('/doubts?academicSystem=semester&academicIndex=3')).total, 1);
+  const before = await migrateAcademicLevels(); assert.equal(before.users, 1); assert.equal(before.questions, 1);
+  assert.equal((await User.findById(legacyUser._id)).academicLevel, undefined);
+  await migrateAcademicLevels({ apply: true });
+  assert.equal((await Doubt.findById(legacyQuestion._id)).academicLevel.label, 'Semester 3');
+  assert.equal((await Doubt.findById(question._id)).academicLevel.label, 'Year 2');
+  assert.equal((await migrateAcademicLevels({ apply: true })).questions, 0);
+  const edited = await req('/users/me', 'PUT', { name: 'Open Learner', academicLevel: { system: 'other', label: 'Professional training' } }, user.token);
+  assert.equal(edited.academicLevel.label, 'Professional training');
+});

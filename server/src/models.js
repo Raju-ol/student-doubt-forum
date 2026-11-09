@@ -4,12 +4,14 @@ const { Schema } = mongoose;
 const ref = (name, required = true) => ({ type: Schema.Types.ObjectId, ref: name, required });
 const options = { timestamps: true };
 const image = new Schema({ url: String, publicId: String }, { _id: false });
+const academicLevel = new Schema({ system: { type: String, enum: ['semester', 'year', 'grade', 'other'], required: true }, index: { type: Number, min: 1, max: 30 }, label: { type: String, maxlength: 60, required: true } }, { _id: false });
 const userSchema = new Schema({
   name: { type: String, required: true, maxlength: 60 },
   email: { type: String, unique: true, required: true, lowercase: true },
   passwordHash: { type: String, required: true, select: false },
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
-  semester: { type: Number, min: 1, max: 8, required: true },
+  semester: { type: Number, min: 1, max: 8 },
+  academicLevel: { type: academicLevel, default: undefined },
   // null identifies an existing account awaiting lazy initialisation/backfill.
   reputation: { type: Number, default: null },
   tokenVersion: { type: Number, default: 0, min: 0 },
@@ -25,7 +27,8 @@ const doubtSchema = new Schema({
   title: { type: String, required: true, maxlength: 160 },
   body: { type: String, required: true, maxlength: 12000 },
   subject: { type: String, required: true, maxlength: 60 },
-  semester: { type: Number, required: true, min: 1, max: 8 },
+  semester: { type: Number, min: 1, max: 8 },
+  academicLevel: { type: academicLevel, default: undefined },
   tags: [{ type: String, maxlength: 24 }],
   images: [image],
   author: ref('User'),
@@ -36,6 +39,7 @@ doubtSchema.index({ createdAt: -1 });
 // One compound index per feed filter, each ending in the createdAt sort key.
 doubtSchema.index({ subject: 1, createdAt: -1 });
 doubtSchema.index({ semester: 1, createdAt: -1 });
+doubtSchema.index({ 'academicLevel.system': 1, 'academicLevel.index': 1, createdAt: -1 });
 doubtSchema.index({ tags: 1, createdAt: -1 });
 doubtSchema.index({ acceptedAnswer: 1, createdAt: -1 });
 doubtSchema.index({ author: 1, createdAt: -1 });

@@ -10,9 +10,9 @@ export function mountAccountRoutes(api, { limiter, wrap, ok, cloudinary }) {
     res.setHeader('Content-Disposition', 'attachment; filename="doubt-forum-data.ndjson"');
     res.setHeader('Cache-Control', 'no-store');
     // Explicit allow-list: no password hash, token version or recovery hashes.
-    res.write(JSON.stringify({ type: 'account', data: { id: req.user._id, name: req.user.name, email: req.user.email, role: req.user.role, semester: req.user.semester, createdAt: req.user.createdAt } }) + '\n');
+    res.write(JSON.stringify({ type: 'account', data: { id: req.user._id, name: req.user.name, email: req.user.email, role: req.user.role, semester: req.user.semester, academicLevel: req.user.academicLevel, createdAt: req.user.createdAt } }) + '\n');
     const lists = [
-      ['question', Doubt, { author: req.user._id }, 'title body subject semester tags images author acceptedAnswer createdAt updatedAt'],
+      ['question', Doubt, { author: req.user._id }, 'title body subject semester academicLevel tags images author acceptedAnswer createdAt updatedAt'],
       ['answer', Answer, { author: req.user._id }, 'doubt body author createdAt updatedAt'],
       ['comment', Comment, { author: req.user._id }, 'answer body author createdAt updatedAt'],
       ['vote', Vote, { user: req.user._id }, 'targetType target value createdAt updatedAt'],

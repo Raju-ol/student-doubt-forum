@@ -3,7 +3,7 @@ import { Doubt, Answer, Vote, Comment, Upload } from './models.js';
 import { fail } from './validation.js';
 import { ensureReputation, addReputation, voteCredit } from './reputation.js';
 
-export const authorFields = 'name role semester createdAt';
+export const authorFields = 'name role semester academicLevel createdAt';
 export async function findDoc(Model, id) {
   if (typeof id !== 'string' || !mongoose.isObjectIdOrHexString(id)) fail(400, 'Invalid record ID.');
   const doc = await Model.findById(id);

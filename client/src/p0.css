@@ -56,3 +56,5 @@ body{font-size:16px;line-height:1.6}
 .brand__icon{color:var(--on-primary)}
 
 .notification{margin-top:16px}.notification p{margin:8px 0}
+
+.academic-fields{min-width:0;border:1px solid var(--border);padding:12px;border-radius:8px;margin:0 0 20px}.academic-fields legend{font-size:13px}.academic-fields label{margin-bottom:10px}.filters input[type=number]{width:110px;margin:0}

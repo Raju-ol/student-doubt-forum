@@ -70,3 +70,6 @@ Notifications: 70 tests/build pass, private inbox and event flows verified local
 
 Tabs: 72 tests/build pass; real DOM focus/selection checked. Theme: live dark feed/mobile overflow and reload persistence checked; full authenticated dark-screen audit pending.
 
+
+Academic levels: 73 tests/build pass; mixed legacy/new fixture migration dry-run/apply/idempotence checked in disposable DB. No production migration/copy test. ACADEMIC_LEVEL_CHANGE_RECORD.md.
+

@@ -49,3 +49,6 @@ GET /users/me/export: authenticated NDJSON attachment (3/hour). DELETE /users/me
 
 Notifications (authenticated): GET /notifications?page=1, PATCH /notifications/:id/read, POST /notifications/read. 25 items/page, own inbox/read state only.
 
+
+Academic levels: signup/profile/question accept optional academicLevel {system,index,label} or null. Systems semester/year/grade index 1-30; other label 1-60. Legacy semester 1-8 accepted. Feed academicSystem/academicIndex filters. See ACADEMIC_LEVEL_CHANGE_RECORD.md.
+

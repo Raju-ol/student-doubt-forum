@@ -612,3 +612,6 @@ In-app notifications implemented: answer/comment/acceptance bell and private inb
 
 Accessible Profile/Admin tabs implemented: 72 tests/build pass, including real DOM keyboard focus checks. Dark theme live mobile persistence/overflow checked. docs/TABS_CHANGE_RECORD.md and THEME_CHANGE_RECORD.md.
 
+
+Optional academicLevel implemented: 73 tests/build pass; compatible legacy semester reads/writes, flexible forms/filters and guarded dry-run migration. Production migration not run. docs/ACADEMIC_LEVEL_CHANGE_RECORD.md.
+

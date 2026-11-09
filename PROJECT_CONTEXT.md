@@ -63,3 +63,6 @@ In-app notifications added for answers, comments and first acceptance. Private p
 
 Profile/Admin now use accessible tablist/roving keyboard tabs and labelled panels; 72 tests/build pass. Live dark theme persistence/mobile width verified. See docs/TABS_CHANGE_RECORD.md.
 
+
+Optional academicLevel replaces mandatory semester for new signup/questions. Legacy semester kept/read compatibly. Forms and feed filters updated, guarded dry-run migration added. 73 tests/build pass; no live migration. docs/ACADEMIC_LEVEL_CHANGE_RECORD.md.
+

@@ -5,6 +5,7 @@ import { createLimiterFactory } from './rate-limits.js';
 import { issueEmail, mountEmailRoutes, requireVerified, sendTransactionalEmail } from './email.js';
 import { mountAccountRoutes } from './account.js';
 import { notifyUser, mountNotificationRoutes } from './notifications.js';
+import { academicFields, effectiveLevel } from './academics.js';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
@@ -38,7 +39,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   const authLimit = limiter('auth', 30, 15 * 60 * 1000);
   const authEmailLimit = limiter('auth-email', 30, 15 * 60 * 1000, { email: true });
   api.post('/auth/signup', authLimit, authEmailLimit, wrap(async (req, res) => {
-    const fields = { name: text(req.body.name, 'Name', 2, 60), email: email(req.body.email), semester: semester(req.body.semester) };
+    const fields = { name: text(req.body.name, 'Name', 2, 60), email: email(req.body.email), ...academicFields(req.body) };
     const hash = await bcrypt.hash(password(req.body.password), 12);
     const user = await User.create({ ...fields, passwordHash: hash, reputation: 0 });
     if (process.env.EMAIL_ENABLED === '1') { try { await issueEmail(user, 'verify', sendEmail); } catch { console.error('Email delivery failed: signup_verification'); } }
@@ -67,6 +68,13 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     if (req.query.search) filter.$text = { $search: text(req.query.search, 'Search', 1, 120) };
     if (req.query.subject) filter.subject = text(req.query.subject, 'Subject', 1, 60);
     if (req.query.semester) filter.semester = semester(req.query.semester);
+    if (req.query.academicSystem) {
+      const system = text(req.query.academicSystem, 'Academic system', 1, 20);
+      if (!['semester', 'year', 'grade', 'other'].includes(system)) fail(400, 'Invalid academic system.');
+      const index = req.query.academicIndex ? positiveInt(req.query.academicIndex, 1, 30) : null;
+      const levelFilter = { 'academicLevel.system': system, ...(index ? { 'academicLevel.index': index } : {}) };
+      filter.$or = [levelFilter, ...(system === 'semester' ? [{ academicLevel: null, semester: index || { $exists: true } }] : [])];
+    }
     if (req.query.tag) filter.tags = text(req.query.tag, 'Tag', 1, 24).toLowerCase();
     if (req.query.status === 'solved') filter.acceptedAnswer = { $ne: null };
     if (req.query.status === 'open') filter.acceptedAnswer = null;
@@ -75,7 +83,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     ok(res, { items: await decorateMany(docs, 'doubt', req.user), total, page, pages: Math.ceil(total / limit) });
   }));
   async function doubtFields(body) {
-    return { title: text(body.title, 'Title', 10, 160), body: text(body.body, 'Description', 20, 12000), subject: text(body.subject, 'Subject', 2, 60), semester: semester(body.semester), tags: tags(body.tags) };
+    return { title: text(body.title, 'Title', 10, 160), body: text(body.body, 'Description', 20, 12000), subject: text(body.subject, 'Subject', 2, 60), ...academicFields(body), tags: tags(body.tags) };
   }
   api.post('/doubts', requireUser, requireVerified, wrap(async (req, res) => {
     const fields = await doubtFields(req.body);
@@ -131,9 +139,9 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const user = await findDoc(User, req.params.id);
     if (user.isDeleted) fail(404, 'This account has been deleted.');
     const [doubts, answers, score] = await Promise.all([Doubt.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id)]);
-    ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, createdAt: user.createdAt, reputation: score }, doubts: await decorateMany(doubts, 'doubt', req.user), answers });
+    ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, academicLevel: effectiveLevel(user), createdAt: user.createdAt, reputation: score }, doubts: await decorateMany(doubts, 'doubt', req.user), answers });
   }));
-  api.put('/users/me', requireUser, wrap(async (req, res) => { req.user.name = text(req.body.name, 'Name', 2, 60); req.user.semester = semester(req.body.semester); await req.user.save(); ok(res, safeUser(req.user), 'Profile updated.'); }));
+  api.put('/users/me', requireUser, wrap(async (req, res) => { req.user.name = text(req.body.name, 'Name', 2, 60); Object.assign(req.user, academicFields(req.body)); await req.user.save(); ok(res, safeUser(req.user), 'Profile updated.'); }));
   api.post('/reports', requireUser, wrap(async (req, res) => {
     if (!['doubt', 'answer'].includes(req.body.targetType)) fail(400, 'Invalid report type.');
     const target = await findDoc(req.body.targetType === 'doubt' ? Doubt : Answer, req.body.targetId);
