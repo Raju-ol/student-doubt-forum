@@ -46,3 +46,5 @@ body{font-size:16px;line-height:1.6}
 .editor__hint{display:block;padding:8px 12px;border-top:1px solid var(--border);background:var(--page);color:var(--muted);font-size:12px}
 .editor__hint code{font-size:11px;padding:.05em .3em;border:1px solid var(--border);border-radius:4px;background:var(--card)}
 @media(max-width:639px){.editor__bar{gap:6px}.editor__tool{min-width:40px;min-height:40px}.editor__tabs [role=tab]{min-height:40px}}
+
+.account-page{max-width:640px;margin:40px auto}.account-page h2{margin-top:24px}.account-page p{margin:16px 0}.account-page form{margin-top:24px}

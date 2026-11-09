@@ -48,3 +48,6 @@ User signs into hosting/database/image accounts and enters secrets privately. Ne
 
 9 November 2026: Upstash shared API/auth/upload counters deployed. Separate normalized email/IP auth buckets, pseudonymous keys, safe outage 503. 65 tests/build pass. Health reports redis and feed returns 200; see docs/RATE_LIMIT_CHANGE_RECORD.md.
 
+
+Email verification/recovery implemented behind EMAIL_ENABLED (off until owner configures Resend verified sender). 66 tests/build pass, no real emails sent. Account pages and fragment links; see docs/EMAIL_CHANGE_RECORD.md.
+

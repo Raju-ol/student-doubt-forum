@@ -55,3 +55,6 @@ Windows restricted execution blocked network/native build components; authorized
 
 9 November 2026: shared Upstash rate limiting implemented; 65 tests pass/build succeeds. Live health reports Redis mode and protected feed HTTP 200. Cross-instance counters/email buckets, expiry/reload/outage validated using a REST contract fake; real production saturation not tested. See RATE_LIMIT_CHANGE_RECORD.md.
 
+
+Email flows: 66 tests pass/build succeeds. Capturing email adapter verifies hashes, expiry/replay, posting verification and password reset revocation. Real provider/inbox and live activation pending; see EMAIL_CHANGE_RECORD.md.
+

@@ -40,3 +40,6 @@ Sign out clears browser state; no server logout/revocation endpoint. Current rol
 ## Data relationships
 
 User ← Doubt.author. User ← Answer.author. Doubt ← Answer.doubt. Answer ← Comment.answer. Doubt.acceptedAnswer points to at most one answer. A unique Vote record links one user and a doubt/answer target. Upload tracks ownership and its optional attached doubt. Report links reporter, target and moderation status. Reputation is calculated from current answer votes (+10/-2) and accepted answers (+15), avoiding accumulating duplicate rewards from repeated toggles.
+
+Email endpoints: POST /auth/forgot-password {email}, /auth/reset-password {token,password}, /auth/verify-email {token}, /auth/verification-email (authenticated). Disabled with 503 until EMAIL_ENABLED=1. See EMAIL_CHANGE_RECORD.md.
+

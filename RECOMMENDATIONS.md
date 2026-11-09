@@ -13,6 +13,7 @@ document is still a proposal.
 
 | Item | Status |
 |---|---|
+| Email verification/reset | **Code implemented; activation pending owner** — hashed single-use links, posting gate behind EMAIL_ENABLED, recovery/account pages. 66 tests/build pass; no real email delivery yet. See docs/EMAIL_CHANGE_RECORD.md |
 | Shared rate limiting | **Implemented** — Upstash REST store for API/auth/upload, safe outage handling, 65 tests/build pass; live check pending. See docs/RATE_LIMIT_CHANGE_RECORD.md |
 | §3.2 Indexed word search | **Implemented locally** — weighted title/body/tag text index, relevance ordering and deliberate stemming/non-substring tests. 62 tests passed; see SEARCH_CHANGE_RECORD.md |
 | §6.2 Connection pool | **Implemented locally** — maxPoolSize reduced from five to two; 62 tests/build passed. Live saturation/load remains unverified |

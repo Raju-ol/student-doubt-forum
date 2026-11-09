@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { User } from './models.js';
 import { fail } from './validation.js';
-export const safeUser = user => ({ _id: user._id, name: user.name, email: user.email, role: user.role, semester: user.semester, isBanned: user.isBanned, createdAt: user.createdAt });
+export const safeUser = user => ({ _id: user._id, name: user.name, email: user.email, emailVerified: Boolean(user.emailVerifiedAt), verificationRequired: process.env.EMAIL_ENABLED === '1', role: user.role, semester: user.semester, isBanned: user.isBanned, createdAt: user.createdAt });
 export function tokenFor(user) { return jwt.sign({ ver: user.tokenVersion || 0 }, process.env.JWT_SECRET, { subject: String(user._id), expiresIn: '7d', algorithm: 'HS256' }); }
 export async function identify(req, res, next) {
   const header = req.get('authorization');

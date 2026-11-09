@@ -82,3 +82,6 @@ The current version is a college-project implementation, not a production servic
 ## Live application
 
 The selected host is now Vercel. Follow docs/VERCEL_HINGLISH.md for its import settings and private environment configuration. docs/GO_LIVE_HINGLISH.md retains the earlier Render alternative. Live readiness requires user-owned GitHub, database, Cloudinary and hosting accounts, private credentials, deployment and a fresh live acceptance run. A local URL is not a public website.
+
+Optional email recovery: configure APP_URL, RESEND_API_KEY and EMAIL_FROM privately, test a verified sender/domain, then EMAIL_ENABLED=1. Until activated, existing posting is unchanged. Setup and pending checks: docs/EMAIL_CHANGE_RECORD.md.
+

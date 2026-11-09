@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { createLimiterFactory } from './rate-limits.js';
+import { issueEmail, mountEmailRoutes, requireVerified, sendTransactionalEmail } from './email.js';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
@@ -16,7 +17,7 @@ import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAn
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
-export function createApp({ serveClient = true } = {}) {
+export function createApp({ serveClient = true, sendEmail = sendTransactionalEmail } = {}) {
   const limiter = createLimiterFactory();
   const app = express();
   app.disable('x-powered-by');
@@ -38,6 +39,7 @@ export function createApp({ serveClient = true } = {}) {
     const fields = { name: text(req.body.name, 'Name', 2, 60), email: email(req.body.email), semester: semester(req.body.semester) };
     const hash = await bcrypt.hash(password(req.body.password), 12);
     const user = await User.create({ ...fields, passwordHash: hash, reputation: 0 });
+    if (process.env.EMAIL_ENABLED === '1') { try { await issueEmail(user, 'verify', sendEmail); } catch { console.error('Email delivery failed: signup_verification'); } }
     ok(res, { user: safeUser(user), token: tokenFor(user) }, 'Welcome to Doubt Forum!', 201);
   }));
   api.post('/auth/login', authLimit, authEmailLimit, wrap(async (req, res) => {
@@ -53,6 +55,7 @@ export function createApp({ serveClient = true } = {}) {
     await User.updateOne({ _id: req.user._id }, { $inc: { tokenVersion: 1 } });
     ok(res, null, 'Signed out on all devices. Please sign in again.');
   }));
+  mountEmailRoutes(api, { limiter, wrap, ok, sendEmail });
   api.get('/doubts', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const limit = positiveInt(req.query.limit, 10, 30);
@@ -70,7 +73,7 @@ export function createApp({ serveClient = true } = {}) {
   async function doubtFields(body) {
     return { title: text(body.title, 'Title', 10, 160), body: text(body.body, 'Description', 20, 12000), subject: text(body.subject, 'Subject', 2, 60), semester: semester(body.semester), tags: tags(body.tags) };
   }
-  api.post('/doubts', requireUser, wrap(async (req, res) => {
+  api.post('/doubts', requireUser, requireVerified, wrap(async (req, res) => {
     const fields = await doubtFields(req.body);
     const ids = req.body.imageIds ?? [];
     if (!Array.isArray(ids) || ids.length > 3 || ids.some(id => typeof id !== 'string') || new Set(ids).size !== ids.length) fail(400, 'Use up to 3 unique images.');
@@ -98,7 +101,7 @@ export function createApp({ serveClient = true } = {}) {
   }));
   api.delete('/doubts/:id', requireUser, wrap(async (req, res) => { const doubt = await findDoc(Doubt, req.params.id); owns(req.user, doubt.author); await removeDoubt(doubt, cloudinary); ok(res, null, 'Doubt deleted.'); }));
   api.post('/doubts/:id/vote', requireUser, wrap(async (req, res) => ok(res, await toggleVote(req, Doubt, 'doubt'))));
-  api.post('/doubts/:id/answers', requireUser, wrap(async (req, res) => {
+  api.post('/doubts/:id/answers', requireUser, requireVerified, wrap(async (req, res) => {
     const doubt = await findDoc(Doubt, req.params.id);
     const answer = await Answer.create({ doubt: doubt._id, author: req.user._id, body: text(req.body.body, 'Answer', 10, 12000) });
     ok(res, answer, 'Answer posted. Thank you for helping!', 201);
@@ -112,7 +115,7 @@ export function createApp({ serveClient = true } = {}) {
     const accepted = await toggleAcceptance(answer, doubt);
     ok(res, { accepted }, accepted ? 'Answer accepted.' : 'Answer acceptance removed.');
   }));
-  api.post('/answers/:id/comments', requireUser, wrap(async (req, res) => { await findDoc(Answer, req.params.id); ok(res, await Comment.create({ answer: req.params.id, author: req.user._id, body: text(req.body.body, 'Comment', 2, 1000) }), 'Comment added.', 201); }));
+  api.post('/answers/:id/comments', requireUser, requireVerified, wrap(async (req, res) => { await findDoc(Answer, req.params.id); ok(res, await Comment.create({ answer: req.params.id, author: req.user._id, body: text(req.body.body, 'Comment', 2, 1000) }), 'Comment added.', 201); }));
   api.get('/users/:id', wrap(async (req, res) => {
     const user = await findDoc(User, req.params.id);
     const [doubts, answers, score] = await Promise.all([Doubt.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id)]);
@@ -126,7 +129,7 @@ export function createApp({ serveClient = true } = {}) {
     ok(res, await Report.create({ targetType: req.body.targetType, target: target._id, reporter: req.user._id, reason: text(req.body.reason, 'Reason', 5, 1000) }), 'Report sent to the moderators.', 201);
   }));
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 3 * 1024 * 1024, files: 1 }, fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) });
-  api.post('/uploads', requireUser, limiter('upload', 15, 60 * 60 * 1000, { account: true }), upload.single('image'), wrap(async (req, res) => {
+  api.post('/uploads', requireUser, requireVerified, limiter('upload', 15, 60 * 60 * 1000, { account: true }), upload.single('image'), wrap(async (req, res) => {
     if (!process.env.CLOUDINARY_API_SECRET) fail(503, 'Image uploads are not configured yet. You can still post a text doubt.');
     if (!req.file) fail(400, 'Choose a JPG, PNG or WebP image up to 3 MB.');
     const b = req.file.buffer;

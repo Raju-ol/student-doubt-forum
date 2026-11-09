@@ -13,6 +13,11 @@ const userSchema = new Schema({
   // null identifies an existing account awaiting lazy initialisation/backfill.
   reputation: { type: Number, default: null },
   tokenVersion: { type: Number, default: 0, min: 0 },
+  emailVerifiedAt: { type: Date, default: null },
+  verificationHash: { type: String, select: false },
+  verificationExpires: { type: Date, select: false },
+  resetHash: { type: String, select: false },
+  resetExpires: { type: Date, select: false },
   isBanned: { type: Boolean, default: false }
 }, options);
 const doubtSchema = new Schema({

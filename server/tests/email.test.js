@@ -1,0 +1,48 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
+import mongoose from 'mongoose';
+import { createApp } from '../src/app.js';
+import { User } from '../src/models.js';
+import { hashToken } from '../src/email.js';
+
+test('email verification and password reset use expiring single-use hashes', async t => {
+  process.env.JWT_SECRET = randomBytes(48).toString('hex'); process.env.EMAIL_ENABLED = '1'; process.env.APP_URL = 'https://forum.example.test';
+  const dbName = `forum_test_${Date.now()}_${randomBytes(3).toString('hex')}`;
+  await mongoose.connect(process.env.MONGO_TEST_URI || 'mongodb://127.0.0.1:27017', { dbName });
+  const messages = []; let deliveryFails = false;
+  const server = createApp({ sendEmail: async message => { if (deliveryFails) throw new Error('private provider detail'); messages.push(message); } }).listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); if (!/^forum_test_\d+_[a-f0-9]{6}$/.test(mongoose.connection.name)) throw new Error('Unsafe test database'); await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
+  const request = async (route, body, token, expected = 200) => {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/api/v1${route}`, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    const result = await response.json(); assert.equal(response.status, expected, result.message); return result;
+  };
+  const fields = { name: 'Email Test', email: 'email-test@example.test', password: 'EmailTestPass123', semester: 1 };
+  const signup = (await request('/auth/signup', fields, null, 201)).data;
+  const rawToken = messages[0].text.match(/#([a-f0-9]{64})/)[1];
+  const stored = await User.findById(signup.user._id).select('+verificationHash');
+  assert.equal(stored.verificationHash, hashToken(rawToken)); assert.notEqual(stored.verificationHash, rawToken);
+  assert.equal(signup.user.emailVerified, false); assert.equal(signup.user.verificationHash, undefined);
+  await request('/doubts', { title: 'An unverified question', body: 'This should be rejected until the email has been verified.', subject: 'DBMS', semester: 1 }, signup.token, 403);
+  await request('/auth/verify-email', { token: rawToken });
+  await request('/auth/verify-email', { token: rawToken }, null, 400);
+  assert.equal((await request('/auth/me', null, signup.token)).data.emailVerified, true);
+  await request('/doubts', { title: 'A verified question', body: 'This should now be accepted after the email has been verified.', subject: 'DBMS', semester: 1 }, signup.token, 201);
+  const known = await request('/auth/forgot-password', { email: fields.email });
+  const unknown = await request('/auth/forgot-password', { email: 'unknown@example.test' });
+  assert.deepEqual(known, unknown);
+  const resetToken = messages.at(-1).text.match(/#([a-f0-9]{64})/)[1];
+  assert.equal((await User.findById(signup.user._id).select('+resetHash')).resetHash, hashToken(resetToken));
+  await request('/auth/reset-password', { token: resetToken, password: 'NewEmailPassword123' });
+  await request('/auth/reset-password', { token: resetToken, password: 'NewEmailPassword123' }, null, 400);
+  await request('/auth/me', null, signup.token, 401);
+  await request('/auth/login', { email: fields.email, password: fields.password }, null, 401);
+  await request('/auth/login', { email: fields.email, password: 'NewEmailPassword123' });
+  await User.updateOne({ _id: signup.user._id }, { $set: { resetHash: hashToken('a'.repeat(64)), resetExpires: new Date(Date.now() - 1000) } });
+  await request('/auth/reset-password', { token: 'a'.repeat(64), password: 'AnotherPassword123' }, null, 400);
+  deliveryFails = true;
+  assert.deepEqual(await request('/auth/forgot-password', { email: 'unknown-2@example.test' }), known);
+  delete process.env.EMAIL_ENABLED;
+  await request('/auth/forgot-password', { email: fields.email }, null, 503);
+});
