@@ -13,6 +13,7 @@ document is still a proposal.
 
 | Item | Status |
 |---|---|
+| Shared rate limiting | **Implemented** — Upstash REST store for API/auth/upload, safe outage handling, 65 tests/build pass; live check pending. See docs/RATE_LIMIT_CHANGE_RECORD.md |
 | §3.2 Indexed word search | **Implemented locally** — weighted title/body/tag text index, relevance ordering and deliberate stemming/non-substring tests. 62 tests passed; see SEARCH_CHANGE_RECORD.md |
 | §6.2 Connection pool | **Implemented locally** — maxPoolSize reduced from five to two; 62 tests/build passed. Live saturation/load remains unverified |
 | §3.7 Session invalidation | **Implemented locally** — token versions and Sign out everywhere; full suite 62 passes/build passed. Password reset/change remains separate work |

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { rateLimit } from 'express-rate-limit';
+import { createLimiterFactory } from './rate-limits.js';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
@@ -16,11 +16,11 @@ import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAn
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
-const limiter = (limit, windowMs) => rateLimit({ windowMs, limit, standardHeaders: 'draft-7', legacyHeaders: false, message: { success: false, message: 'Too many requests. Please try again later.' } });
 export function createApp({ serveClient = true } = {}) {
+  const limiter = createLimiterFactory();
   const app = express();
   app.disable('x-powered-by');
-  if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
+  if (process.env.TRUST_PROXY === '1' || process.env.VERCEL === '1') app.set('trust proxy', 1);
   app.use(helmet({ contentSecurityPolicy: { directives: { 'img-src': ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'], 'script-src': ["'self'"], 'upgrade-insecure-requests': process.env.NODE_ENV === 'production' ? [] : null } } }));
   app.use(cors({ origin: process.env.CLIENT_URL || 'http://127.0.0.1:5173' }));
   app.use(express.json({ limit: '100kb' }));
@@ -29,10 +29,10 @@ export function createApp({ serveClient = true } = {}) {
   app.use('/api/v1', api);
   api.get('/health', (req, res) => {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ success: false, message: 'Database unavailable.' });
-    ok(res, { database: 'connected' }, 'Doubt Forum API is running.');
+    ok(res, { database: 'connected', rateLimitStore: limiter.mode }, 'Doubt Forum API is running.');
   });
-  api.use(limiter(600, 15 * 60 * 1000), wrap(identify));
-  const authLimit = limiter(30, 15 * 60 * 1000);
+  api.use(limiter('api', 600, 15 * 60 * 1000), wrap(identify));
+  const authLimit = limiter('auth', 30, 15 * 60 * 1000);
   api.post('/auth/signup', authLimit, wrap(async (req, res) => {
     const fields = { name: text(req.body.name, 'Name', 2, 60), email: email(req.body.email), semester: semester(req.body.semester) };
     const hash = await bcrypt.hash(password(req.body.password), 12);
@@ -125,7 +125,7 @@ export function createApp({ serveClient = true } = {}) {
     ok(res, await Report.create({ targetType: req.body.targetType, target: target._id, reporter: req.user._id, reason: text(req.body.reason, 'Reason', 5, 1000) }), 'Report sent to the moderators.', 201);
   }));
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 3 * 1024 * 1024, files: 1 }, fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) });
-  api.post('/uploads', requireUser, limiter(15, 60 * 60 * 1000), upload.single('image'), wrap(async (req, res) => {
+  api.post('/uploads', requireUser, limiter('upload', 15, 60 * 60 * 1000, { account: true }), upload.single('image'), wrap(async (req, res) => {
     if (!process.env.CLOUDINARY_API_SECRET) fail(503, 'Image uploads are not configured yet. You can still post a text doubt.');
     if (!req.file) fail(400, 'Choose a JPG, PNG or WebP image up to 3 MB.');
     const b = req.file.buffer;
