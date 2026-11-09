@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { createApp } from '../src/app.js';
 import { User } from '../src/models.js';
 import { createServer } from 'node:http';
+import { calculateReputation, ensureReputation } from '../src/reputation.js';
 
 test('Student Doubt Forum integration flow', async t => {
   process.env.JWT_SECRET = randomBytes(48).toString('hex');
@@ -86,6 +87,21 @@ test('Student Doubt Forum integration flow', async t => {
     await request(`/answers/${other._id}/accept`, 'PATCH', {}, a.token); assert.equal((await request(`/doubts/${doubt._id}`)).status, 'open');
     await request(`/answers/${other._id}`, 'DELETE', null, c.token);
   });
+  await t.test('stored scores agree with reconciliation and legacy backfill preserves history', async () => {
+    let user = await User.findById(b.user._id).lean();
+    assert.equal(user.reputation, 10);
+    assert.equal(user.reputation, await calculateReputation(user._id));
+    await User.collection.updateOne({ _id: user._id }, { $unset: { reputation: '' } });
+    const [one, two] = await Promise.all([ensureReputation(user._id), ensureReputation(user._id)]);
+    assert.equal(one, 10); assert.equal(two, 10);
+    await request(`/answers/${answer._id}/vote`, 'POST', { value: 1 }, a.token);
+    assert.equal((await request(`/users/${b.user._id}`)).user.reputation, 0);
+    await request(`/answers/${answer._id}/vote`, 'POST', { value: -1 }, a.token);
+    assert.equal((await request(`/users/${b.user._id}`)).user.reputation, -2);
+    await request(`/answers/${answer._id}/vote`, 'POST', { value: 1 }, a.token);
+    user = await User.findById(b.user._id).lean();
+    assert.equal(user.reputation, await calculateReputation(user._id));
+  });
   await t.test('profile changes do not allow privilege escalation', async () => {
     const updated = await request('/users/me', 'PUT', { name: 'Renamed Student', semester: 4, role: 'admin' }, a.token); assert.equal(updated.role, 'student'); assert.equal(updated.semester, 4);
     const publicProfile = await request(`/users/${a.user._id}`); assert.equal(publicProfile.user.email, undefined); assert.equal(publicProfile.user.passwordHash, undefined);
@@ -108,6 +124,13 @@ test('Student Doubt Forum integration flow', async t => {
     assert.equal((await request('/admin/reports', 'GET', null, c.token)).total, 0);
   });
   await t.test('accepting then deleting an answer reopens the doubt', async () => { await request(`/answers/${answer._id}/accept`, 'PATCH', {}, a.token); await request(`/answers/${answer._id}`, 'DELETE', null, b.token); const detail = await request(`/doubts/${doubt._id}`); assert.equal(detail.status, 'open'); assert.equal(detail.answerCount, 0); });
+  await t.test('answer deletion reverses vote and acceptance credits exactly once', async () => {
+    const user = await User.findById(b.user._id).lean();
+    assert.equal(user.reputation, 0);
+    assert.equal(await calculateReputation(user._id), 0);
+    await request(`/answers/${answer._id}`, 'DELETE', null, b.token, 404);
+    assert.equal((await User.findById(b.user._id).lean()).reputation, 0);
+  });
   await t.test('admin removes reported content', async () => { const report = await request('/reports', 'POST', { targetType: 'doubt', targetId: doubt._id, reason: 'Testing doubt removal through moderation.' }, b.token, 201); await request(`/admin/reports/${report._id}`, 'PATCH', { status: 'removed' }, c.token); await request(`/doubts/${doubt._id}`, 'GET', null, null, 404); });
   await t.test('unowned image IDs rejected and upload delete cannot target other users', async () => {
     await request('/doubts', 'POST', { title: 'Question with a forged screenshot', body: 'This question tries to attach an image that does not belong to the user.', subject: 'DBMS', semester: 2, imageIds: ['foreign-image'] }, a.token, 400);

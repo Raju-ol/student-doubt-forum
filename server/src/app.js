@@ -12,7 +12,7 @@ import mongoose from 'mongoose';
 import { User, Doubt, Answer, Comment, Report, Upload } from './models.js';
 import { fail, text, semester, email, password, tags, positiveInt, escapeRegex } from './validation.js';
 import { identify, requireUser, requireAdmin, owns, safeUser, tokenFor } from './auth.js';
-import { findDoc, decorate, decorateMany, toggleVote, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
+import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -36,7 +36,7 @@ export function createApp({ serveClient = true } = {}) {
   api.post('/auth/signup', authLimit, wrap(async (req, res) => {
     const fields = { name: text(req.body.name, 'Name', 2, 60), email: email(req.body.email), semester: semester(req.body.semester) };
     const hash = await bcrypt.hash(password(req.body.password), 12);
-    const user = await User.create({ ...fields, passwordHash: hash });
+    const user = await User.create({ ...fields, passwordHash: hash, reputation: 0 });
     ok(res, { user: safeUser(user), token: tokenFor(user) }, 'Welcome to Doubt Forum!', 201);
   }));
   api.post('/auth/login', authLimit, wrap(async (req, res) => {
@@ -103,9 +103,7 @@ export function createApp({ serveClient = true } = {}) {
   api.patch('/answers/:id/accept', requireUser, wrap(async (req, res) => {
     const answer = await findDoc(Answer, req.params.id); const doubt = await findDoc(Doubt, String(answer.doubt));
     if (String(doubt.author) !== String(req.user._id)) fail(403, 'Only the student who asked can accept an answer.');
-    const accepted = String(doubt.acceptedAnswer) !== String(answer._id);
-    // One pointer on the doubt guarantees there can only be one accepted answer.
-    await Doubt.updateOne({ _id: doubt._id }, accepted ? { $set: { acceptedAnswer: answer._id } } : { $unset: { acceptedAnswer: 1 } });
+    const accepted = await toggleAcceptance(answer, doubt);
     ok(res, { accepted }, accepted ? 'Answer accepted.' : 'Answer acceptance removed.');
   }));
   api.post('/answers/:id/comments', requireUser, wrap(async (req, res) => { await findDoc(Answer, req.params.id); ok(res, await Comment.create({ answer: req.params.id, author: req.user._id, body: text(req.body.body, 'Comment', 2, 1000) }), 'Comment added.', 201); }));

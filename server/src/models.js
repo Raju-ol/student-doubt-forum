@@ -10,6 +10,8 @@ const userSchema = new Schema({
   passwordHash: { type: String, required: true, select: false },
   role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
   semester: { type: Number, min: 1, max: 8, required: true },
+  // null identifies an existing account awaiting lazy initialisation/backfill.
+  reputation: { type: Number, default: null },
   isBanned: { type: Boolean, default: false }
 }, options);
 const doubtSchema = new Schema({

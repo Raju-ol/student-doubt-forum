@@ -1,5 +1,8 @@
 # Verification record
 
+## 9 November reputation update
+Full suite: 61 passes, 0 failures; production build passed. Added history-preserving missing-counter initialization, concurrent initializer and deletion-credit reversal checks. Stored reputation matches aggregation reconciliation in the exercised flows. Production backfill/load testing is not run. See REPUTATION_CHANGE_RECORD.md.
+
 Date: 9 November 2026. Local Windows machine, Node 24.19.0, npm 11.17.0, local MongoDB.
 
 ## Passed

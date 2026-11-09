@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Doubt, Answer, Vote, Comment, Upload } from './models.js';
 import { fail } from './validation.js';
+import { ensureReputation, addReputation, voteCredit } from './reputation.js';
 
 export const authorFields = 'name role semester createdAt';
 export async function findDoc(Model, id) {
@@ -48,16 +49,31 @@ export async function toggleVote(req, Model, type) {
   if (String(doc.author) === String(req.user._id)) fail(403, 'You cannot vote on your own content.');
   if (![1, -1].includes(req.body.value)) fail(400, 'Vote must be 1 or -1.');
   const filter = { targetType: type, target: doc._id, user: req.user._id };
+  if (type === 'answer') await ensureReputation(doc.author);
   const previous = await Vote.findOne(filter);
-  if (previous?.value === req.body.value) await Vote.deleteOne({ _id: previous._id });
-  else await Vote.findOneAndUpdate(filter, { value: req.body.value }, { upsert: true, runValidators: true });
+  const nextValue = previous?.value === req.body.value ? 0 : req.body.value;
+  if (previous) {
+    const result = nextValue === 0
+      ? await Vote.deleteOne({ _id: previous._id, value: previous.value })
+      : await Vote.updateOne({ _id: previous._id, value: previous.value }, { value: nextValue });
+    if (!(result.deletedCount || result.modifiedCount)) fail(409, 'Your vote changed in another request. Please retry.');
+  } else {
+    try { await Vote.create({ ...filter, value: nextValue }); }
+    catch (error) { if (error.code === 11000) fail(409, 'Your vote changed in another request. Please retry.'); throw error; }
+  }
+  if (type === 'answer') await addReputation(doc.author, voteCredit(nextValue) - voteCredit(previous?.value));
   await doc.populate('author', authorFields);
   return decorate(doc, type, req.user);
 }
 export async function removeAnswer(answer) {
-  await Doubt.updateOne({ _id: answer.doubt, acceptedAnswer: answer._id }, { $unset: { acceptedAnswer: 1 } });
+  await ensureReputation(answer.author);
+  // Only the request that actually removes the answer reverses its credits.
+  const removed = await Answer.findOneAndDelete({ _id: answer._id });
+  if (!removed) return;
+  const rows = await Vote.aggregate([{ $match: { targetType: 'answer', target: answer._id } }, { $group: { _id: null, total: { $sum: { $cond: [{ $eq: ['$value', 1] }, 10, -2] } } } }]);
+  const acceptance = await Doubt.updateOne({ _id: answer.doubt, acceptedAnswer: answer._id }, { $unset: { acceptedAnswer: 1 } });
+  await addReputation(answer.author, -(rows[0]?.total || 0) - (acceptance.modifiedCount ? 15 : 0));
   await Promise.all([Comment.deleteMany({ answer: answer._id }), Vote.deleteMany({ targetType: 'answer', target: answer._id })]);
-  await answer.deleteOne();
 }
 export async function removeDoubt(doubt, cloudinary) {
   const images = await Upload.find({ doubt: doubt._id });
@@ -69,8 +85,17 @@ export async function removeDoubt(doubt, cloudinary) {
   await doubt.deleteOne();
 }
 export async function reputation(userId) {
-  const answers = await Answer.find({ author: userId }).select('_id').lean();
-  const ids = answers.map(a => a._id);
-  const [votes, accepted] = await Promise.all([Vote.find({ targetType: 'answer', target: { $in: ids } }).lean(), Doubt.countDocuments({ acceptedAnswer: { $in: ids } })]);
-  return votes.reduce((sum, v) => sum + (v.value === 1 ? 10 : -2), 0) + accepted * 15;
+  return ensureReputation(userId);
+}
+
+export async function toggleAcceptance(answer, doubt) {
+  const accepted = String(doubt.acceptedAnswer) !== String(answer._id);
+  const previous = doubt.acceptedAnswer ? await Answer.findById(doubt.acceptedAnswer) : null;
+  await ensureReputation(answer.author);
+  if (previous) await ensureReputation(previous.author);
+  const result = await Doubt.updateOne({ _id: doubt._id, acceptedAnswer: doubt.acceptedAnswer || null }, accepted ? { $set: { acceptedAnswer: answer._id } } : { $unset: { acceptedAnswer: 1 } });
+  if (!result.modifiedCount) fail(409, 'Acceptance changed in another request. Please refresh and retry.');
+  if (previous) await addReputation(previous.author, -15);
+  if (accepted) await addReputation(answer.author, 15);
+  return accepted;
 }
