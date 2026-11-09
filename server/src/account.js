@@ -46,8 +46,8 @@ export function mountAccountRoutes(api, { limiter, wrap, ok, cloudinary }) {
       await Upload.deleteOne({ _id: upload._id, owner: user._id });
     }
     const removed = await User.findOneAndUpdate({ _id: user._id, passwordHash: user.passwordHash, isDeleted: { $ne: true } }, {
-      $set: { name: 'Deleted user', email: `deleted-${user._id}-${randomBytes(8).toString('hex')}@deleted.invalid`, passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12), role: 'student', isDeleted: true, deletedAt: new Date(), emailVerifiedAt: null, institution: null, academicLevel: null, semester: undefined, isBanned: true },
-      $unset: { verificationHash: 1, verificationExpires: 1, resetHash: 1, resetExpires: 1 }, $inc: { tokenVersion: 1 },
+      $set: { name: 'Deleted user', email: `deleted-${user._id}-${randomBytes(8).toString('hex')}@deleted.invalid`, passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12), role: 'student', isDeleted: true, deletedAt: new Date(), emailVerifiedAt: null, institution: null, academicLevel: null, isBanned: true },
+      $unset: { verificationHash: 1, verificationExpires: 1, resetHash: 1, resetExpires: 1, semester: 1 }, $inc: { tokenVersion: 1 },
     });
     if (!removed) fail(409, 'Your account changed during deletion. Sign in again and retry.');
     // Authored discussions and votes remain attached to the anonymous tombstone

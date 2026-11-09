@@ -1,5 +1,12 @@
 # Student Doubt Forum
 
+## Current setup and handoff
+
+See [current handoff and owner checklist](docs/CONTINUE_HERE.md) for the latest
+features, verification, private environment variable names and pending setup.
+Email activation and production migrations remain deliberate separate steps.
+
+
 A college question-and-answer application built with React, Express and MongoDB. Students can ask doubts, answer, comment, vote, accept answers, search and filter. Teachers have a badge. Administrators manage users and reported content. Optional screenshot uploads use Cloudinary.
 
 ## Current status

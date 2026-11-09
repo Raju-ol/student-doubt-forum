@@ -42,3 +42,6 @@ mapping with explicit-global preservation. No production migration or real
 institution membership verified. No restored production-copy test or high-load
 feed test. Migration changes multiple documents without a transaction; take a
 backup and pause writes before approved execution.
+
+Live public institution catalogue returned 200 with zero records. Mobile scope controls default Everything for anonymous visitors; subject-worldwide plus academic filtering returned the existing question. No user affiliation changed.
+

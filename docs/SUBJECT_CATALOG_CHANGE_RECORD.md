@@ -33,3 +33,6 @@ canonical post/filter, legacy aliases and non-mutating/idempotent fixture
 migration. Live admin mutations and restored production-copy migration are not
 tested. No per-institution subjects, user-created aliases or catalogue editing
 workflow yet. Large catalogue search/typeahead remains future work.
+
+Live catalogue returned 30 subjects. Mobile dropdown and Data Structures filtering verified; initial catalogue seed is additive and existing question content was not rewritten.
+

@@ -1,5 +1,18 @@
 # Verification record
 
+## Latest verification — 9 November 2026
+
+75 tests pass, production build passes, npm audit reports 0 vulnerabilities.
+CI at f50d427 passed Node 22 and 24 plus audit. Live Redis health/protected feed,
+30-subject catalogue, empty institution catalogue, optional signup fields,
+worldwide subject + legacy semester filtering and mobile width checked. Dark
+persistence and Markdown maths/code preview verified. Additional regression
+coverage includes failed email delivery's generic response, image-cleanup retry
+and admin-account deletion block. No live deletion/recovery/admin mutations,
+restored production-copy migration, full load or screen-reader audit. Current
+limitations and owner steps: [CONTINUE_HERE.md](CONTINUE_HERE.md).
+
+
 Text-search update: 62 local passes/0 failures. Tested stemming, deliberate partial-word nonmatch, tags, punctuation and combined filters. Production index creation/time and multilingual relevance are unverified.
 
 Pool update: maxPoolSize=2, full local suite 62 passes/0 failures, production build passed. Live traffic/connection saturation not measured.

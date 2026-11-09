@@ -33,6 +33,10 @@ test('account export is private and deletion anonymizes threads and revokes acce
   await req('/users/me', 'DELETE', { password: 'wrong-password', confirmation: 'DELETE' }, owner.token, 401);
   await req('/users/me', 'DELETE', { password: fields.password, confirmation: 'NO' }, owner.token, 400);
   assert.equal(destroyed.length, 0);
+  cloudinary.uploader.destroy = async () => { throw new Error('private provider details'); };
+  await req('/users/me', 'DELETE', { password: fields.password, confirmation: 'DELETE' }, owner.token, 503);
+  await req('/auth/me', 'GET', null, owner.token);
+  cloudinary.uploader.destroy = async id => { destroyed.push(id); return { result: 'ok' }; };
   await User.updateOne({ _id: owner.user._id }, { $unset: { isDeleted: 1 } }); // legacy account
   await req('/users/me', 'DELETE', { password: fields.password, confirmation: 'DELETE' }, owner.token);
   assert.deepEqual(destroyed, ['owned-image']);
@@ -46,4 +50,6 @@ test('account export is private and deletion anonymizes threads and revokes acce
   await req(`/users/${owner.user._id}`, 'GET', null, null, 404);
   const thread = (await (await req(`/doubts/${question._id}`)).json()).data;
   assert.equal(thread.author.name, 'Deleted user');
+  await User.updateOne({ _id: other.user._id }, { role: 'admin' });
+  await req('/users/me', 'DELETE', { password: fields.password, confirmation: 'DELETE' }, other.token, 403);
 });

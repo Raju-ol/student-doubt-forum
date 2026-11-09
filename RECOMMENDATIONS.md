@@ -8,25 +8,27 @@ This document is deliberately blunt about what is missing, because you asked for
 
 ## Implementation status
 
-Updated 9 November 2026. Only these items have been applied so far; everything else in this
-document is still a proposal.
+Current snapshot — 9 November 2026. Older sections below retain the original
+proposal; this table and docs/CONTINUE_HERE.md describe current implementation.
 
 | Item | Status |
 |---|---|
-| Email verification/reset | **Code implemented; activation pending owner** — hashed single-use links, posting gate behind EMAIL_ENABLED, recovery/account pages. 66 tests/build pass; no real email delivery yet. See docs/EMAIL_CHANGE_RECORD.md |
-| Shared rate limiting | **Implemented** — Upstash REST store for API/auth/upload, safe outage handling, 65 tests/build pass; live check pending. See docs/RATE_LIMIT_CHANGE_RECORD.md |
-| §3.2 Indexed word search | **Implemented locally** — weighted title/body/tag text index, relevance ordering and deliberate stemming/non-substring tests. 62 tests passed; see SEARCH_CHANGE_RECORD.md |
-| §6.2 Connection pool | **Implemented locally** — maxPoolSize reduced from five to two; 62 tests/build passed. Live saturation/load remains unverified |
-| §3.7 Session invalidation | **Implemented locally** — token versions and Sign out everywhere; full suite 62 passes/build passed. Password reset/change remains separate work |
-| §3.4 Stored reputation | **Implemented locally** — atomic credit deltas, lazy legacy initialization and reconciliation dry-run script; 61 tests passed, build passed. See docs/REPUTATION_CHANGE_RECORD.md. Production migration not run |
-| §2 Markdown, code blocks, maths | **Done** — rendered and sanitised client-side, with a toolbar and preview; see `docs/MARKDOWN_CHANGE_RECORD.md`. Not yet checked in a browser |
-| §3.1 Feed N+1 queries | **Done** — `decorateMany` batches votes and answer counts; feed measured 28 → 6 queries and now constant with page size |
-| §3.3 Missing indexes | **Done** — nine indexes added in `server/src/models.js`, verified locally with `explain()` |
-| §6.3 CI | **Done** — `.github/workflows/ci.yml` and `.github/dependabot.yml`; tests run on Node 22 and 24, currently green |
-| §7/§10 `LICENSE` | **Done** — MIT, `Copyright (c) 2026 UJA` |
-| Everything else | Not started |
+| Stored reputation / session revocation / Mongo pool / indexed search | Implemented and deployed; regression suite passes. See corresponding change records. Production reputation backfill not run |
+| Shared rate limits | Upstash deployed and live connectivity verified; API/IP, auth/IP + email and upload/account buckets |
+| Email verification/reset | Code + tests complete, activation **pending owner Resend sender/domain setup**; EMAIL_ENABLED remains off |
+| Account export/delete | Implemented; private export and anonymous tombstone with owned-image cleanup. No live deletion/export test |
+| Themes | System/light/dark deployed; selected contrast tests and live mobile/persistence checks |
+| In-app notifications | Answer/comment/first acceptance inbox implemented. Mentions, email digest and push remain future work |
+| Profile/Admin tabs | Accessible tablist/keyboard/panel behavior implemented and DOM-tested |
+| Optional academic level | Implemented with legacy semester compatibility; guarded migration not run on production |
+| Subject catalogue | 30 additive starter subjects, aliases and admin additions; existing questions not migrated |
+| Institutions/feed scopes | Optional self-reported colleges + public college/subject/all scopes; no real college assigned or production migration |
+| Markdown / feed batching / original indexes / CI / MIT licence | Preserved and extended; Markdown preview bug fixed and live-checked |
+| Full original roadmap beyond the handoff scope | Still proposals; see pending items in docs/CONTINUE_HERE.md |
 
-Full detail, deviations and what was not verified: `docs/PHASE0_CHANGE_RECORD.md`.
+Latest local result: **75 tests pass**, build passes, npm audit 0 vulnerabilities.
+CI at f50d427 passed on Node 22/24 plus audit. Final follow-up commits need their
+own exact-commit CI verification. No claim of load testing or full legal/WCAG compliance.
 
 ---
 

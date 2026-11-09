@@ -1,5 +1,16 @@
 # Student Doubt Forum
 
+## Current handoff — 9 November 2026
+
+Read [docs/CONTINUE_HERE.md](docs/CONTINUE_HERE.md) first. Current code includes
+shared Redis limits, gated email recovery, account data controls, persistent
+themes, private notifications, accessible tabs, optional academic levels and
+catalogue/institution feeds. Legacy data remains compatible; production backfills
+were not run. Email remains disabled pending verified sender setup. Local 75
+checks pass, build/audit pass; live catalogue/feed/mobile checked. Older sections
+below are historical snapshots.
+
+
 9 November: Weighted English text search implemented locally, preserving filters while changing substring semantics to word/stem matches. Test suite 62 passes. No destructive index replacement or production backfill performed; see SEARCH_CHANGE_RECORD.md.
 
 9 November: Database maxPoolSize reduced to two after 62-test/build regression run. This is per instance, not a cap on total serverless connections. See CONNECTION_POOL_CHANGE_RECORD.md.

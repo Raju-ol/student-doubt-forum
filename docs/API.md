@@ -1,5 +1,15 @@
 # API notes
 
+## Current API changes — 9 November 2026
+
+Academic level and college are optional; legacy semester input is supported.
+Subjects are catalogue-backed. Email endpoints are gated by EMAIL_ENABLED; shared
+Redis throttles return 429/Retry-After or safe 503 on store outage. New account,
+notification, catalogue and feed scope routes are listed in the dated additions
+below and [current handoff](CONTINUE_HERE.md). Historical examples requiring a
+semester describe the old client contract.
+
+
 Base: `/api/v1`. Success: `{ success: true, data, message }`. Error: `{ success: false, message }`. Protected routes use `Authorization: Bearer <token>`.
 
 `GET /doubts?search=...` uses weighted English MongoDB text search on title/body/tags, ranked by textScore. Whole-word/stem matches replace substring matching. Existing subject/semester/tag/status filters combine with search. No search retains newest-first order.

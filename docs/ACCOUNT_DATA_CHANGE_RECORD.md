@@ -44,3 +44,6 @@ requests but cannot undo an already in-flight write. Retained post bodies and
 moderation data need a separate review if the user requests removal of specific
 personal information. Large browser downloads and recovery from backups are not
 load-tested.
+
+Final regression: 75 total tests pass/build/audit clean. Added provider-cleanup failure/retry and admin-deletion rejection coverage. Account anonymization also clears optional college/academic metadata and legacy semester. No live deletion performed.
+

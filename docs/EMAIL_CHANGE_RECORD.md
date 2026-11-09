@@ -48,3 +48,6 @@ verification enforced. Resend account, sender/domain and real recovery test rema
 owner-dependent. No claim of complete abuse protection or legal compliance.
 
 Reference: [Resend API contract](https://github.com/resend/resend-openapi/blob/main/resend.yaml).
+
+Final regression: 75 total tests pass. A known account with failed mail delivery now explicitly checks the same generic response as an unknown account; private provider details are not returned.
+

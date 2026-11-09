@@ -27,3 +27,6 @@ compatibly without needing a migration immediately.
 
 GET /doubts supports academicSystem and academicIndex. Signup, PUT /users/me and
 question POST/PUT accept academicLevel in addition to legacy semester.
+
+Live mobile signup optional Year/level controls checked without account submission. Legacy Semester 5 question remained visible under the new semester filter; no migration was required for this read.
+

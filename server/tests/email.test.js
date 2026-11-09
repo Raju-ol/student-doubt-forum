@@ -43,6 +43,7 @@ test('email verification and password reset use expiring single-use hashes', asy
   await request('/auth/reset-password', { token: 'a'.repeat(64), password: 'AnotherPassword123' }, null, 400);
   deliveryFails = true;
   assert.deepEqual(await request('/auth/forgot-password', { email: 'unknown-2@example.test' }), known);
+  assert.deepEqual(await request('/auth/forgot-password', { email: fields.email }), known);
   delete process.env.EMAIL_ENABLED;
   await request('/auth/forgot-password', { email: fields.email }, null, 503);
 });
