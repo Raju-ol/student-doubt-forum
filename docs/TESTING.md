@@ -92,3 +92,5 @@ Subjects: 74 tests/build pass. Alias/collision permissions and guarded fixture m
 
 Institutions: 75 tests/build pass, permission/scope/mapping tests in disposable DB. No live membership/college addition or migration performed. INSTITUTION_CHANGE_RECORD.md.
 
+
+Owner-only email recovery: 76 tests/build pass; recipient/token restrictions and friends posting verified locally. Real inbox test pending.

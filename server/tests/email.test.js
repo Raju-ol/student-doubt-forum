@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import mongoose from 'mongoose';
 import { createApp } from '../src/app.js';
 import { User } from '../src/models.js';
-import { hashToken } from '../src/email.js';
+import { hashToken, emailTestRecipient } from '../src/email.js';
 
 test('email verification and password reset use expiring single-use hashes', async t => {
   process.env.JWT_SECRET = randomBytes(48).toString('hex'); process.env.EMAIL_ENABLED = '1'; process.env.APP_URL = 'https://forum.example.test';
@@ -46,4 +46,38 @@ test('email verification and password reset use expiring single-use hashes', asy
   assert.deepEqual(await request('/auth/forgot-password', { email: fields.email }), known);
   delete process.env.EMAIL_ENABLED;
   await request('/auth/forgot-password', { email: fields.email }, null, 503);
+});
+
+test('test-only recovery is restricted to one recipient without gating other users posting', async t => {
+  process.env.JWT_SECRET = randomBytes(48).toString('hex'); process.env.EMAIL_ENABLED = '0'; process.env.APP_URL = 'https://forum.example.test';
+  process.env.EMAIL_TEST_RECIPIENT = ' Owner@Example.Test ';
+  assert.equal(emailTestRecipient(), 'owner@example.test');
+  const dbName = `forum_test_${Date.now()}_${randomBytes(3).toString('hex')}`;
+  await mongoose.connect(process.env.MONGO_TEST_URI || 'mongodb://127.0.0.1:27017', { dbName });
+  const messages = [];
+  const server = createApp({ sendEmail: async message => messages.push(message) }).listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(async () => { delete process.env.EMAIL_TEST_RECIPIENT; delete process.env.EMAIL_ENABLED; await new Promise(resolve => server.close(resolve)); if (!/^forum_test_\d+_[a-f0-9]{6}$/.test(mongoose.connection.name)) throw new Error('Unsafe test database'); await mongoose.connection.dropDatabase(); await mongoose.disconnect(); });
+  const request = async (route, body, token, expected = 200) => {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/api/v1${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
+    const result = await response.json(); assert.equal(response.status, expected, result.message); return result;
+  };
+  const signup = address => request('/auth/signup', { name: 'Recovery Test', email: address, password: 'RecoveryTest123' }, null, 201);
+  const owner = (await signup('owner@example.test')).data, other = (await signup('other@example.test')).data;
+  assert.equal(messages.length, 0); assert.equal(other.user.verificationRequired, false);
+  await request('/doubts', { title: 'Posting remains open for friends', body: 'Unverified friends can still post during the owner-only recovery test.', subject: 'DBMS' }, other.token, 201);
+  await request('/auth/verification-email', {}, owner.token, 503);
+  const allowed = await request('/auth/forgot-password', { email: 'OWNER@example.test' });
+  const denied = await request('/auth/forgot-password', { email: 'other@example.test' });
+  assert.deepEqual(allowed, denied); assert.equal(messages.length, 1); assert.equal(messages[0].to, 'owner@example.test');
+  assert.equal((await User.findById(other.user._id).select('+resetHash')).resetHash, undefined);
+  const oldOtherToken = 'b'.repeat(64);
+  await User.updateOne({ _id: other.user._id }, { $set: { resetHash: hashToken(oldOtherToken), resetExpires: new Date(Date.now() + 60000) } });
+  await request('/auth/reset-password', { token: oldOtherToken, password: 'NewPassword123' }, null, 400);
+  const token = messages[0].text.match(/#([a-f0-9]{64})/)[1];
+  await request('/auth/reset-password', { token, password: 'NewOwnerPassword123' });
+  await request('/auth/login', { email: 'owner@example.test', password: 'NewOwnerPassword123' });
+  await request('/auth/reset-password', { token, password: 'NewOwnerPassword123' }, null, 400);
+  process.env.EMAIL_TEST_RECIPIENT = 'invalid';
+  await request('/auth/forgot-password', { email: 'owner@example.test' }, null, 503);
 });

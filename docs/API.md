@@ -68,3 +68,5 @@ GET /subjects returns public catalogue (max 500). POST /admin/subjects {name,slu
 
 Institutions: GET /institutions, admin POST /admin/institutions {name,slug?,country?}. Signup/profile optional institution ID/null. Feed scope=college|subject|all; college defaults for members with a selection, subject requires subject query. All posts remain public. New question inherits user's institution (explicit null selects global), edit preserves original scope. INSTITUTION_CHANGE_RECORD.md.
 
+
+With EMAIL_ENABLED off, valid EMAIL_TEST_RECIPIENT enables forgot/reset-password only for that single existing account. Other addresses receive generic success without mail/token issuance; verification endpoints remain disabled.

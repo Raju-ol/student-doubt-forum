@@ -5,6 +5,11 @@ import { requireUser } from './auth.js';
 import { email, password, fail } from './validation.js';
 
 export const hashToken = token => createHash('sha256').update(token).digest('hex');
+export function emailTestRecipient() {
+  const value = (process.env.EMAIL_TEST_RECIPIENT || '').trim().toLowerCase();
+  return value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value : '';
+}
+const recoveryAllowed = address => process.env.EMAIL_ENABLED === '1' || Boolean(emailTestRecipient() && address.toLowerCase() === emailTestRecipient());
 const tokenHash = value => {
   if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value)) fail(400, 'This link is invalid or has expired. Request a new one.');
   return hashToken(value);
@@ -14,6 +19,7 @@ export function requireVerified(req, res, next) {
   next();
 }
 export async function sendTransactionalEmail({ to, subject, text }) {
+  if (!recoveryAllowed(to)) throw new Error('Email delivery unavailable');
   if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) throw new Error('Email delivery unavailable');
   try {
     const result = await fetch('https://api.resend.com/emails', { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(8000), headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [to], subject, text }) });
@@ -21,6 +27,7 @@ export async function sendTransactionalEmail({ to, subject, text }) {
   } catch { throw new Error('Email delivery unavailable'); }
 }
 export async function issueEmail(user, kind, sendEmail = sendTransactionalEmail) {
+  if (!recoveryAllowed(user.email) || (process.env.EMAIL_ENABLED !== '1' && kind !== 'reset')) throw new Error('Email delivery unavailable');
   const token = randomBytes(32).toString('hex');
   const verify = kind === 'verify';
   const hashField = verify ? 'verificationHash' : 'resetHash';
@@ -35,19 +42,20 @@ export async function issueEmail(user, kind, sendEmail = sendTransactionalEmail)
 }
 export function mountEmailRoutes(api, { limiter, wrap, ok, sendEmail }) {
   const enabled = (req, res, next) => process.env.EMAIL_ENABLED === '1' ? next() : next(Object.assign(new Error('Email recovery is not enabled yet. Please contact the forum administrator.'), { status: 503 }));
+  const recoveryEnabled = (req, res, next) => process.env.EMAIL_ENABLED === '1' || emailTestRecipient() ? next() : enabled(req, res, next);
   const ipLimit = limiter('email-action-ip', 10, 60 * 60 * 1000);
   const addressLimit = limiter('email-action-address', 3, 60 * 60 * 1000, { email: true });
-  api.post('/auth/forgot-password', enabled, ipLimit, addressLimit, wrap(async (req, res) => {
+  api.post('/auth/forgot-password', recoveryEnabled, ipLimit, addressLimit, wrap(async (req, res) => {
     const address = email(req.body.email);
     const user = await User.findOne({ email: address, isBanned: false });
-    if (user) { try { await issueEmail(user, 'reset', sendEmail); } catch { console.error('Email delivery failed: password_reset'); } }
+    if (user && recoveryAllowed(user.email)) { try { await issueEmail(user, 'reset', sendEmail); } catch { console.error('Email delivery failed: password_reset'); } }
     // Same response for unknown addresses, banned users, and delivery failure.
     ok(res, null, 'If the account is available, a reset link has been sent.');
   }));
-  api.post('/auth/reset-password', enabled, ipLimit, wrap(async (req, res) => {
+  api.post('/auth/reset-password', recoveryEnabled, ipLimit, wrap(async (req, res) => {
     const hash = tokenHash(req.body.token);
     const passwordHash = await bcrypt.hash(password(req.body.password), 12);
-    const user = await User.findOneAndUpdate({ resetHash: hash, resetExpires: { $gt: new Date() }, isBanned: false }, { $set: { passwordHash }, $unset: { resetHash: 1, resetExpires: 1 }, $inc: { tokenVersion: 1 } });
+    const user = await User.findOneAndUpdate({ resetHash: hash, resetExpires: { $gt: new Date() }, isBanned: false, ...(process.env.EMAIL_ENABLED === '1' ? {} : { email: emailTestRecipient() }) }, { $set: { passwordHash }, $unset: { resetHash: 1, resetExpires: 1 }, $inc: { tokenVersion: 1 } });
     if (!user) fail(400, 'This link is invalid or has expired. Request a new one.');
     ok(res, null, 'Password changed. Sign in with your new password.');
   }));

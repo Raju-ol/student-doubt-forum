@@ -83,3 +83,5 @@ Subject catalogue replaces hard-coded client list, with 30 additive starter seed
 
 Optional self-reported institution metadata, admin college catalogue and college/subject-worldwide/all feed scopes implemented. 75 tests/build pass. Explicit legacy mapping migration is dry-run by default and not run on production. docs/INSTITUTION_CHANGE_RECORD.md.
 
+
+Owner-only recovery trial added via EMAIL_TEST_RECIPIENT while EMAIL_ENABLED stays off. Resend key/from/APP_URL reportedly saved privately; 76 tests/build pass, live inbox test pending.

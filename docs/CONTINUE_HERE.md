@@ -7,10 +7,11 @@ authority; some historical sections intentionally describe earlier versions.
 
 Code wala kaam neeche listed scope tak complete hai. Ab aapki taraf se:
 
-1. **Email provider:** Resend account aur verified sending domain chahiye.
+1. **Email provider:** Resend account ban gaya hai; verified sending domain abhi nahi hai.
    Abhi EMAIL_ENABLED off hai, isliye normal posting chal rahi hai. Domain/card
    purchase nahi kiya gaya. Setup ke waqt keys sirf Vercel mein privately enter
-   karni hain. Details: [email setup](EMAIL_CHANGE_RECORD.md).
+   karni hain. Owner-only recovery test ke liye EMAIL_TEST_RECIPIENT add karke redeploy karein;
+   EMAIL_ENABLED off rahega. Real mail/reset test pending. Details: [email setup](EMAIL_CHANGE_RECORD.md).
 2. **Apna college:** Moderation > Manage subject catalogue > Colleges mein real
    college add karein; phir Edit profile mein select karein. Agent ne koi fake
    college ya automatic membership assign nahi ki. College choice self-reported
@@ -94,7 +95,9 @@ older. CI test shell must preserve pipefail.
 Existing: MONGO_URI, JWT_SECRET, CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET.
 Shared counters: UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN (owner reported
 saving both for Production/Preview; live Redis connectivity verified).
-Email activation later: APP_URL, RESEND_API_KEY, EMAIL_FROM, EMAIL_ENABLED=1.
+Owner-only trial: EMAIL_TEST_RECIPIENT (single Resend-account address), with
+EMAIL_ENABLED off. All-user email activation later: APP_URL, RESEND_API_KEY,
+EMAIL_FROM, EMAIL_ENABLED=1 after domain verification.
 No secret may use VITE_ prefix. Example names only in server/.env.example.
 
 ## Migration commands — dry-run only examples
@@ -135,3 +138,5 @@ blindly. Do not widen Atlas access or run destructive production migrations
 without explicit approval.
 
 Detailed change records are linked from RECOMMENDATIONS.md and docs/TESTING.md.
+
+9 November follow-up: restricted owner-only recovery mode implemented. Local 76 tests/build pass. Owner reported saving Resend key/from/APP_URL; test recipient/redeployment and real inbox/reset test pending. Prior CI snapshot above is historical; new commit needs its own check.

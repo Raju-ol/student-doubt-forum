@@ -92,3 +92,5 @@ The selected host is now Vercel. Follow docs/VERCEL_HINGLISH.md for its import s
 
 Optional email recovery: configure APP_URL, RESEND_API_KEY and EMAIL_FROM privately, test a verified sender/domain, then EMAIL_ENABLED=1. Until activated, existing posting is unchanged. Setup and pending checks: docs/EMAIL_CHANGE_RECORD.md.
 
+
+Domain-free owner-only recovery trial: set EMAIL_TEST_RECIPIENT to the Resend-account email and keep EMAIL_ENABLED off, then redeploy. See docs/EMAIL_CHANGE_RECORD.md. This does not activate all-user email verification.

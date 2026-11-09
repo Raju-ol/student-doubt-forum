@@ -2,7 +2,8 @@
 
 Implemented behind `EMAIL_ENABLED=1`. It remains disabled on production until the
 owner supplies a transactional email provider and verified sender privately.
-Existing accounts and posting continue normally while disabled.
+Existing accounts and posting continue normally while disabled. A separate
+owner-only password recovery test mode is now available; see the update below.
 
 ## Routes and UI
 
@@ -51,3 +52,32 @@ Reference: [Resend API contract](https://github.com/resend/resend-openapi/blob/m
 
 Final regression: 75 total tests pass. A known account with failed mail delivery now explicitly checks the same generic response as an unknown account; private provider details are not returned.
 
+
+## Owner-only Resend test sender mode
+
+The owner has only a vercel.app website address and created a Resend account.
+Reported private setup: RESEND_API_KEY, EMAIL_FROM using onboarding@resend.dev,
+and APP_URL saved in Vercel. No values were read or logged by the agent.
+
+Set EMAIL_TEST_RECIPIENT to the single email associated with the Resend account,
+keep EMAIL_ENABLED=0 (or unset), and redeploy. This enables only password reset
+for that normalized recipient; verification routes and posting verification
+remain off. No extra EMAIL_TEST_MODE flag is required. An absent/invalid test
+recipient leaves recovery disabled. Remove it to stop the trial.
+
+Forgot-password returns the same generic response for every valid address, but
+only the allow-listed existing account gets a reset hash/email. Reset-password
+also constrains its atomic update to that email, so older tokens for other users
+cannot be used during restricted mode. The mail adapter independently enforces
+the recipient rule. No signup verification mails are sent in this mode.
+
+76 tests pass and production build succeeds. New integration coverage checks
+normalized recipient, no other-recipient email/token creation, rejection of an
+older other-user reset token, one-use allowed reset, invalid configuration,
+verification staying off and other users posting normally. Real Resend delivery
+and an owner-completed password reset remain pending; do not claim delivery from
+the generic forgot-password response alone.
+
+Resend test sender can deliver only to the email on the Resend account. A verified
+owned domain is still required for all-user email activation. Do not set
+EMAIL_ENABLED=1 while relying on onboarding@resend.dev.
