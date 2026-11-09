@@ -14,7 +14,7 @@ document is still a proposal.
 | Item | Status |
 |---|---|
 | §3.3 Missing indexes | **Done** — nine indexes added in `server/src/models.js`, verified locally with `explain()` |
-| §6.3 CI | **Done** — `.github/workflows/ci.yml` and `.github/dependabot.yml` added, not yet run on GitHub |
+| §6.3 CI | **Done** — `.github/workflows/ci.yml` and `.github/dependabot.yml` added; first GitHub Actions run passed both jobs |
 | §7/§10 `LICENSE` | **Pending** — MIT chosen; waiting on the copyright holder name |
 | Everything else | Not started |
 

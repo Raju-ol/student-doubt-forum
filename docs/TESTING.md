@@ -10,6 +10,8 @@ Date: 9 November 2026. Local Windows machine, Node 24.19.0, npm 11.17.0, local M
 
 - Phase 0 index/CI change (9 November 2026): `npm run build` passed; `npm test` reported 29 passes and 0 failures. The nine new indexes were listed from a throwaway local database and `explain('queryPlanner')` showed IXSCAN for the subject, semester, tag, solved-status, profile-question, profile-answer, comment and moderation-queue queries. See docs/PHASE0_CHANGE_RECORD.md.
 
+- GitHub Actions CI, run 42596996998 on commit a8a9975: both jobs completed successfully. The `test` job ran `npm ci`, `npm run build` and `npm test` against a MongoDB 7 service container; the `audit` job ran `npm audit --audit-level=high`. Every step passed.
+
 - `npm test`: 25 integration subtests and 1 enclosing test, 26 reported passes, zero failures. Uses an isolated temporary database.
 - `npm run build`: successful production React/Vite build. React Router's `use client` directives were ignored by Vite; build completed.
 - Local startup: MongoDB connected; Express serves the compiled frontend on port 5000.
@@ -26,7 +28,7 @@ Vercel preparation update: API handler tested locally against the shared MongoDB
 - Live Atlas/hosting/deployment acceptance: accounts not configured.
 - Full browser moderation mutations, edit/profile forms and error-state coverage: pending; automated checks do not establish every browser interaction.
 - Mobile: responsive CSS exists. Browser viewport override did not change the observed 699px width, so 390px layout is NOT verified. Observed 699px view had document width equal to viewport width.
-- GitHub Actions CI workflow (.github/workflows/ci.yml): written and reviewed, but never executed on GitHub. Index behaviour on the live Atlas cluster is also unobserved.
+- Index behaviour on the live Atlas cluster has not been observed; re-check with explain() there after the deployment of commit a8a9975 settles.
 - Keyboard, assistive technology and all browser/device combinations: not fully audited.
 - Persistence across full database/service restart and clean ZIP installation: not yet exercised.
 - Concurrency, high load and cross-collection partial failures: not exhaustively tested.

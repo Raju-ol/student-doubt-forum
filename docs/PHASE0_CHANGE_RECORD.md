@@ -60,11 +60,12 @@ single largest open item from §10.
 - `explain('queryPlanner')` confirmed on a throwaway database that the subject, semester,
   tag, solved-status, profile-questions, profile-answers, comments-of-answer and
   moderation-queue queries all resolve to `IXSCAN` rather than a collection scan.
+- Pushed as commit `a8a9975`. GitHub Actions run 42596996998 completed **successfully**:
+  the `test` job (checkout, setup-node, `npm ci`, `npm run build`, `npm test` against the
+  MongoDB 7 service container) and the `audit` job both passed every step. Dependabot read
+  its configuration and opened its first update runs on the same commit.
 
 ## Not verified
-
-- CI workflow has not been executed on GitHub; it has not been pushed. Its correctness is
-  reviewed, not proven.
 - Index behaviour on the live Atlas cluster (different data, different plan cache) has not
   been observed. Re-check with `explain()` there after deploying.
 - Nothing in this change was exercised in a browser. No UI, API response or user-visible
