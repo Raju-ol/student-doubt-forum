@@ -9,16 +9,39 @@ export async function findDoc(Model, id) {
   if (!doc) fail(404, 'This content could not be found.');
   return doc;
 }
+// Two grouped queries for the whole page instead of two per item, so a 30-item
+// feed costs 2 round trips rather than 60. The shape returned is unchanged.
+export async function decorateMany(docs, type, user) {
+  if (!docs.length) return [];
+  const ids = docs.map(doc => doc._id);
+  // The unique vote index guarantees at most one vote per user per target, so
+  // summing the viewer's own value yields that single vote or 0.
+  const mine = user?._id ? { $sum: { $cond: [{ $eq: ['$user', user._id] }, '$value', 0] } } : { $sum: 0 };
+  const [voteRows, answerRows] = await Promise.all([
+    Vote.aggregate([
+      { $match: { targetType: type, target: { $in: ids } } },
+      { $group: { _id: '$target', votes: { $sum: '$value' }, mine } }
+    ]),
+    type === 'doubt'
+      ? Answer.aggregate([{ $match: { doubt: { $in: ids } } }, { $group: { _id: '$doubt', count: { $sum: 1 } } }])
+      : []
+  ]);
+  const voteMap = new Map(voteRows.map(row => [String(row._id), row]));
+  const answerMap = new Map(answerRows.map(row => [String(row._id), row.count]));
+  return docs.map(doc => {
+    const result = doc.toObject();
+    const row = voteMap.get(String(doc._id));
+    result.votes = row?.votes || 0;
+    result.myVote = row?.mine || 0;
+    if (type === 'doubt') {
+      result.answerCount = answerMap.get(String(doc._id)) || 0;
+      result.status = doc.acceptedAnswer ? 'solved' : 'open';
+    }
+    return result;
+  });
+}
 export async function decorate(doc, type, user) {
-  const result = doc.toObject();
-  const votes = await Vote.find({ targetType: type, target: doc._id }).lean();
-  result.votes = votes.reduce((sum, vote) => sum + vote.value, 0);
-  result.myVote = votes.find(vote => String(vote.user) === String(user?._id))?.value || 0;
-  if (type === 'doubt') {
-    result.answerCount = await Answer.countDocuments({ doubt: doc._id });
-    result.status = doc.acceptedAnswer ? 'solved' : 'open';
-  }
-  return result;
+  return (await decorateMany([doc], type, user))[0];
 }
 export async function toggleVote(req, Model, type) {
   const doc = await findDoc(Model, req.params.id);

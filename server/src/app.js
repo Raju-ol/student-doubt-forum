@@ -12,7 +12,7 @@ import mongoose from 'mongoose';
 import { User, Doubt, Answer, Comment, Report, Upload } from './models.js';
 import { fail, text, semester, email, password, tags, positiveInt, escapeRegex } from './validation.js';
 import { identify, requireUser, requireAdmin, owns, safeUser, tokenFor } from './auth.js';
-import { findDoc, decorate, toggleVote, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
+import { findDoc, decorate, decorateMany, toggleVote, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -59,7 +59,7 @@ export function createApp({ serveClient = true } = {}) {
     if (req.query.status === 'solved') filter.acceptedAnswer = { $ne: null };
     if (req.query.status === 'open') filter.acceptedAnswer = null;
     const [docs, total] = await Promise.all([Doubt.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).populate('author', authorFields), Doubt.countDocuments(filter)]);
-    ok(res, { items: await Promise.all(docs.map(d => decorate(d, 'doubt', req.user))), total, page, pages: Math.ceil(total / limit) });
+    ok(res, { items: await decorateMany(docs, 'doubt', req.user), total, page, pages: Math.ceil(total / limit) });
   }));
   async function doubtFields(body) {
     return { title: text(body.title, 'Title', 10, 160), body: text(body.body, 'Description', 20, 12000), subject: text(body.subject, 'Subject', 2, 60), semester: semester(body.semester), tags: tags(body.tags) };
@@ -78,7 +78,11 @@ export function createApp({ serveClient = true } = {}) {
     const doubt = await findDoc(Doubt, req.params.id);
     await doubt.populate('author', authorFields);
     const answers = await Answer.find({ doubt: doubt._id }).sort({ createdAt: 1 }).populate('author', authorFields);
-    const result = await Promise.all(answers.map(async answer => ({ ...await decorate(answer, 'answer', req.user), isAccepted: String(doubt.acceptedAnswer) === String(answer._id), comments: await Comment.find({ answer: answer._id }).sort({ createdAt: 1 }).populate('author', authorFields) })));
+    // One comment query for the whole page instead of one per answer.
+    const [decorated, comments] = await Promise.all([decorateMany(answers, 'answer', req.user), Comment.find({ answer: { $in: answers.map(a => a._id) } }).sort({ createdAt: 1 }).populate('author', authorFields)]);
+    const byAnswer = new Map();
+    for (const comment of comments) { const key = String(comment.answer); if (!byAnswer.has(key)) byAnswer.set(key, []); byAnswer.get(key).push(comment); }
+    const result = decorated.map(answer => ({ ...answer, isAccepted: String(doubt.acceptedAnswer) === String(answer._id), comments: byAnswer.get(String(answer._id)) || [] }));
     result.sort((a, b) => Number(b.isAccepted) - Number(a.isAccepted) || b.votes - a.votes);
     ok(res, { ...await decorate(doubt, 'doubt', req.user), answers: result });
   }));
@@ -108,7 +112,7 @@ export function createApp({ serveClient = true } = {}) {
   api.get('/users/:id', wrap(async (req, res) => {
     const user = await findDoc(User, req.params.id);
     const [doubts, answers, score] = await Promise.all([Doubt.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id)]);
-    ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, createdAt: user.createdAt, reputation: score }, doubts: await Promise.all(doubts.map(d => decorate(d, 'doubt', req.user))), answers });
+    ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, createdAt: user.createdAt, reputation: score }, doubts: await decorateMany(doubts, 'doubt', req.user), answers });
   }));
   api.put('/users/me', requireUser, wrap(async (req, res) => { req.user.name = text(req.body.name, 'Name', 2, 60); req.user.semester = semester(req.body.semester); await req.user.save(); ok(res, safeUser(req.user), 'Profile updated.'); }));
   api.post('/reports', requireUser, wrap(async (req, res) => {
