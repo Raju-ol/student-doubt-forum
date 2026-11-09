@@ -2,6 +2,8 @@
 
 Base: `/api/v1`. Success: `{ success: true, data, message }`. Error: `{ success: false, message }`. Protected routes use `Authorization: Bearer <token>`.
 
+POST `/auth/logout-all` (authenticated) revokes all existing JWTs for the current account, including the caller's token. Sign in again to obtain a new token. Normal client sign-out still only clears the current tab. JWT versions are checked against the account on every request.
+
 | Method | Path | Access / action |
 |---|---|---|
 | GET | /health | Public readiness information |

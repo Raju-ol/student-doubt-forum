@@ -4,6 +4,8 @@ A college question-and-answer application built with React, Express and MongoDB.
 
 ## Current status
 
+Own profiles now offer Sign out everywhere. This revokes existing bearer tokens server-side using a per-account token version; normal Sign out remains tab-local. Password recovery is still pending an email service.
+
 Reputation is now a stored counter updated on votes, acceptance and deletion. Legacy accounts initialize lazily from historical data. For an explicit dry-run/reconciliation procedure and cross-collection consistency limits, read docs/REPUTATION_CHANGE_RECORD.md. No live backfill is required at startup or has been run by this change.
 
 Working local implementation. Automated database/API integration checks and a production client build pass. A two-student browser flow has been verified. Cloudinary credentials and a hosted database/service are not configured yet; image upload and live deployment remain pending. See docs/TESTING.md for exact coverage and limitations.

@@ -48,6 +48,10 @@ export function createApp({ serveClient = true } = {}) {
     ok(res, { user: safeUser(user), token: tokenFor(user) }, 'Welcome back!');
   }));
   api.get('/auth/me', requireUser, (req, res) => ok(res, safeUser(req.user)));
+  api.post('/auth/logout-all', requireUser, wrap(async (req, res) => {
+    await User.updateOne({ _id: req.user._id }, { $inc: { tokenVersion: 1 } });
+    ok(res, null, 'Signed out on all devices. Please sign in again.');
+  }));
   api.get('/doubts', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const limit = positiveInt(req.query.limit, 10, 30);

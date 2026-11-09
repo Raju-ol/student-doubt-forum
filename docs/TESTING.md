@@ -1,5 +1,7 @@
 # Verification record
 
+Session invalidation update, 9 November: 62 passes/0 failures and production build passed. Tests include legacy JWT compatibility, revocation of all old tokens and a working fresh login. Production/browser multi-device testing remains unrun.
+
 ## 9 November reputation update
 Full suite: 61 passes, 0 failures; production build passed. Added history-preserving missing-counter initialization, concurrent initializer and deletion-credit reversal checks. Stored reputation matches aggregation reconciliation in the exercised flows. Production backfill/load testing is not run. See REPUTATION_CHANGE_RECORD.md.
 

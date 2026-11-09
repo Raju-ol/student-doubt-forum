@@ -12,6 +12,7 @@ const userSchema = new Schema({
   semester: { type: Number, min: 1, max: 8, required: true },
   // null identifies an existing account awaiting lazy initialisation/backfill.
   reputation: { type: Number, default: null },
+  tokenVersion: { type: Number, default: 0, min: 0 },
   isBanned: { type: Boolean, default: false }
 }, options);
 const doubtSchema = new Schema({

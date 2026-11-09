@@ -6,6 +6,7 @@ import { createApp } from '../src/app.js';
 import { User } from '../src/models.js';
 import { createServer } from 'node:http';
 import { calculateReputation, ensureReputation } from '../src/reputation.js';
+import jwt from 'jsonwebtoken';
 
 test('Student Doubt Forum integration flow', async t => {
   process.env.JWT_SECRET = randomBytes(48).toString('hex');
@@ -150,5 +151,16 @@ test('Student Doubt Forum integration flow', async t => {
       const fallback = await fetch(`http://127.0.0.1:${functionServer.address().port}/api/unknown`);
       assert.equal(fallback.status, 404);
     } finally { await new Promise(resolve => functionServer.close(resolve)); }
+  });
+  await t.test('sign out everywhere revokes old and legacy tokens but allows a new login', async () => {
+    const legacy = jwt.sign({}, process.env.JWT_SECRET, { subject: a.user._id, expiresIn: '1h' });
+    await request('/auth/me', 'GET', null, legacy);
+    await request('/auth/logout-all', 'POST', {}, a.token);
+    await request('/auth/me', 'GET', null, a.token, 401);
+    await request('/auth/me', 'GET', null, legacy, 401);
+    await request('/auth/logout-all', 'POST', {}, null, 401);
+    const signedIn = await request('/auth/login', 'POST', { email: fields.email, password: fields.password });
+    await request('/auth/me', 'GET', null, signedIn.token);
+    assert.equal(signedIn.user.tokenVersion, undefined);
   });
 });

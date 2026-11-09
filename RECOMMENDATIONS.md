@@ -13,6 +13,7 @@ document is still a proposal.
 
 | Item | Status |
 |---|---|
+| §3.7 Session invalidation | **Implemented locally** — token versions and Sign out everywhere; full suite 62 passes/build passed. Password reset/change remains separate work |
 | §3.4 Stored reputation | **Implemented locally** — atomic credit deltas, lazy legacy initialization and reconciliation dry-run script; 61 tests passed, build passed. See docs/REPUTATION_CHANGE_RECORD.md. Production migration not run |
 | §2 Markdown, code blocks, maths | **Done** — rendered and sanitised client-side, with a toolbar and preview; see `docs/MARKDOWN_CHANGE_RECORD.md`. Not yet checked in a browser |
 | §3.1 Feed N+1 queries | **Done** — `decorateMany` batches votes and answer counts; feed measured 28 → 6 queries and now constant with page size |
