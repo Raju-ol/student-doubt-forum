@@ -2,6 +2,12 @@
 
 ## Production hardening review — 10 November 2026
 
+Deployed fixes: `e90eb0b` + configuration follow-up `3af40f0`. CI run
+42700722496 passed Node 22/24 and audit; four read-only live deployment probes
+passed. The initial e90eb0b CI failed because the tested Vercel config was omitted
+from staging; the follow-up includes it. Owner checklist:
+[OWNER_NEXT_STEPS_HINGLISH.md](OWNER_NEXT_STEPS_HINGLISH.md).
+
 Current review and remaining launch gates: [PRODUCTION_READINESS_REVIEW.md](PRODUCTION_READINESS_REVIEW.md).
 Local regression: **86 tests pass**, production build passes, production
 `npm audit --omit=dev` reports 0 known vulnerabilities. Fixes cover static-page

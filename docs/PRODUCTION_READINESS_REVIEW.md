@@ -180,6 +180,18 @@ Tests create/drop isolated `forum_test_*` local databases. Never set test Mongo
 configuration to production. `check:production` makes four read-only requests;
 it never signs in, creates accounts, uploads, deletes or prints response data.
 
+## Deployment verification
+
+- Code commit `e90eb0b` deployed; its CI caught an omitted `vercel.json`
+  staging change. The config-only follow-up `3af40f0` corrects that omission.
+- For `3af40f0`, GitHub CI run 42700722496 passed Node 22, Node 24 and audit.
+- Vercel reported deployment success. The post-deploy read-only script passed
+  home, login, database/shared-limiter health and the public feed. Static HTML
+  now returns CSP/nosniff/referrer headers; API responses return no-store.
+- These are low-volume availability/configuration checks, not signed-in browser
+  acceptance or proof of future uptime. No live content was changed by them.
+- Owner-facing checklist: [OWNER_NEXT_STEPS_HINGLISH.md](OWNER_NEXT_STEPS_HINGLISH.md).
+
 ## Owner's next session: short checklist
 
 1. Read this document; keep the site in limited beta for now.
@@ -188,7 +200,7 @@ it never signs in, creates accounts, uploads, deletes or prints response data.
 3. Confirm Atlas access expiration and decide the durable networking budget.
 4. Choose backup destination/retention and a support/alert contact.
 5. Confirm password rotation/sign-out everywhere if a real password was shared.
-6. Allow remaining high-priority data-consistency work and staging setup, then
+6. Continue remaining high-priority data-consistency work and staging setup, then
    assign the existing tester playbook before public launch.
 
 ## Primary references
