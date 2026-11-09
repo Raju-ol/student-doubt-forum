@@ -27,6 +27,7 @@ const doubtSchema = new Schema({
   title: { type: String, required: true, maxlength: 160 },
   body: { type: String, required: true, maxlength: 12000 },
   subject: { type: String, required: true, maxlength: 60 },
+  subjectId: ref('Subject', false),
   semester: { type: Number, min: 1, max: 8 },
   academicLevel: { type: academicLevel, default: undefined },
   tags: [{ type: String, maxlength: 24 }],
@@ -38,6 +39,7 @@ const doubtSchema = new Schema({
 doubtSchema.index({ createdAt: -1 });
 // One compound index per feed filter, each ending in the createdAt sort key.
 doubtSchema.index({ subject: 1, createdAt: -1 });
+doubtSchema.index({ subjectId: 1, createdAt: -1 });
 doubtSchema.index({ semester: 1, createdAt: -1 });
 doubtSchema.index({ 'academicLevel.system': 1, 'academicLevel.index': 1, createdAt: -1 });
 doubtSchema.index({ tags: 1, createdAt: -1 });
@@ -70,3 +72,6 @@ const notificationSchema = new Schema({ user: ref('User'), actor: ref('User'), t
 notificationSchema.index({ user: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, readAt: 1, createdAt: -1 });
 export const Notification = mongoose.model('Notification', notificationSchema);
+const subjectSchema = new Schema({ name: { type: String, required: true, maxlength: 60 }, slug: { type: String, required: true, unique: true }, aliases: [String], keys: { type: [String], required: true }, field: { type: String, maxlength: 60 }, icon: { type: String, maxlength: 8 } }, options);
+subjectSchema.index({ keys: 1 }, { unique: true });
+export const Subject = mongoose.model('Subject', subjectSchema);

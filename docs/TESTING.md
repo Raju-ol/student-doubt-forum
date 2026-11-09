@@ -73,3 +73,6 @@ Tabs: 72 tests/build pass; real DOM focus/selection checked. Theme: live dark fe
 
 Academic levels: 73 tests/build pass; mixed legacy/new fixture migration dry-run/apply/idempotence checked in disposable DB. No production migration/copy test. ACADEMIC_LEVEL_CHANGE_RECORD.md.
 
+
+Subjects: 74 tests/build pass. Alias/collision permissions and guarded fixture migration verified; live admin mutation and production-data copy migration not tested. SUBJECT_CATALOG_CHANGE_RECORD.md.
+

@@ -615,3 +615,6 @@ Accessible Profile/Admin tabs implemented: 72 tests/build pass, including real D
 
 Optional academicLevel implemented: 73 tests/build pass; compatible legacy semester reads/writes, flexible forms/filters and guarded dry-run migration. Production migration not run. docs/ACADEMIC_LEVEL_CHANGE_RECORD.md.
 
+
+Subject catalogue implemented: dynamic MongoDB subjects, canonical aliases, 30 starter entries and admin additions. 74 tests/build pass; no production question migration. docs/SUBJECT_CATALOG_CHANGE_RECORD.md.
+

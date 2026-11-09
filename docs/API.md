@@ -52,3 +52,6 @@ Notifications (authenticated): GET /notifications?page=1, PATCH /notifications/:
 
 Academic levels: signup/profile/question accept optional academicLevel {system,index,label} or null. Systems semester/year/grade index 1-30; other label 1-60. Legacy semester 1-8 accepted. Feed academicSystem/academicIndex filters. See ACADEMIC_LEVEL_CHANGE_RECORD.md.
 
+
+GET /subjects returns public catalogue (max 500). POST /admin/subjects {name,slug?,aliases?,field?,icon?} requires admin. Known subject aliases canonicalize question writes and filter reads; legacy unknown text accepted. SUBJECT_CATALOG_CHANGE_RECORD.md.
+

@@ -66,3 +66,6 @@ Profile/Admin now use accessible tablist/roving keyboard tabs and labelled panel
 
 Optional academicLevel replaces mandatory semester for new signup/questions. Legacy semester kept/read compatibly. Forms and feed filters updated, guarded dry-run migration added. 73 tests/build pass; no live migration. docs/ACADEMIC_LEVEL_CHANGE_RECORD.md.
 
+
+Subject catalogue replaces hard-coded client list, with 30 additive starter seeds, normalized unique aliases, canonical subjectId and admin additions. 74 tests/build pass. Existing question migration remains explicit/pending. docs/SUBJECT_CATALOG_CHANGE_RECORD.md.
+

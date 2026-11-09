@@ -6,6 +6,7 @@ import { issueEmail, mountEmailRoutes, requireVerified, sendTransactionalEmail }
 import { mountAccountRoutes } from './account.js';
 import { notifyUser, mountNotificationRoutes } from './notifications.js';
 import { academicFields, effectiveLevel } from './academics.js';
+import { mountSubjectRoutes, resolveSubject, subjectFilter } from './subjects.js';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
@@ -61,12 +62,13 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   mountEmailRoutes(api, { limiter, wrap, ok, sendEmail });
   mountAccountRoutes(api, { limiter, wrap, ok, cloudinary });
   mountNotificationRoutes(api, { wrap, ok });
+  mountSubjectRoutes(api, { wrap, ok });
   api.get('/doubts', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const limit = positiveInt(req.query.limit, 10, 30);
     const filter = {};
     if (req.query.search) filter.$text = { $search: text(req.query.search, 'Search', 1, 120) };
-    if (req.query.subject) filter.subject = text(req.query.subject, 'Subject', 1, 60);
+    if (req.query.subject) (filter.$and ||= []).push(await subjectFilter(req.query.subject));
     if (req.query.semester) filter.semester = semester(req.query.semester);
     if (req.query.academicSystem) {
       const system = text(req.query.academicSystem, 'Academic system', 1, 20);
@@ -83,7 +85,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     ok(res, { items: await decorateMany(docs, 'doubt', req.user), total, page, pages: Math.ceil(total / limit) });
   }));
   async function doubtFields(body) {
-    return { title: text(body.title, 'Title', 10, 160), body: text(body.body, 'Description', 20, 12000), subject: text(body.subject, 'Subject', 2, 60), ...academicFields(body), tags: tags(body.tags) };
+    return { title: text(body.title, 'Title', 10, 160), body: text(body.body, 'Description', 20, 12000), ...await resolveSubject(body.subject), ...academicFields(body), tags: tags(body.tags) };
   }
   api.post('/doubts', requireUser, requireVerified, wrap(async (req, res) => {
     const fields = await doubtFields(req.body);
