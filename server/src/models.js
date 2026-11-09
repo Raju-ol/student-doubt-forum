@@ -18,7 +18,8 @@ const userSchema = new Schema({
   verificationExpires: { type: Date, select: false },
   resetHash: { type: String, select: false },
   resetExpires: { type: Date, select: false },
-  isBanned: { type: Boolean, default: false }
+  isBanned: { type: Boolean, default: false },
+  isDeleted: { type: Boolean, default: false }, deletedAt: Date
 }, options);
 const doubtSchema = new Schema({
   title: { type: String, required: true, maxlength: 160 },

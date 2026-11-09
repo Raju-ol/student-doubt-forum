@@ -51,3 +51,6 @@ User signs into hosting/database/image accounts and enters secrets privately. Ne
 
 Email verification/recovery implemented behind EMAIL_ENABLED (off until owner configures Resend verified sender). 66 tests/build pass, no real emails sent. Account pages and fragment links; see docs/EMAIL_CHANGE_RECORD.md.
 
+
+Account data controls implemented with anonymous tombstone, password/DELETE confirmation, private NDJSON export and owned-image cleanup. 67 tests/build pass; no live deletion. docs/ACCOUNT_DATA_CHANGE_RECORD.md records limitations.
+

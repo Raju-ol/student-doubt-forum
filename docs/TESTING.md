@@ -58,3 +58,6 @@ Windows restricted execution blocked network/native build components; authorized
 
 Email flows: 66 tests pass/build succeeds. Capturing email adapter verifies hashes, expiry/replay, posting verification and password reset revocation. Real provider/inbox and live activation pending; see EMAIL_CHANGE_RECORD.md.
 
+
+Account data controls: 67 tests/build pass, including private export, anonymization, owned image cleanup via fake Cloudinary and session denial. Live deletion and large exports not tested; see ACCOUNT_DATA_CHANGE_RECORD.md.
+

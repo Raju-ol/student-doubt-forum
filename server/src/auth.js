@@ -10,7 +10,7 @@ export async function identify(req, res, next) {
       if (!header.startsWith('Bearer ')) fail(401, 'Please sign in again.');
       const claims = jwt.verify(header.slice(7), process.env.JWT_SECRET, { algorithms: ['HS256'] });
       req.user = await User.findById(claims.sub);
-      if (!req.user || req.user.isBanned) fail(401, 'This account is unavailable.');
+      if (!req.user || req.user.isBanned || req.user.isDeleted) fail(401, 'This account is unavailable.');
       if ((claims.ver ?? 0) !== (req.user.tokenVersion || 0)) fail(401, 'Please sign in again.');
     } catch { return next(Object.assign(new Error('Your session has expired or the account is unavailable. Please sign in again.'), { status: 401 })); }
   }

@@ -600,3 +600,6 @@ If you do nothing else from this document:
 3. **Make the data model stop assuming one college (§1).** Semester 1–8, eight CS subjects, and a single undifferentiated feed are three decisions that each independently exclude most students in the world. They are also the cheapest to change now and the most expensive to change later — every week of new content makes the migration bigger.
 
 The foundation here is better than most of what gets built in a term. The security instincts are sound, the honesty in `docs/TESTING.md` about what is unverified is a real engineering virtue and rarer than good code, and the interface has genuine care in it. The work ahead is mostly generalisation, not repair.
+
+Account export/delete implemented 9 November: 67 tests/build pass. Anonymous tombstone preserves discussions/votes; no live deletion performed. See docs/ACCOUNT_DATA_CHANGE_RECORD.md.
+

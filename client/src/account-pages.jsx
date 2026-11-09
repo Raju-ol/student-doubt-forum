@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { api } from './api';
+import { api, API_ROOT } from './api';
 import { useAuth } from './context';
 import { ErrorBox } from './components';
 
@@ -26,12 +26,30 @@ export function EmailAction({ mode }) {
 }
 
 export function AccountSettings() {
-  const { user, token, notify } = useAuth();
+  const { user, token, notify, logout } = useAuth();
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function exportData() {
+    setBusy(true); setError('');
+    try {
+      const response = await fetch(`${API_ROOT}/users/me/export`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) throw new Error((await response.json()).message || 'Export failed.');
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a'); link.href = url; link.download = 'doubt-forum-data.ndjson'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      notify('Data export downloaded. Keep this file private.');
+    } catch (err) { setError(err.message); } finally { setBusy(false); }
+  }
+  async function deleteAccount(event) {
+    event.preventDefault(); setError('');
+    if (!window.confirm('Permanently delete your account and uploaded images? Discussions remain under Deleted user. This cannot be undone.')) return;
+    setBusy(true);
+    try { await api('/users/me', { method: 'DELETE', token, body: Object.fromEntries(new FormData(event.currentTarget)) }); logout(); window.location.assign('/'); }
+    catch (err) { setError(err.message); } finally { setBusy(false); }
+  }
   async function resend() {
     setBusy(true);
     try { await api('/auth/verification-email', { method: 'POST', token }); notify('Verification email requested. Check your inbox and spam folder.'); }
     catch (error) { notify(error.message); } finally { setBusy(false); }
   }
-  return <section className="panel account-page"><h1>Account settings</h1><h2>Email address</h2><p>{user.email}</p><p>{user.emailVerified ? 'Verified' : user.verificationRequired ? 'Verify your email before posting.' : 'Email verification is not enabled yet.'}</p>{user.verificationRequired && !user.emailVerified && <button className="button" disabled={busy} onClick={resend}>{busy ? 'Sending…' : 'Send verification email'}</button>}<p><Link to={`/users/${user._id}`}>Your profile</Link></p></section>;
+  return <section className="panel account-page"><h1>Account settings</h1><ErrorBox message={error} /><h2>Email address</h2><p>{user.email}</p><p>{user.emailVerified ? 'Verified' : user.verificationRequired ? 'Verify your email before posting.' : 'Email verification is not enabled yet.'}</p>{user.verificationRequired && !user.emailVerified && <button className="button" disabled={busy} onClick={resend}>{busy ? 'Sending…' : 'Send verification email'}</button>}<h2>Your data</h2><p>Download your account details and contributions as a newline-delimited JSON file. Keep the download private.</p><button className="button button--secondary" disabled={busy} onClick={exportData}>Export my data</button><h2>Delete account</h2>{user.role === 'admin' ? <p>Transfer administrator ownership through the project owner before deleting your account.</p> : <><p>Your name, email, sign-in access and uploaded images will be removed. Questions, answers, comments and votes remain under Deleted user to preserve discussions. Remove personal details from your post text first. Private moderation records may be retained.</p><form onSubmit={deleteAccount}><label>Current password<input name="password" type="password" autoComplete="current-password" required minLength={8} /></label><label>Type DELETE to confirm<input name="confirmation" pattern="DELETE" autoComplete="off" required /></label><button className="button button--danger" disabled={busy}>Delete my account permanently</button></form></>}<p><Link to={`/users/${user._id}`}>Your profile</Link></p></section>;
 }

@@ -43,3 +43,6 @@ User ← Doubt.author. User ← Answer.author. Doubt ← Answer.doubt. Answer �
 
 Email endpoints: POST /auth/forgot-password {email}, /auth/reset-password {token,password}, /auth/verify-email {token}, /auth/verification-email (authenticated). Disabled with 503 until EMAIL_ENABLED=1. See EMAIL_CHANGE_RECORD.md.
 
+
+GET /users/me/export: authenticated NDJSON attachment (3/hour). DELETE /users/me: {password,confirmation:'DELETE'}, non-admin accounts only (5/hour). Anonymizes account and removes owned images, retains discussions/votes; see ACCOUNT_DATA_CHANGE_RECORD.md.
+

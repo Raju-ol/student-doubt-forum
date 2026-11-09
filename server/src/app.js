@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { createLimiterFactory } from './rate-limits.js';
 import { issueEmail, mountEmailRoutes, requireVerified, sendTransactionalEmail } from './email.js';
+import { mountAccountRoutes } from './account.js';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
@@ -45,7 +46,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   api.post('/auth/login', authLimit, authEmailLimit, wrap(async (req, res) => {
     const address = email(req.body.email);
     const secret = password(req.body.password);
-    const user = await User.findOne({ email: address }).select('+passwordHash');
+    const user = await User.findOne({ email: address, isDeleted: { $ne: true } }).select('+passwordHash');
     if (!user || !(await bcrypt.compare(secret, user.passwordHash))) fail(401, 'Email or password is incorrect.');
     if (user.isBanned) fail(403, 'Your account has been suspended.');
     ok(res, { user: safeUser(user), token: tokenFor(user) }, 'Welcome back!');
@@ -56,6 +57,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     ok(res, null, 'Signed out on all devices. Please sign in again.');
   }));
   mountEmailRoutes(api, { limiter, wrap, ok, sendEmail });
+  mountAccountRoutes(api, { limiter, wrap, ok, cloudinary });
   api.get('/doubts', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const limit = positiveInt(req.query.limit, 10, 30);
@@ -118,6 +120,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   api.post('/answers/:id/comments', requireUser, requireVerified, wrap(async (req, res) => { await findDoc(Answer, req.params.id); ok(res, await Comment.create({ answer: req.params.id, author: req.user._id, body: text(req.body.body, 'Comment', 2, 1000) }), 'Comment added.', 201); }));
   api.get('/users/:id', wrap(async (req, res) => {
     const user = await findDoc(User, req.params.id);
+    if (user.isDeleted) fail(404, 'This account has been deleted.');
     const [doubts, answers, score] = await Promise.all([Doubt.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id)]);
     ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, createdAt: user.createdAt, reputation: score }, doubts: await decorateMany(doubts, 'doubt', req.user), answers });
   }));
@@ -149,17 +152,19 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   const admin = express.Router(); api.use('/admin', requireUser, requireAdmin, admin);
   admin.get('/users', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
-    const [items, total] = await Promise.all([User.find().sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25), User.countDocuments()]);
+    const [items, total] = await Promise.all([User.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25), User.countDocuments({ isDeleted: { $ne: true } })]);
     ok(res, { items: items.map(safeUser), page, pages: Math.ceil(total / 25), total });
   }));
   admin.patch('/users/:id/ban', wrap(async (req, res) => {
     const user = await findDoc(User, req.params.id);
+    if (user.isDeleted) fail(404, 'This account has been deleted.');
     if (user.role === 'admin') fail(403, 'Administrator accounts cannot be suspended here.');
     if (typeof req.body.isBanned !== 'boolean') fail(400, 'Provide the account status.');
     user.isBanned = req.body.isBanned; await user.save(); ok(res, safeUser(user), 'Account status updated.');
   }));
   admin.patch('/users/:id/role', wrap(async (req, res) => {
     const user = await findDoc(User, req.params.id);
+    if (user.isDeleted) fail(404, 'This account has been deleted.');
     if (user.role === 'admin' || !['student', 'teacher'].includes(req.body.role)) fail(403, 'Only student and teacher roles can be changed here.');
     user.role = req.body.role; await user.save(); ok(res, safeUser(user), 'Role updated.');
   }));
