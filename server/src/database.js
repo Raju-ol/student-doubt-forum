@@ -20,15 +20,18 @@ export function connectionErrorCode(error) {
 
 export async function connectDatabase() {
   validateConfiguration();
-  if (mongoose.connection.readyState === 1) return;
+  if (mongoose.connection.readyState === 1 && !connectionPromise) return;
   // Reuse a connection across requests within a warm Vercel function instance.
   if (!connectionPromise) {
     connectionPromise = mongoose.connect(process.env.MONGO_URI, {
+      // Match the Atlas readWrite grant even when the copied URI ends in '/'.
+      dbName: 'student_doubt_forum',
       serverSelectionTimeoutMS: 10000,
       maxPoolSize: 5
     }).then(async () => {
       await Promise.all(Object.values(mongoose.models).map(model => model.init()));
-    }).catch(error => {
+    }).catch(async error => {
+      await mongoose.disconnect();
       connectionPromise = undefined;
       throw error;
     });
