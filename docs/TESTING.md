@@ -10,6 +10,8 @@ Date: 9 November 2026. Local Windows machine, Node 24.19.0, npm 11.17.0, local M
 
 - Phase 0 index/CI change (9 November 2026): `npm run build` passed; `npm test` reported 29 passes and 0 failures. The nine new indexes were listed from a throwaway local database and `explain('queryPlanner')` showed IXSCAN for the subject, semester, tag, solved-status, profile-question, profile-answer, comment and moderation-queue queries. See docs/PHASE0_CHANGE_RECORD.md.
 
+- Live check of commit 717b2fe on the public site: health connected; feed and detail routes returned votes, myVote, answerCount, status and answers with no missing fields; subject/semester/status/tag/search filters all returned 200. The live database holds one question with no answers, votes or comments, so the aggregation and comment-grouping paths were NOT exercised live. CI run 42598034270 passed both jobs.
+
 - Feed batching change (§3.1): `npm run build` passed and `npm test` reported 29 passes, 0 failures. MongoDB command monitoring on a seeded local database measured GET /doubts 28 → 6 queries, GET /doubts/:id 13 → 10 and GET /users/:id 32 → 10, with the feed staying at 6 queries for limit 5, 10 and 30. Vote totals, signed-in and anonymous myVote, answerCount, status and per-answer comment grouping were compared against the previous behaviour and matched. Not verified in a browser and not measured on live Atlas.
 
 - GitHub Actions CI, run 42596996998 on commit a8a9975: both jobs completed successfully. The `test` job ran `npm ci`, `npm run build` and `npm test` against a MongoDB 7 service container; the `audit` job ran `npm audit --audit-level=high`. Every step passed.

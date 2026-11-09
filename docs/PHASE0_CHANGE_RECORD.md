@@ -106,6 +106,20 @@ single largest open item from §10.
   MongoDB 7 service container) and the `audit` job both passed every step. Dependabot read
   its configuration and opened its first update runs on the same commit.
 
+## Live check after deploying 717b2fe
+
+Against `https://student-doubt-forum-theta.vercel.app`: health returned `database: connected`;
+`GET /doubts` returned its item with `votes`, `myVote`, `answerCount` and `status` all present
+and the author populated; `GET /doubts/:id` returned the same fields plus an `answers` array;
+the subject, semester, status, tag and search filters all returned HTTP 200.
+
+Limitation: the live database currently holds a single question with no answers, votes or
+comments, so this confirms the routes respond with the right shape but does **not** exercise
+the vote aggregation, the answer-count grouping or the batched comment loading with real
+data. Those paths were only exercised locally.
+
+GitHub Actions run 42598034270 on 717b2fe passed both jobs.
+
 ## Not verified
 - Index behaviour on the live Atlas cluster (different data, different plan cache) has not
   been observed. Re-check with `explain()` there after deploying.
