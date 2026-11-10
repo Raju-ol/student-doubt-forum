@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { createLimiterFactory } from './rate-limits.js';
 import { issueEmail, mountEmailRoutes, requireVerified, sendTransactionalEmail } from './email.js';
 import { mountAccountRoutes } from './account.js';
+import { mountStudyLibraryRoutes } from './study-library.js';
 import { mountGoogleRoutes, verifyGoogleIdentity } from './google-auth.js';
 import { notifyUser, mountNotificationRoutes } from './notifications.js';
 import { academicFields, effectiveLevel } from './academics.js';
@@ -212,6 +213,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     await cloudinary.uploader.destroy(publicId); await image.deleteOne(); ok(res, null, 'Image removed.');
   }));
   const admin = express.Router(); api.use('/admin', requireUser, requireAdmin, admin);
+  mountStudyLibraryRoutes(admin, { wrap, ok, limiter });
   admin.get('/users', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const [items, total] = await Promise.all([User.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25), User.countDocuments({ isDeleted: { $ne: true } })]);
