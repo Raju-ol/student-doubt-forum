@@ -31,3 +31,7 @@
   width: min(100%, 400px);
   margin-inline: auto;
 }
+.google-signin__button iframe {
+  /* Google supplies the button theme. Match the embed's canvas to avoid a white backdrop. */
+  color-scheme: light;
+}
