@@ -6,6 +6,7 @@ const app = createApp({ serveClient: false, trustProxy: true });
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+  const started = performance.now();
   try {
     await connectDatabase();
   } catch (error) {
@@ -17,5 +18,6 @@ export default async function handler(req, res) {
     res.end(JSON.stringify({ success: false, message: 'Database connection is unavailable. Please try again shortly.', code }));
     return;
   }
+  res.setHeader('Server-Timing', `db-ready;dur=${Math.round(performance.now() - started)}`);
   return app(req, res);
 }

@@ -21,7 +21,7 @@ import mongoose from 'mongoose';
 import { User, Doubt, Answer, Comment, Report, Upload } from './models.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, owns, safeUser, tokenFor } from './auth.js';
-import { findDoc, listDoubts, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
+import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -59,7 +59,14 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ success: false, message: 'Database unavailable.' });
     ok(res, { database: 'connected', rateLimitStore: limiter.mode }, 'Doubt Forum API is running.');
   });
-  api.use(limiter('api', 600, 15 * 60 * 1000), wrap(identify));
+  const apiLimit = limiter('api', 600, 15 * 60 * 1000);
+  api.use((req, res, next) => {
+    const started = performance.now();
+    return apiLimit(req, res, error => {
+      res.append('Server-Timing', `rate-limit;dur=${Math.round(performance.now() - started)}`);
+      next(error);
+    });
+  }, wrap(identify));
   const contentWriteLimit = limiter('content-write', 120, 15 * 60 * 1000, { account: true });
   const contentCreateLimit = limiter('content-create', 60, 60 * 60 * 1000, { account: true });
   api.use((req, res, next) => {
@@ -104,6 +111,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     ok(res, { subjects, institutions });
   }));
   api.get('/doubts', wrap(async (req, res) => {
+    const started = performance.now();
     const page = positiveInt(req.query.page, 1, 10000);
     const limit = positiveInt(req.query.limit, 10, 30);
     const filter = {};
@@ -128,7 +136,11 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     if (req.query.tag) filter.tags = text(req.query.tag, 'Tag', 1, 24).toLowerCase();
     if (req.query.status === 'solved') filter.acceptedAnswer = { $ne: null };
     if (req.query.status === 'open') filter.acceptedAnswer = null;
-    ok(res, await listDoubts(filter, { page, limit, viewer: req.user }));
+    const query = filter.$text ? Doubt.find(filter, { searchScore: { $meta: 'textScore' } }).sort({ searchScore: { $meta: 'textScore' }, createdAt: -1, _id: -1 }) : Doubt.find(filter).sort({ createdAt: -1, _id: -1 });
+    const [docs, total] = await Promise.all([query.skip((page - 1) * limit).limit(limit).populate('author', authorFields), Doubt.countDocuments(filter)]);
+    const items = await decorateMany(docs, 'doubt', req.user);
+    res.append('Server-Timing', `feed-db;dur=${Math.round(performance.now() - started)}`);
+    ok(res, { items, total, page, pages: Math.ceil(total / limit) });
   }));
   async function doubtFields(body) {
     return { title: text(body.title, 'Title', 10, 160), body: text(body.body, 'Description', 20, 12000), ...await resolveSubject(body.subject), ...academicFields(body), tags: tags(body.tags) };
