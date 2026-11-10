@@ -20,14 +20,16 @@ export function requireVerified(req, res, next) {
   if (verificationRequired() && !req.user?.emailVerifiedAt) return next(Object.assign(new Error('Verify your email before posting. Open Account settings to request a verification link.'), { status: 403 }));
   next();
 }
+const deliveryError = code => Object.assign(new Error('Email delivery unavailable'), { deliveryCode: code });
+
 export async function sendTransactionalEmail({ to, subject, text }) {
-  if (!recoveryAllowed(to)) throw new Error('Email delivery unavailable');
-  try {
-    const provider = process.env.EMAIL_PROVIDER?.trim() || 'resend';
-    if (provider === 'gmail') {
-      const user = email(process.env.GMAIL_SMTP_USER);
-      const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '');
-      if (!pass || pass.length !== 16) throw new Error();
+  if (!recoveryAllowed(to)) throw deliveryError('recipient_not_enabled');
+  const provider = process.env.EMAIL_PROVIDER?.trim() || 'resend';
+  if (provider === 'gmail') {
+    const user = process.env.GMAIL_SMTP_USER?.trim().toLowerCase();
+    const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '');
+    if (!user || !pass || pass.length !== 16) throw deliveryError('gmail_config_missing_or_invalid');
+    try {
       const transport = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 465,
@@ -38,13 +40,22 @@ export async function sendTransactionalEmail({ to, subject, text }) {
         greetingTimeout: 5000,
         socketTimeout: 10000,
       });
-      await transport.sendMail({ from: { name: 'Doubt Forum', address: user }, to, subject, text });
-      return;
+      await transport.sendMail({ from: { name: 'Doubt Forum', address: email(user) }, to, subject, text });
+    } catch (error) {
+      if (error.code === 'EAUTH') throw deliveryError('gmail_auth_rejected');
+      if (['ETIMEDOUT', 'ECONNECTION', 'ESOCKET', 'EDNS', 'ECONNREFUSED', 'ENOTFOUND'].includes(error.code)) {
+        throw deliveryError('gmail_connection_failed');
+      }
+      throw deliveryError('gmail_send_failed');
     }
-    if (provider !== 'resend' || !process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) throw new Error();
+    return;
+  }
+  if (provider !== 'resend') throw deliveryError('unknown_email_provider');
+  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) throw deliveryError('resend_config_missing');
+  try {
     const result = await fetch('https://api.resend.com/emails', { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(8000), headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [to], subject, text }) });
     if (!result.ok) throw new Error();
-  } catch { throw new Error('Email delivery unavailable'); }
+  } catch { throw deliveryError('resend_send_failed'); }
 }
 export async function issueEmail(user, kind, sendEmail = sendTransactionalEmail) {
   if (!recoveryAllowed(user.email) || (!verificationRequired() && kind !== 'reset')) throw new Error('Email delivery unavailable');
@@ -52,8 +63,10 @@ export async function issueEmail(user, kind, sendEmail = sendTransactionalEmail)
   const verify = kind === 'verify';
   const hashField = verify ? 'verificationHash' : 'resetHash';
   const expiryField = verify ? 'verificationExpires' : 'resetExpires';
-  const base = new URL(process.env.APP_URL || 'http://127.0.0.1:5173');
-  if (process.env.NODE_ENV === 'production' && base.protocol !== 'https:') throw new Error('Email delivery unavailable');
+  let base;
+  try { base = new URL(process.env.APP_URL || 'http://127.0.0.1:5173'); }
+  catch { throw deliveryError('app_url_invalid'); }
+  if (process.env.NODE_ENV === 'production' && base.protocol !== 'https:') throw deliveryError('app_url_invalid');
   // APP_URL is operator-controlled. Never trust a request Host header for links.
   const link = new URL(verify ? '/verify-email' : '/reset-password', base);
   link.hash = token;
@@ -67,8 +80,22 @@ export function mountEmailRoutes(api, { limiter, wrap, ok, sendEmail }) {
   const addressLimit = limiter('email-action-address', 3, 60 * 60 * 1000, { email: true });
   api.post('/auth/forgot-password', recoveryEnabled, ipLimit, addressLimit, wrap(async (req, res) => {
     const address = email(req.body.email);
-    const user = await User.findOne({ email: address, isBanned: false, passwordHash: { $type: 'string' } });
-    if (user && recoveryAllowed(user.email)) { try { await issueEmail(user, 'reset', sendEmail); } catch { console.error('Email delivery failed: password_reset'); } }
+    const testMode = !publicRecoveryEnabled();
+    if (recoveryAllowed(address)) {
+      const user = await User.findOne({ email: address, isBanned: false, passwordHash: { $type: 'string' } });
+      if (user) {
+        try {
+          await issueEmail(user, 'reset', sendEmail);
+          if (testMode) console.info('password_reset: provider_accepted');
+        } catch (error) {
+          console.error('password_reset:', error.deliveryCode ?? 'unexpected_error');
+        }
+      } else if (testMode) {
+        console.info('password_reset: no_password_account');
+      }
+    } else if (testMode) {
+      console.info('password_reset: recipient_not_enabled');
+    }
     // Same response for unknown addresses, banned users, and delivery failure.
     ok(res, null, 'If the account is available, a reset link has been sent.');
   }));

@@ -32,7 +32,7 @@ test('Gmail delivery uses the authenticated sender and honors test-recipient res
     assert.equal(options.secure, true);
     assert.deepEqual(options.auth, { user: 'sender@gmail.com', pass: 'abcdefghijklmnop' });
     return { sendMail: async message => {
-      if (smtpFails) throw new Error('Private SMTP failure detail');
+      if (smtpFails) throw Object.assign(new Error('Private SMTP failure detail'), { code: 'EAUTH' });
       sent = message;
     } };
   });
@@ -42,7 +42,10 @@ test('Gmail delivery uses the authenticated sender and honors test-recipient res
   await sendTransactionalEmail(message);
   assert.deepEqual(sent, { ...message, from: { name: 'Doubt Forum', address: 'sender@gmail.com' } });
   smtpFails = true;
-  await assert.rejects(sendTransactionalEmail(message), /^Error: Email delivery unavailable$/);
+  await assert.rejects(sendTransactionalEmail(message), {
+    message: 'Email delivery unavailable',
+    deliveryCode: 'gmail_auth_rejected',
+  });
 });
 
 test('email verification and password reset use expiring single-use hashes', async t => {
