@@ -8,8 +8,11 @@ export async function institutionFields(body) {
   if (typeof body.institution !== 'string' || !mongoose.isObjectIdOrHexString(body.institution) || !await Institution.exists({ _id: body.institution })) fail(400, 'Choose a college from the catalogue.');
   return { institution: body.institution };
 }
+export function listInstitutions() {
+  return Institution.find().select('name slug country isVerified').sort({ name: 1 }).limit(500);
+}
 export function mountInstitutionRoutes(api, { wrap, ok }) {
-  api.get('/institutions', wrap(async (req, res) => { ok(res, await Institution.find().select('name slug country isVerified').sort({ name: 1 }).limit(500)); }));
+  api.get('/institutions', wrap(async (req, res) => { ok(res, await listInstitutions()); }));
   api.post('/admin/institutions', requireUser, requireAdmin, wrap(async (req, res) => {
     await Institution.init();
     const name = text(req.body.name, 'College name', 2, 140);

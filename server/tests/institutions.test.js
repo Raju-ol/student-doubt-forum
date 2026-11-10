@@ -23,6 +23,9 @@ test('college feeds scope public discovery and migration only fills explicit leg
   const a = await req('/admin/institutions', 'POST', { name: 'College A', country: 'in', isVerified: true }, admin.token, 201);
   const b = await req('/admin/institutions', 'POST', { name: 'College B' }, admin.token, 201);
   assert.equal(a.isVerified, false); assert.equal(a.country, 'IN');
+  const catalogue = await req('/catalog');
+  assert.ok(catalogue.subjects.some(subject => subject.name === 'DBMS'));
+  assert.deepEqual(catalogue.institutions.map(institution => institution.name), ['College A', 'College B']);
   await req('/admin/institutions', 'POST', { name: 'College A' }, admin.token, 409);
   const learnerA = await signup('a@example.test', { institution: a._id }), learnerB = await signup('b@example.test', { institution: b._id });
   await req('/auth/signup', 'POST', { name: 'Invalid', email: 'invalid@example.test', password: 'College123', institution: 'bad-id' }, null, 400);

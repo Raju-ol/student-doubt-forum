@@ -35,3 +35,13 @@
   /* Google supplies the button theme. Match the embed's canvas to avoid a white backdrop. */
   color-scheme: light;
 }
+
+/* Native select popups may draw options on a different surface from the control. */
+select option,
+select optgroup {
+  background-color: var(--surface-ffffff);
+  color: var(--text);
+}
+select option:disabled {
+  color: var(--muted);
+}

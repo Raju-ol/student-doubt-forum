@@ -35,8 +35,12 @@ export async function subjectFilter(value) {
   const found = await Subject.findOne({ keys: subjectKey(name) });
   return found ? { $or: [{ subjectId: found._id }, { subject: { $in: [found.name, ...found.aliases].map(value => new RegExp(`^${escapeRegex(value)}$`, 'i')) } }] } : { subject: name };
 }
+export async function listSubjects() {
+  await ensureSubjects();
+  return Subject.find().select('name slug aliases field icon').sort({ name: 1 }).limit(500);
+}
 export function mountSubjectRoutes(api, { wrap, ok }) {
-  api.get('/subjects', wrap(async (req, res) => { await ensureSubjects(); ok(res, await Subject.find().select('name slug aliases field icon').sort({ name: 1 }).limit(500)); }));
+  api.get('/subjects', wrap(async (req, res) => { ok(res, await listSubjects()); }));
   api.post('/admin/subjects', requireUser, requireAdmin, wrap(async (req, res) => {
     await ensureSubjects();
     try { ok(res, await Subject.create(subjectFields(req.body)), 'Subject added.', 201); }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { readSessionToken, saveSessionToken } from './session';
 const Context = createContext(null);
@@ -9,10 +9,22 @@ export function Provider({ children }) {
   const [notice, setNotice] = useState('');
   const [subjects, setSubjects] = useState([]);
   const [institutions, setInstitutions] = useState([]);
+  const initialCatalog = useRef(null);
   const refreshInstitutions = () => api('/institutions').then(setInstitutions).catch(() => setNotice('College catalogue could not load. Refresh the page to try again.'));
   const refreshSubjects = () => api('/subjects').then(setSubjects).catch(() => setNotice('Subject catalogue could not load. Refresh the page to try again.'));
-  useEffect(() => { refreshSubjects(); }, []);
-  useEffect(() => { refreshInstitutions(); }, []);
+  useEffect(() => {
+    let active = true;
+    initialCatalog.current ??= api('/catalog');
+    initialCatalog.current.then(data => {
+      if (active) {
+        setSubjects(data.subjects);
+        setInstitutions(data.institutions);
+      }
+    }).catch(() => {
+      if (active) setNotice('Subject and college options could not load. Refresh the page to try again.');
+    });
+    return () => { active = false; };
+  }, []);
   useEffect(() => {
     if (!token) { setUser(null); setLoading(false); return; }
     let active = true;

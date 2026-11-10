@@ -9,8 +9,8 @@ import { mountStudyLibraryRoutes } from './study-library.js';
 import { mountGoogleRoutes, verifyGoogleIdentity } from './google-auth.js';
 import { notifyUser, mountNotificationRoutes } from './notifications.js';
 import { academicFields, effectiveLevel } from './academics.js';
-import { mountSubjectRoutes, resolveSubject, subjectFilter } from './subjects.js';
-import { mountInstitutionRoutes, institutionFields } from './institutions.js';
+import { listSubjects, mountSubjectRoutes, resolveSubject, subjectFilter } from './subjects.js';
+import { listInstitutions, mountInstitutionRoutes, institutionFields } from './institutions.js';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
@@ -21,7 +21,7 @@ import mongoose from 'mongoose';
 import { User, Doubt, Answer, Comment, Report, Upload } from './models.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, owns, safeUser, tokenFor } from './auth.js';
-import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
+import { findDoc, listDoubts, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -99,6 +99,10 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   mountNotificationRoutes(api, { wrap, ok });
   mountSubjectRoutes(api, { wrap, ok });
   mountInstitutionRoutes(api, { wrap, ok });
+  api.get('/catalog', wrap(async (req, res) => {
+    const [subjects, institutions] = await Promise.all([listSubjects(), listInstitutions()]);
+    ok(res, { subjects, institutions });
+  }));
   api.get('/doubts', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const limit = positiveInt(req.query.limit, 10, 30);
@@ -124,9 +128,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     if (req.query.tag) filter.tags = text(req.query.tag, 'Tag', 1, 24).toLowerCase();
     if (req.query.status === 'solved') filter.acceptedAnswer = { $ne: null };
     if (req.query.status === 'open') filter.acceptedAnswer = null;
-    const query = filter.$text ? Doubt.find(filter, { searchScore: { $meta: 'textScore' } }).sort({ searchScore: { $meta: 'textScore' }, createdAt: -1, _id: -1 }) : Doubt.find(filter).sort({ createdAt: -1, _id: -1 });
-    const [docs, total] = await Promise.all([query.skip((page - 1) * limit).limit(limit).populate('author', authorFields), Doubt.countDocuments(filter)]);
-    ok(res, { items: await decorateMany(docs, 'doubt', req.user), total, page, pages: Math.ceil(total / limit) });
+    ok(res, await listDoubts(filter, { page, limit, viewer: req.user }));
   }));
   async function doubtFields(body) {
     return { title: text(body.title, 'Title', 10, 160), body: text(body.body, 'Description', 20, 12000), ...await resolveSubject(body.subject), ...academicFields(body), tags: tags(body.tags) };

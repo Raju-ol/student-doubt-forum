@@ -1,9 +1,57 @@
 import mongoose from 'mongoose';
-import { Doubt, Answer, Vote, Comment, Upload } from './models.js';
+import { Doubt, Answer, Vote, Comment, Upload, User } from './models.js';
 import { fail } from './validation.js';
 import { ensureReputation, addReputation, voteCredit } from './reputation.js';
 
 export const authorFields = 'name role semester academicLevel createdAt';
+const publicAuthor = Object.fromEntries(authorFields.split(' ').map(field => [field, 1]));
+
+export async function listDoubts(filter, { page, limit, viewer }) {
+  const sort = filter.$text
+    ? { searchScore: { $meta: 'textScore' }, createdAt: -1, _id: -1 }
+    : { createdAt: -1, _id: -1 };
+  const viewerVote = viewer?._id
+    ? { $sum: { $cond: [{ $eq: ['$user', viewer._id] }, '$value', 0] } }
+    : { $sum: 0 };
+  const [items, total] = await Promise.all([
+    Doubt.aggregate([
+      { $match: filter },
+      ...(filter.$text ? [{ $addFields: { searchScore: { $meta: 'textScore' } } }] : []),
+      { $sort: sort },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+      // Enrich only the requested page, in the same round trip as the page query.
+      { $lookup: {
+        from: User.collection.name, localField: 'author', foreignField: '_id', as: 'author',
+        pipeline: [{ $project: publicAuthor }],
+      } },
+      { $lookup: {
+        from: Vote.collection.name, localField: '_id', foreignField: 'target', as: 'voteTotals',
+        pipeline: [{ $match: { targetType: 'doubt' } }, { $group: { _id: null, votes: { $sum: '$value' }, myVote: viewerVote } }],
+      } },
+      { $lookup: {
+        from: Answer.collection.name, localField: '_id', foreignField: 'doubt', as: 'answerTotals',
+        pipeline: [{ $count: 'count' }],
+      } },
+      { $set: {
+        author: { $ifNull: [{ $first: '$author' }, null] },
+        votes: { $ifNull: [{ $first: '$voteTotals.votes' }, 0] },
+        myVote: { $ifNull: [{ $first: '$voteTotals.myVote' }, 0] },
+        answerCount: { $ifNull: [{ $first: '$answerTotals.count' }, 0] },
+        status: { $cond: [{ $ifNull: ['$acceptedAnswer', false] }, 'solved', 'open'] },
+      } },
+      { $project: {
+        title: 1, body: 1, subject: 1, subjectId: 1, institution: 1, semester: 1,
+        academicLevel: 1, tags: 1, images: 1, author: 1, acceptedAnswer: 1,
+        createdAt: 1, updatedAt: 1, __v: 1, searchScore: 1,
+        votes: 1, myVote: 1, answerCount: 1, status: 1,
+      } },
+    ]),
+    Doubt.countDocuments(filter),
+  ]);
+  return { items, total, page, pages: Math.ceil(total / limit) };
+}
+
 export async function findDoc(Model, id) {
   if (typeof id !== 'string' || !mongoose.isObjectIdOrHexString(id)) fail(400, 'Invalid record ID.');
   const doc = await Model.findById(id);

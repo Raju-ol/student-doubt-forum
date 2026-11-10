@@ -73,6 +73,15 @@ test('Student Doubt Forum integration flow', async t => {
     answer = await request(`/doubts/${doubt._id}/answers`, 'POST', { body: 'Normalization splits related data into tables to reduce redundancy and prevent update anomalies.', author: a.user._id }, b.token, 201);
     assert.equal(answer.author, b.user._id);
     await request(`/answers/${answer._id}/comments`, 'POST', { body: 'Can you explain the second normal form as well?' }, a.token, 201);
+    const guestItem = (await request('/doubts')).items.find(item => item._id === doubt._id);
+    const voterItem = (await request('/doubts', 'GET', null, b.token)).items.find(item => item._id === doubt._id);
+    assert.equal(voterItem.answerCount, 1);
+    assert.equal(voterItem.votes, -1);
+    assert.equal(voterItem.myVote, -1);
+    assert.equal(guestItem.myVote, 0);
+    assert.equal(guestItem.author._id, a.user._id);
+    assert.equal(guestItem.author.email, undefined);
+    assert.equal(guestItem.author.passwordHash, undefined);
   });
   await t.test('answer permissions and self-votes enforced', async () => { await request(`/answers/${answer._id}`, 'PUT', { body: 'An unauthorized change' }, a.token, 403); await request(`/answers/${answer._id}/vote`, 'POST', { value: 1 }, b.token, 403); await request(`/answers/${answer._id}/accept`, 'PATCH', {}, b.token, 403); });
   await t.test('answer voting updates reputation without duplicate awards', async () => {
