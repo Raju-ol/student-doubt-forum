@@ -2,9 +2,48 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import mongoose from 'mongoose';
+import nodemailer from 'nodemailer';
 import { createApp } from '../src/app.js';
 import { User } from '../src/models.js';
-import { hashToken, emailTestRecipient } from '../src/email.js';
+import { hashToken, emailTestRecipient, sendTransactionalEmail } from '../src/email.js';
+
+test('Gmail delivery uses the authenticated sender and honors test-recipient restrictions', async t => {
+  const env = {
+    EMAIL_PROVIDER: 'gmail',
+    EMAIL_ENABLED: '0',
+    EMAIL_RECOVERY_ENABLED: '0',
+    EMAIL_VERIFICATION_REQUIRED: '0',
+    EMAIL_TEST_RECIPIENT: 'tester@example.test',
+    GMAIL_SMTP_USER: 'sender@gmail.com',
+    GMAIL_APP_PASSWORD: 'abcd efgh ijkl mnop',
+  };
+  const previous = Object.fromEntries(Object.keys(env).map(key => [key, process.env[key]]));
+  t.after(() => {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+  Object.assign(process.env, env);
+  let sent;
+  let smtpFails = false;
+  const transport = t.mock.method(nodemailer, 'createTransport', options => {
+    assert.equal(options.host, 'smtp.gmail.com');
+    assert.equal(options.secure, true);
+    assert.deepEqual(options.auth, { user: 'sender@gmail.com', pass: 'abcdefghijklmnop' });
+    return { sendMail: async message => {
+      if (smtpFails) throw new Error('Private SMTP failure detail');
+      sent = message;
+    } };
+  });
+  const message = { to: 'tester@example.test', subject: 'Reset your password', text: 'Test link' };
+  await assert.rejects(sendTransactionalEmail({ ...message, to: 'other@example.test' }), /^Error: Email delivery unavailable$/);
+  assert.equal(transport.mock.callCount(), 0);
+  await sendTransactionalEmail(message);
+  assert.deepEqual(sent, { ...message, from: { name: 'Doubt Forum', address: 'sender@gmail.com' } });
+  smtpFails = true;
+  await assert.rejects(sendTransactionalEmail(message), /^Error: Email delivery unavailable$/);
+});
 
 test('email verification and password reset use expiring single-use hashes', async t => {
   process.env.JWT_SECRET = randomBytes(48).toString('hex'); process.env.EMAIL_ENABLED = '1'; process.env.APP_URL = 'https://forum.example.test';

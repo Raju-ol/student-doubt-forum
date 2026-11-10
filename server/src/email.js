@@ -1,6 +1,7 @@
 import { randomBytes, createHash } from 'node:crypto';
 import { verificationRequired, recoveryEnabled as publicRecoveryEnabled } from './email-policy.js';
 import bcrypt from 'bcryptjs';
+import nodemailer from 'nodemailer';
 import { User } from './models.js';
 import { requireUser } from './auth.js';
 import { email, password, fail } from './validation.js';
@@ -21,8 +22,26 @@ export function requireVerified(req, res, next) {
 }
 export async function sendTransactionalEmail({ to, subject, text }) {
   if (!recoveryAllowed(to)) throw new Error('Email delivery unavailable');
-  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) throw new Error('Email delivery unavailable');
   try {
+    const provider = process.env.EMAIL_PROVIDER?.trim() || 'resend';
+    if (provider === 'gmail') {
+      const user = email(process.env.GMAIL_SMTP_USER);
+      const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '');
+      if (!pass || pass.length !== 16) throw new Error();
+      const transport = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: { user, pass },
+        dnsTimeout: 5000,
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 10000,
+      });
+      await transport.sendMail({ from: { name: 'Doubt Forum', address: user }, to, subject, text });
+      return;
+    }
+    if (provider !== 'resend' || !process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) throw new Error();
     const result = await fetch('https://api.resend.com/emails', { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(8000), headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [to], subject, text }) });
     if (!result.ok) throw new Error();
   } catch { throw new Error('Email delivery unavailable'); }
