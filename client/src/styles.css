@@ -6,3 +6,28 @@
 
 /* Author display rules must not reveal inactive editor controls. */
 .editor__panel textarea[hidden]{display:none}
+
+.google-signin--ready {
+  margin-block: 18px;
+}
+.google-signin__divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.google-signin__divider::before,
+.google-signin__divider::after {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  content: '';
+}
+.google-signin__button {
+  display: grid;
+  justify-items: center;
+  width: min(100%, 400px);
+  margin-inline: auto;
+}
