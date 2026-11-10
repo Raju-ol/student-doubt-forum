@@ -1,0 +1,58 @@
+/* Question Detail: question, accepted answer, other answers, then composer. */
+.qd{max-width:880px;margin:24px auto 64px}
+.qd__back{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin-bottom:14px;padding:0 16px 0 10px;border:var(--edge) solid var(--border);border-radius:999px;background:var(--card);color:var(--text);font-size:14px;font-weight:700;box-shadow:var(--shadow-sm)}
+.qd__back:hover{text-decoration:none;color:var(--primary)}
+:root[data-theme=bento] .qd__back{border-color:transparent}
+
+.qd__question{padding:28px 30px;border:var(--edge) solid var(--border);border-radius:var(--radius-card);background:var(--card);box-shadow:6px 6px 0 var(--primary)}
+:root[data-theme=dark] .qd__question{border-color:transparent;background:var(--card-2);box-shadow:none}
+:root[data-theme=bento] .qd__question{border-color:transparent;box-shadow:var(--shadow)}
+.qd__kicker{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;color:var(--muted);font-size:13px;font-weight:600}
+.qd__label{display:inline-block;padding:3px 9px;border-radius:7px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.qd__label--question{background:var(--text);color:var(--page)}
+.qd__subject{padding:3px 10px;border-radius:999px;background:var(--primary);color:var(--on-primary);font-weight:750}
+.qd__state{padding:3px 10px;border-radius:999px;border:1.5px solid var(--border);color:var(--text);font-weight:700}
+.qd__state--solved{background:var(--solved-bg);color:var(--solved-ink)}
+:root[data-theme=dark] .qd__state,:root[data-theme=bento] .qd__state{border-color:transparent;background:var(--card)}
+:root[data-theme=dark] .qd__state--solved,:root[data-theme=bento] .qd__state--solved{background:var(--solved-bg)}
+.qd__question h1{margin:14px 0 14px;font-size:32px;line-height:1.15;overflow-wrap:anywhere}
+:root[data-theme=dark] .qd__question h1{font-size:25px;line-height:1.25}
+.qd__byline{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding-bottom:16px;border-bottom:var(--edge) dashed var(--line-soft)}
+.qd__byline .author{flex:1;min-width:0;font-size:14px}
+.qd__byline .author .muted{margin-left:8px}
+.qd .post-body{margin-top:20px}
+.qd .prose{font-size:16px}
+.qd .markdown pre,.qd .markdown img,.qd .markdown .katex-display{max-width:100%;overflow-x:auto}
+
+.qd__summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:30px 0 6px;color:var(--muted);font-size:15px}
+.qd__summary strong{color:var(--text);font-family:var(--font-display)}
+.qd__section-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;margin:22px 0 12px}
+.qd__section-head h2{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:21px}
+.qd__section-head .muted{font-size:13px}
+:root[data-theme=dark] .qd__accepted .qd__section-head h2,:root[data-theme=bento] .qd__accepted .qd__section-head h2{color:var(--solved)}
+
+.qd .answer{margin:0 0 14px;padding:22px 24px;border:var(--edge) solid var(--border);border-radius:var(--radius-card);background:var(--card);box-shadow:var(--shadow)}
+:root[data-theme=bento] .qd .answer{border-color:transparent}
+.qd__accepted .answer{background:var(--accent-2)}
+:root[data-theme=dark] .qd__accepted .answer{background:var(--card);border-color:var(--solved)}
+:root[data-theme=bento] .qd__accepted .answer{background:var(--solved-bg)}
+.qd__accepted .accepted-label{display:none}
+.qd__none{font-size:15px;padding:4px 0 8px}
+
+.qd__compose{margin-top:30px;padding:24px 26px;border:var(--edge) dashed var(--border);border-radius:var(--radius-card);background:var(--card);scroll-margin-top:16px}
+:root[data-theme=dark] .qd__compose{border:1px solid var(--border);background:var(--card)}
+:root[data-theme=bento] .qd__compose{border-color:transparent;box-shadow:var(--shadow)}
+.qd__compose h2{margin:0;font-size:22px}
+.qd__compose>p.muted{margin:4px 0 16px;font-size:14px}
+.qd__compose-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-top:16px}
+.qd__signin{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0}
+
+@media (max-width:639px){
+  .qd{margin:12px auto 32px}
+  .qd__question{padding:20px 16px}
+  :root:not([data-theme=dark]):not([data-theme=bento]) .qd__question{box-shadow:4px 4px 0 var(--primary)}
+  .qd__question h1{font-size:25px}
+  :root[data-theme=dark] .qd__question h1{font-size:20px}
+  .qd .answer{padding:16px 14px}
+  .qd__compose{padding:20px 14px}
+}

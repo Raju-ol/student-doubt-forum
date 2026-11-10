@@ -10,22 +10,199 @@ import { AcademicFields, AcademicFilter } from './academic-fields';
 import { parseAcademicForm, levelOf, levelLabel } from './academics';
 import { InstitutionSelect } from './institution-select';
 import { useAuth } from './context';
-import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, Pager, VoteButtons, SemesterSelect, date, Markdown, MarkdownEditor } from './components';
+import { useSavedQuestions, savedStorageAvailable } from './saved-questions';
+import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, SaveButton, Icon, Pager, VoteButtons, SemesterSelect, date, Markdown, MarkdownEditor } from './components';
 
 function useResource(route) {
   const { token } = useAuth(); const [data, setData] = useState(null); const [error, setError] = useState(''); const [loading, setLoading] = useState(true); const [version, setVersion] = useState(0);
-  useEffect(() => { const controller = new AbortController(); setLoading(true); setError(''); api(route, { token, signal: controller.signal }).then(result => { if (!controller.signal.aborted) setData(result); }).catch(err => { if (err.name !== 'AbortError') setError(err.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [route, token, version]);
+  useEffect(() => { if (!route) { setLoading(false); return undefined; } const controller = new AbortController(); setLoading(true); setError(''); api(route, { token, signal: controller.signal }).then(result => { if (!controller.signal.aborted) setData(result); }).catch(err => { if (err.name !== 'AbortError') setError(err.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [route, token, version]);
   const refresh = () => setVersion(value => value + 1);
   return { data, error, loading, refresh };
 }
+const STATUS_LABELS = { solved: 'Accepted answers', open: 'No accepted answer' };
+const SCOPE_LABELS = { college: 'My college', subject: 'Subject worldwide', all: 'Everything' };
+// Parameters that only shape the page, never the API request.
+const VIEW_PARAMS = ['view'];
+
 export function Feed() {
-  const { subjects: catalogue, user: viewer, institutions } = useAuth(); const subjects = catalogue.map(item => item.name);
-  const [params, setParams] = useSearchParams(); const [search, setSearch] = useState(params.get('search') || '');
-  const { data, error, loading, refresh } = useResource('/doubts?' + params.toString());
-  useEffect(() => setSearch(params.get('search') || ''), [params]);
-  function filter(key, value) { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); if (key === 'subject' && !value && next.get('scope') === 'subject') next.set('scope', 'all'); next.delete('page'); setParams(next); }
-  return <><section className="hero"><div><span className="overline"><span className="live-dot" /> YOUR CAMPUS KNOWLEDGE COMMUNITY</span><h1>Big questions.<br /><span>Better answers, together.</span></h1><p>Stuck on a concept? Ask your peers, learn from teachers,<br className="desktop-only" /> and turn your doubts into understanding.</p><Link to="/ask" className="button">Ask your first doubt <span>↗</span></Link></div><div className="hero__art" aria-hidden="true"><div className="art-orbit" /><div className="art-note art-note--back"><span>DBMS</span><strong>It finally makes sense.</strong><div className="art-lines" /></div><div className="art-note art-note--front"><span className="art-label">A GOOD QUESTION IS A START</span><strong>What if<br />I just ask?</strong><span className="art-check">✓</span><span className="art-doodle">✦</span></div><span className="art-caption">No doubt is too small.</span></div></section><div className="feed-layout"><section className="feed"><div className="section-title"><div><h2>Explore doubts</h2><p className="muted">Fresh questions. Shared discoveries.</p></div><span className="count-chip">{data ? `${data.total} ${data.total === 1 ? 'question' : 'questions'}` : 'Community'}</span></div><label className="search-label" htmlFor="question-search">Search questions</label><small className="search-help">Search whole words in questions and tags. Related English word forms can also match.</small><form className="search" onSubmit={e => { e.preventDefault(); filter('search', search.trim()); }}><span aria-hidden="true">⌕</span><input id="question-search" aria-label="Search questions" placeholder="Search a topic, concept, or question…" value={search} maxLength={120} onChange={e => setSearch(e.target.value)} /><button type="submit">Search</button></form><div className="filters"><select aria-label="Feed scope" value={params.get('scope') || (viewer?.institution ? 'college' : 'all')} onChange={event => filter('scope', event.target.value)}><option value="college" disabled={!viewer?.institution}>My college</option><option value="subject" disabled={!params.get('subject')}>Selected subject worldwide</option><option value="all">Everything</option></select><select aria-label="Filter by subject" value={params.get('subject') || ''} onChange={e => filter('subject', e.target.value)}><option value="">All subjects</option>{subjects.map(subject => <option key={subject}>{subject}</option>)}</select><AcademicFilter params={params} onChange={(system, index) => { const next = new URLSearchParams(params); next.delete('page'); next.delete('semester'); if (system) next.set('academicSystem', system); else next.delete('academicSystem'); if (index) next.set('academicIndex', index); else next.delete('academicIndex'); setParams(next); }} /><select aria-label="Filter by status" value={params.get('status') || ''} onChange={e => filter('status', e.target.value)}><option value="">All questions</option><option value="open">No accepted answer</option><option value="solved">Accepted answer</option></select>{params.size > 0 && <button className="text-button" onClick={() => setParams({})}>Clear filters ×</button>}</div>{params.get('tag') && <p className="muted">Tag: <strong>{params.get('tag')}</strong></p>}<ErrorBox message={error} retry={refresh} />{loading ? <Loading /> : data?.items.length ? <div className="doubt-list">{data.items.map(doubt => <DoubtCard key={doubt._id} doubt={doubt} />)}</div> : !error && <Empty title={params.size ? 'No matching questions' : 'Be the first to ask'}>{params.size ? 'Try a different search or clear your filters.' : 'Share a question from your coursework and start learning together.'}</Empty>}{data && !loading && <Pager page={data.page} pages={data.pages} onChange={page => { const next = new URLSearchParams(params); next.set('page', page); setParams(next); }} />}</section><aside className="sidebar"><div className="side-card side-card--indigo"><span className="side-card__symbol">✦</span><h3>Someone else has<br />been stuck here, too.</h3><p>Share what you know. A small explanation can make a big difference.</p><Link to="/?status=open">Find a question to answer →</Link></div><div className="side-card"><span className="overline">EXPLORE SUBJECTS</span><div className="subject-list">{subjects.slice(0, 6).map((subject, i) => <button key={subject} onClick={() => filter('subject', subject)}><span className="subject-icon">{catalogue.find(item => item.name === subject)?.icon || '◈'}</span>{subject}<span>↗</span></button>)}</div></div><div className="community-note"><span>♡</span><p>Built for curious minds.<br /><strong>Be kind. Be clear. Keep learning.</strong></p></div></aside></div></>;
+  const { subjects: catalogue, user: viewer, loading: sessionLoading } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const query = params.get('search') || '';
+  const [search, setSearch] = useState(query);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const savedView = params.get('view') === 'saved';
+  const apiParams = new URLSearchParams(params);
+  VIEW_PARAMS.forEach(key => apiParams.delete(key));
+  const { data, error, loading, refresh } = useResource(savedView ? null : '/doubts?' + apiParams.toString());
+  const saved = useSavedQuestions();
+  const subject = params.get('subject') || '';
+  const status = params.get('status') || '';
+  const defaultScope = viewer?.institution ? 'college' : 'all';
+  const scope = params.get('scope') || defaultScope;
+  const tag = params.get('tag') || '';
+  const isLibrary = tag === 'study-library';
+  const level = params.get('academicSystem') || (params.get('semester') ? 'semester' : '');
+  const advancedCount = [params.get('scope') && params.get('scope') !== defaultScope, status, level].filter(Boolean).length;
+  const filtered = [...apiParams.keys()].some(key => key !== 'page');
+  const heading = savedView ? 'Saved questions' : query ? `Results for “${query}”` : isLibrary ? 'Study Library'
+    : STATUS_LABELS[status] || (subject ? subject : 'Latest questions');
+
+  useEffect(() => setSearch(query), [query]);
+
+  function update(changes) {
+    const next = new URLSearchParams(params);
+    for (const [key, value] of Object.entries(changes)) { if (value) next.set(key, value); else next.delete(key); }
+    if ('subject' in changes && !changes.subject && next.get('scope') === 'subject') next.set('scope', 'all');
+    next.delete('page');
+    next.delete('view');
+    setParams(next);
+  }
+  const filter = (key, value) => update({ [key]: value });
+  // Discovery links keep the student's search and subject, and toggle off when active.
+  function discover(changes, active) {
+    const next = new URLSearchParams(params);
+    ['page', 'view'].forEach(key => next.delete(key));
+    for (const [key, value] of Object.entries(changes)) { if (active || !value) next.delete(key); else next.set(key, value); }
+    const text = next.toString();
+    return text ? `/?${text}` : '/';
+  }
+  function filterAcademicLevel(system, index) {
+    update({ semester: '', academicSystem: system, academicIndex: index });
+  }
+  const chips = [
+    query && { key: 'search', label: `“${query}”`, clear: () => { setSearch(''); filter('search', ''); } },
+    subject && { key: 'subject', label: subject, clear: () => filter('subject', '') },
+    tag && { key: 'tag', label: isLibrary ? 'Study Library' : `#${tag}`, clear: () => update(isLibrary ? { tag: '', scope: '' } : { tag: '' }) },
+    status && { key: 'status', label: STATUS_LABELS[status] || status, clear: () => filter('status', '') },
+    params.get('scope') && params.get('scope') !== defaultScope && { key: 'scope', label: SCOPE_LABELS[scope] || scope, clear: () => filter('scope', '') },
+    level && { key: 'level', label: params.get('academicIndex') || params.get('semester') ? `${level[0].toUpperCase() + level.slice(1)} ${params.get('academicIndex') || params.get('semester')}` : level[0].toUpperCase() + level.slice(1), clear: () => filterAcademicLevel('', '') }
+  ].filter(Boolean);
+
+  return <div className="explore">
+    <section className="explore__top" aria-labelledby="explore-heading">
+      <div className="explore__search-row">
+        <h1 id="explore-heading" className="explore__title">stuck on something? <mark className="explore__mark">someone’s been there.</mark></h1>
+        <form className="explore__search" role="search" onSubmit={event => { event.preventDefault(); filter('search', search.trim()); }}>
+          <label className="visually-hidden" htmlFor="question-search">Search questions</label>
+          <span className="explore__search-icon"><Icon name="search" size={22} /></span>
+          <input id="question-search" type="search" placeholder="Search topics or questions" value={search}
+            maxLength={120} onChange={event => setSearch(event.target.value)} />
+          <button className="button" type="submit">Search</button>
+        </form>
+      </div>
+      <nav className="explore__discover" aria-label="Quick views">
+        <Link className="explore__chip explore__chip--library" to={isLibrary ? discover({ tag: '', scope: '' }, true) : '/?scope=all&tag=study-library'}
+          aria-current={isLibrary && !savedView ? 'page' : undefined}><Icon name="book" size={17} />Study Library</Link>
+        <div className="explore__views">
+        <Link className="explore__chip explore__chip--solved" to={discover({ status: 'solved' }, status === 'solved')}
+          aria-current={status === 'solved' && !savedView ? 'page' : undefined}><Icon name="check" size={17} />Accepted answers</Link>
+        <Link className="explore__chip explore__chip--open" to={discover({ status: 'open' }, status === 'open')}
+          aria-current={status === 'open' && !savedView ? 'page' : undefined} title="Questions without an accepted answer, including ones that already have replies">
+          <Icon name="hand" size={17} />No accepted answer</Link>
+        <Link className="explore__chip explore__chip--saved" to={savedView ? '/' : '/?view=saved'} aria-current={savedView ? 'page' : undefined}>
+          <Icon name="bookmark" size={17} />Saved{saved.length > 0 && <span className="explore__chip-count">{saved.length}</span>}</Link>
+        </div>
+      </nav>
+      {!savedView && catalogue.length > 0 && <div className="explore__subjects" role="group" aria-label="Browse by subject">
+        <button type="button" className="explore__subject" aria-pressed={!subject} onClick={() => filter('subject', '')}>All subjects</button>
+        {subject && !catalogue.some(item => item.name === subject) && <button type="button" className="explore__subject" aria-pressed="true" onClick={() => filter('subject', '')}>{subject}</button>}
+        {catalogue.map(item => <button type="button" key={item.name} className="explore__subject" aria-pressed={subject === item.name}
+          onClick={() => filter('subject', subject === item.name ? '' : item.name)}>{item.name}</button>)}
+      </div>}
+    </section>
+
+    <div className="explore__body">
+    <section className="explore__results" aria-labelledby="explore-results">
+      <div className="explore__toolbar">
+        <div className="explore__heading">
+          <h2 id="explore-results">{heading}</h2>
+          {savedView ? <span className="muted">Stored on this device only · {saved.length} {saved.length === 1 ? 'question' : 'questions'}</span>
+            : data && !loading && !error && <span className="muted" aria-live="polite">{data.total} {data.total === 1 ? 'question' : 'questions'}{status === 'open' ? ' without an accepted answer' : ''}</span>}
+        </div>
+        {!savedView && <button type="button" className="explore__filters-toggle" aria-expanded={filtersOpen} aria-controls="explore-filters"
+          onClick={() => setFiltersOpen(open => !open)}>
+          <Icon name="filter" size={17} />Filters{advancedCount > 0 && <span className="explore__chip-count" aria-label={`${advancedCount} active`}>{advancedCount}</span>}
+        </button>}
+      </div>
+
+      {!savedView && <div id="explore-filters" className="explore__filters" role="group" aria-label="More filters" hidden={!filtersOpen}>
+        <div className="explore__filter">
+          <label htmlFor="explore-scope">Scope</label>
+          <select id="explore-scope" value={scope} onChange={event => filter('scope', event.target.value)}>
+            <option value="college" disabled={!viewer?.institution}>My college{!viewer?.institution ? sessionLoading ? '' : ' (set in profile)' : ''}</option>
+            <option value="subject" disabled={!subject}>Selected subject worldwide</option>
+            <option value="all">Everything</option>
+          </select>
+        </div>
+        <div className="explore__filter">
+          <label htmlFor="explore-status">Answer status</label>
+          <select id="explore-status" value={status} onChange={event => filter('status', event.target.value)}>
+            <option value="">All questions</option>
+            <option value="open">No accepted answer</option>
+            <option value="solved">Accepted answer</option>
+          </select>
+        </div>
+        <div className="explore__filter explore__filter--level">
+          <span className="explore__filter-label" id="explore-level">Academic level</span>
+          <div className="explore__level" role="group" aria-labelledby="explore-level"><AcademicFilter params={params} onChange={filterAcademicLevel} /></div>
+        </div>
+      </div>}
+
+      {!savedView && chips.length > 0 && <div className="explore__active" aria-label="Active filters">
+        {chips.map(chip => <button type="button" key={chip.key} className="explore__active-chip" onClick={chip.clear}
+          aria-label={`Remove filter ${chip.label}`}>{chip.label} <span aria-hidden="true">×</span></button>)}
+        {chips.length > 1 && <button className="text-button" type="button" onClick={() => { setSearch(''); setParams({}); }}>Clear all</button>}
+      </div>}
+
+      {savedView ? <SavedList items={saved} />
+        : <>
+          <ErrorBox message={error} retry={refresh} />
+          {loading && <Loading />}
+          {!loading && !error && (data?.items.length
+            ? <ol className="qlist">{data.items.map(doubt => <QuestionRow key={doubt._id} doubt={doubt} />)}</ol>
+            : <Empty title={filtered ? 'No matching questions' : 'Be the first to ask'}>
+                {filtered ? 'Try another word, a different subject, or clear the filters.' : 'Share a question from your coursework.'}
+              </Empty>)}
+          {data && !loading && !error && <Pager page={data.page} pages={data.pages} onChange={page => {
+            const next = new URLSearchParams(params);
+            next.set('page', page);
+            setParams(next);
+            window.scrollTo?.({ top: 0 });
+          }} />}
+        </>}
+    </section>
+    {!savedView && <aside className="explore__aside" aria-label="Ways to help">
+      <section className="explore__card explore__card--hero">
+        <h2>be someone’s hero today</h2>
+        <p>These doubts are still waiting for an accepted answer. One clear explanation can make someone’s exam.</p>
+        <Link className="explore__card-link" to="/?status=open">Find one to answer →</Link>
+      </section>
+      <section className="explore__card explore__card--library">
+        <p className="explore__card-kicker"><Icon name="book" size={16} />Study Library</p>
+        <h2>exam-ready explainers</h2>
+        <p>Curated questions with worked explanations, 20 per subject. Perfect for the night before.</p>
+        <Link className="button button--secondary" to="/?scope=all&tag=study-library">Open the library</Link>
+      </section>
+    </aside>}
+    </div>
+  </div>;
 }
+
+function SavedList({ items }) {
+  const available = savedStorageAvailable();
+  const location = useLocation();
+  if (!available) return <div className="explore__notice" role="status"><strong>Saving is unavailable in this browser.</strong> Site storage is blocked (for example by private browsing or a privacy setting), so saved questions cannot be kept on this device.</div>;
+  if (!items.length) return <Empty title="No saved questions yet">Use <strong>Save</strong> on any question to keep it here. Saves stay on this device and browser only.</Empty>;
+  return <ol className="qlist qlist--saved">{items.map(item => <li className="qrow" key={item.id}>
+    <div className={`qrow__count qrow__count--${item.status === 'solved' ? 'solved' : 'open'}`}>{item.status === 'solved' ? <><strong>✓</strong><span>accepted</span></> : <><strong>{item.answerCount ?? '–'}</strong><span>{item.answerCount === 1 ? 'answer' : 'answers'}</span></>}</div>
+    <div className="qrow__main">
+      <h3 className="qrow__title"><Link to={`/doubts/${item.id}`} state={{ from: location.pathname + location.search }}>{item.title}</Link></h3>
+      <div className="qrow__meta">{item.subject && <span className="qrow__subject">{item.subject}</span>}<span>Saved {date(item.savedAt)}</span><span>Status as of saving</span></div>
+    </div>
+    <SaveButton doubt={{ _id: item.id, title: item.title, subject: item.subject, status: item.status, answerCount: item.answerCount }} compact />
+  </li>)}</ol>;
+}
+
 export function AuthPage({ signup = false }) {
   const { login, user } = useAuth(); const navigate = useNavigate(); const [query] = useSearchParams(); const destination = safeReturn(query.get('returnTo')); const [showPassword, setShowPassword] = useState(false); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   useEffect(() => { setError(''); }, [signup]);
@@ -44,7 +221,7 @@ export function AuthPage({ signup = false }) {
       setBusy(false);
     }
   }
-  return <div className="auth-layout"><section className="auth-story"><span className="overline">LEARN TOGETHER. GO FURTHER.</span><h1>Every answer<br />starts with<br /><span>a little curiosity.</span></h1><p>A space to ask freely, share what you know, and make college a little less confusing.</p><div className="auth-story__quote">“The only silly question is the one you never ask.”</div></section><section className="panel auth-form"><Mark small /><h2>{signup ? 'Make yourself at home.' : 'Good to see you again.'}</h2><p className="muted">{signup ? 'Join your campus learning community.' : 'Your next discovery is waiting.'}</p><form onSubmit={submit} key={signup ? 'signup' : 'login'}><ErrorBox message={error} />{signup && <label>Full name<input name="name" autoComplete="name" required minLength={2} maxLength={60} placeholder="Your name" /></label>}<label>Email address<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@college.edu" /></label><label>Password<input name="password" type={showPassword ? "text" : "password"} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={8} maxLength={72} placeholder={signup ? 'At least 8 characters' : 'Your password'} /></label><button className="text-button password-toggle" type="button" aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Hide password" : "Show password"}</button>{signup && <><AcademicFields id="signup-level" /><InstitutionSelect id="signup-institution" /></>}<button className="button button--full" disabled={busy}>{busy ? 'Please wait…' : signup ? 'Create your account →' : 'Sign in →'}</button></form><GoogleButton onCredential={continueWithGoogle} disabled={busy} showDivider />{!signup && <p><Link to="/forgot-password">Forgot password?</Link></p>}<p className="auth-switch">{signup ? 'Already part of the community?' : 'New around here?'} <Link to={(signup ? '/login' : '/signup') + '?returnTo=' + encodeURIComponent(destination)}>{signup ? 'Sign in' : 'Create an account'}</Link></p></section></div>;
+  return <div className="auth-layout"><section className="auth-story"><span className="overline">LEARN TOGETHER. GO FURTHER.</span><h1>no doubt is <mark>too small</mark> to ask.</h1><p>Ask freely, explain what you know, and make college a little less confusing for everyone.</p><div className="auth-story__quote">“The only silly question is the one you never ask.”</div></section><section className="panel auth-form"><Mark small /><h2>{signup ? 'Make yourself at home.' : 'Good to see you again.'}</h2><p className="muted">{signup ? 'Join your campus learning community.' : 'Your next discovery is waiting.'}</p><form onSubmit={submit} key={signup ? 'signup' : 'login'}><ErrorBox message={error} />{signup && <label>Full name<input name="name" autoComplete="name" required minLength={2} maxLength={60} placeholder="Your name" /></label>}<label>Email address<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@college.edu" /></label><label>Password<input name="password" type={showPassword ? "text" : "password"} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={8} maxLength={72} placeholder={signup ? 'At least 8 characters' : 'Your password'} /></label><button className="text-button password-toggle" type="button" aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Hide password" : "Show password"}</button>{signup && <><AcademicFields id="signup-level" /><InstitutionSelect id="signup-institution" /></>}<button className="button button--full" disabled={busy}>{busy ? 'Please wait…' : signup ? 'Create your account →' : 'Sign in →'}</button></form><GoogleButton onCredential={continueWithGoogle} disabled={busy} showDivider />{!signup && <p><Link to="/forgot-password">Forgot password?</Link></p>}<p className="auth-switch">{signup ? 'Already part of the community?' : 'New around here?'} <Link to={(signup ? '/login' : '/signup') + '?returnTo=' + encodeURIComponent(destination)}>{signup ? 'Sign in' : 'Create an account'}</Link></p></section></div>;
 }
 export function Ask({ edit = false }) {
   const { subjects: catalogue } = useAuth(); const subjects = catalogue.map(item => item.name);
@@ -70,7 +247,61 @@ export function Detail() {
   if (error) return <ErrorBox message={error} retry={refresh} />;
   if (!doubt) return null;
   const owner = doubt.author?._id === user?._id; const canEdit = owner || user?.role === 'admin';
-  return <div className="detail-layout"><section><Link className="back-link" to={safeReturn(location.state?.from)}>← Back to results</Link><article className="panel question"><div className="eyebrow"><span>{doubt.subject}</span><span>{levelLabel(doubt)}</span>{doubt.status === 'solved' && <span className="badge badge--solved">✓ Accepted by question author</span>}</div><h1>{doubt.title}</h1><Author user={doubt.author} createdAt={doubt.createdAt} /><div className="post-body"><VoteButtons type="doubt" item={doubt} refresh={refresh} /><div className="post-body__content"><Markdown source={doubt.body} />{doubt.images.length > 0 && <div className="attachments">{doubt.images.map(image => <a key={image.publicId} href={image.url} target="_blank" rel="noreferrer"><img src={image.url} alt="Screenshot attached to the question" /></a>)}</div>}<Tags values={doubt.tags} /><div className="content-actions">{canEdit && <><Link to={`/doubts/${id}/edit`}>Edit question</Link><button disabled={busy} onClick={deleteDoubt}>Delete</button></>}<ReportButton type="doubt" id={id} /></div></div></div></article><div className="section-title answers-title"><h2>{doubt.answers.length} {doubt.answers.length === 1 ? 'answer' : 'answers'}</h2><span className="muted">Accepted answers first</span></div>{doubt.answers.length ? doubt.answers.map(item => <AnswerCard key={item._id} answer={item} owner={owner} refresh={refresh} />) : <Empty title="A fresh perspective is welcome">Know something that could help? Share the first answer.</Empty>}<section className="panel answer-form"><h2>Share what you know</h2><p className="muted">Explain the why, not just the answer.</p>{user ? <form onSubmit={answer}><ErrorBox message={formError} /><label>Your answer<MarkdownEditor id="answer-body" rows={7} value={body} onChange={setBody} required minLength={10} maxLength={12000} placeholder="Walk them through the concept…" /></label><button className="button" disabled={busy}>{busy ? 'Posting…' : 'Post your answer →'}</button></form> : <p><Link to={signInPath(location)}>Sign in</Link> or <Link to={"/signup?returnTo=" + encodeURIComponent(location.pathname)}>create an account</Link> to join the discussion.</p>}</section></section><aside><div className="side-card"><span className="overline">A LITTLE REMINDER</span><h3>We’re all learning.</h3><p className="muted">Be patient, give context, and credit helpful explanations. If an answer solves your doubt, mark it accepted.</p><Link className="button button--secondary" to="/ask">Ask another doubt</Link></div></aside></div>;
+  const accepted = doubt.answers.find(item => item.isAccepted);
+  const others = doubt.answers.filter(item => !item.isAccepted);
+  const total = doubt.answers.length;
+  const jumpToComposer = () => {
+    const target = document.getElementById('write-answer');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    (target?.querySelector('textarea') || target?.querySelector('a'))?.focus({ preventScroll: true });
+  };
+  return <div className="qd">
+    <Link className="qd__back" to={safeReturn(location.state?.from)}><Icon name="back" size={18} />Back to results</Link>
+    <article className="qd__question" aria-labelledby="question-title">
+      <div className="qd__kicker">
+        <span className="qd__label qd__label--question">Question</span>
+        <span className="qd__subject">{doubt.subject}</span>
+        <span>{levelLabel(doubt)}</span>
+        {doubt.status === 'solved' ? <span className="qd__state qd__state--solved">✓ Solved</span>
+          : <span className="qd__state">{total ? 'No accepted answer yet' : 'No answers yet'}</span>}
+      </div>
+      <h1 id="question-title">{doubt.title}</h1>
+      <div className="qd__byline"><Author user={doubt.author} createdAt={doubt.createdAt} /><SaveButton doubt={{ ...doubt, answerCount: total }} /></div>
+      <div className="post-body">
+        <VoteButtons type="doubt" item={doubt} refresh={refresh} />
+        <div className="post-body__content">
+          <Markdown source={doubt.body} />
+          {doubt.images.length > 0 && <div className="attachments">{doubt.images.map(image => <a key={image.publicId} href={image.url} target="_blank" rel="noreferrer"><img src={image.url} alt="Screenshot attached to the question" /></a>)}</div>}
+          <Tags values={doubt.tags} />
+          <div className="content-actions">{canEdit && <><Link to={`/doubts/${id}/edit`}>Edit question</Link><button disabled={busy} onClick={deleteDoubt}>Delete</button></>}<ReportButton type="doubt" id={id} /></div>
+        </div>
+      </div>
+    </article>
+
+    <div className="qd__summary">
+      <span>{total ? <><strong>{total}</strong> {total === 1 ? 'answer' : 'answers'}{accepted ? ' · 1 accepted' : ' · none accepted yet'}</> : 'No one has answered yet'}</span>
+      <button type="button" className="button button--secondary button--small" onClick={jumpToComposer}>Write an answer ↓</button>
+    </div>
+
+    {accepted && <section className="qd__accepted" aria-labelledby="accepted-heading">
+      <div className="qd__section-head"><h2 id="accepted-heading"><Icon name="check" size={20} />the answer that clicked</h2><span className="muted">Accepted by the student who asked</span></div>
+      <AnswerCard answer={accepted} owner={owner} refresh={refresh} />
+    </section>}
+
+    <section className="qd__others" aria-labelledby="others-heading">
+      <div className={total ? 'qd__section-head' : 'visually-hidden'}><h2 id="others-heading">{accepted ? `${others.length} other ${others.length === 1 ? 'answer' : 'answers'}` : `${total} ${total === 1 ? 'answer' : 'answers'}`}</h2>{others.length > 1 && <span className="muted">Highest voted first</span>}</div>
+      {others.length ? others.map(item => <AnswerCard key={item._id} answer={item} owner={owner} refresh={refresh} />)
+        : !accepted ? <Empty title="Be the first to answer">Know something that could help? Explain it below.</Empty>
+        : <p className="muted qd__none">No other answers yet.</p>}
+    </section>
+
+    <section className="qd__compose" id="write-answer" aria-labelledby="compose-heading">
+      <h2 id="compose-heading">Your answer</h2>
+      <p className="muted">Explain the why, not just the answer. Markdown, code and maths are supported.</p>
+      {user ? <form onSubmit={answer}><ErrorBox message={formError} /><label htmlFor="answer-body-input" className="visually-hidden">Your answer</label><MarkdownEditor id="answer-body" rows={7} value={body} onChange={setBody} required minLength={10} maxLength={12000} placeholder="Walk them through the concept…" /><div className="qd__compose-actions"><button className="button" disabled={busy}>{busy ? 'Posting…' : 'Post your answer'}</button><Link className="text-button" to="/ask">Ask a different question instead</Link></div></form>
+        : <p className="qd__signin"><Link className="button" to={signInPath(location)}>Sign in to answer</Link> <span className="muted">or</span> <Link to={"/signup?returnTo=" + encodeURIComponent(location.pathname)}>create an account</Link></p>}
+    </section>
+  </div>;
 }
 function ReportButton({ type, id }) {
   const { user, token, notify } = useAuth(); const [open, setOpen] = useState(false); const [reason, setReason] = useState(''); const [busy, setBusy] = useState(false);

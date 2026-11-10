@@ -55,13 +55,13 @@ test('mobile menu Escape closes from trigger and links and restores focus', asyn
       assert.equal(trigger.getAttribute('aria-expanded'), 'false');
       assert.equal(dom.window.document.activeElement, trigger);
     }
-    const theme = host.querySelector('.theme-control'); theme.focus();
+    const theme = host.querySelector('.theme-control button'); theme.focus();
     await React.act(async () => theme.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
     assert.equal(dom.window.document.activeElement, theme); // Closed menu must not steal focus.
   } finally { await React.act(async () => root.unmount()); host.remove(); dom.window.matchMedia = previousMedia; for (const key of keys) { if (previous[key] === undefined) delete globalThis[key]; else globalThis[key] = previous[key]; } }
 });
 
-test('theme button cycles, saves preference, follows system and restores after remount', async () => {
+test('theme switcher offers four looks, saves the choice, follows system and restores after remount', async () => {
   const { createRoot } = await import('react-dom/client');
   const previousWindow = globalThis.window, previousDocument = globalThis.document, previousStorage = globalThis.localStorage;
   const storage = new Map(); const listeners = new Set();
@@ -71,21 +71,26 @@ test('theme button cycles, saves preference, follows system and restores after r
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   const host = dom.window.document.createElement('div'); dom.window.document.body.append(host);
   let root = createRoot(host);
+  const option = mode => host.querySelector(`[data-option="${mode}"]`);
   try {
     await React.act(async () => root.render(React.createElement(ThemeControl)));
     assert.equal(host.querySelector('select'), null);
-    const click = async mode => {
-      await React.act(async () => host.querySelector('button').click());
-      assert.equal(host.querySelector('button').dataset.mode, mode); assert.equal(storage.get('forum-theme'), mode);
-    };
+    assert.equal(host.querySelector('.theme-control').getAttribute('role'), 'group');
+    assert.deepEqual([...host.querySelectorAll('button')].map(button => button.textContent), ['Auto', 'Sticker', 'After Hours', 'Bento']);
+    for (const button of host.querySelectorAll('button')) assert.equal(button.getAttribute('type'), 'button');
+    assert.equal(option('system').getAttribute('aria-pressed'), 'true');
     assert.equal(document.documentElement.dataset.theme, 'dark'); // System preference.
-    await click('light'); assert.equal(document.documentElement.dataset.theme, 'light');
-    await click('dark'); assert.equal(document.documentElement.dataset.theme, 'dark');
-    await click('system'); assert.match(host.querySelector('button').getAttribute('aria-label'), /Switch to Light/);
-    await click('light');
+    const pick = async (mode, applied) => {
+      await React.act(async () => option(mode).click());
+      assert.equal(option(mode).getAttribute('aria-pressed'), 'true'); assert.equal(storage.get('forum-theme'), mode);
+      assert.equal(document.documentElement.dataset.theme, applied);
+      assert.equal(host.querySelectorAll('[aria-pressed="true"]').length, 1);
+    };
+    await pick('light', 'light'); await pick('dark', 'dark'); await pick('bento', 'bento'); await pick('system', 'dark');
+    await pick('bento', 'bento');
     await React.act(async () => root.unmount()); assert.equal(listeners.size, 0);
     root = createRoot(host); await React.act(async () => root.render(React.createElement(ThemeControl)));
-    assert.equal(host.querySelector('button').dataset.mode, 'light');
+    assert.equal(option('bento').getAttribute('aria-pressed'), 'true');
   } finally { await React.act(async () => root.unmount()); host.remove(); globalThis.window = previousWindow; globalThis.document = previousDocument; globalThis.localStorage = previousStorage; delete globalThis.IS_REACT_ACT_ENVIRONMENT; }
 });
 

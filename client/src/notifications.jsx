@@ -12,7 +12,7 @@ export function NotificationBell() {
     refresh(); const interval = setInterval(refresh, 60000); window.addEventListener('forum-notifications', refresh); document.addEventListener('visibilitychange', refresh);
     return () => { active = false; clearInterval(interval); window.removeEventListener('forum-notifications', refresh); document.removeEventListener('visibilitychange', refresh); };
   }, [token, location.pathname]);
-  return <Link to="/notifications" aria-label={`Notifications${unread === null ? '' : `, ${unread} unread`}`}>🔔 <span>Notifications{unread ? ` (${unread > 99 ? '99+' : unread})` : ''}</span></Link>;
+  return <Link className="nav-bell" to="/notifications" aria-label={`Notifications${unread === null ? '' : `, ${unread} unread`}`}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9Zm4 11a2 2 0 0 0 4 0" /></svg><span className="nav-bell__label">Notifications</span>{unread > 0 && <span className="nav-bell__count">{unread > 99 ? '99+' : unread}</span>}</Link>;
 }
 export function NotificationsPage() {
   const { token } = useAuth(); const [page, setPage] = useState(1), [data, setData] = useState(null), [error, setError] = useState(''), [loading, setLoading] = useState(true), [version, setVersion] = useState(0), [busy, setBusy] = useState(false);
