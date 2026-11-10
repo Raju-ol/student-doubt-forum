@@ -24,11 +24,11 @@ import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAn
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
-export function createApp({ serveClient = true, sendEmail = sendTransactionalEmail, googleIdentity = verifyGoogleIdentity } = {}) {
+export function createApp({ serveClient = true, sendEmail = sendTransactionalEmail, googleIdentity = verifyGoogleIdentity, trustProxy = process.env.TRUST_PROXY === '1' || process.env.VERCEL === '1' } = {}) {
   const limiter = createLimiterFactory();
   const app = express();
   app.disable('x-powered-by');
-  if (process.env.TRUST_PROXY === '1' || process.env.VERCEL === '1') app.set('trust proxy', 1);
+  if (trustProxy) app.set('trust proxy', 1);
   app.use(helmet({
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },

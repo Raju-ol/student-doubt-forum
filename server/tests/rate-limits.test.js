@@ -82,3 +82,17 @@ test('local development uses memory, production without credentials never falls 
   assert.equal(createLimiterFactory({ env: {} }).mode, 'memory');
   assert.equal(createLimiterFactory({ env: { NODE_ENV: 'production' } }).mode, 'unavailable');
 });
+
+test('simultaneous script loads share a request and can retry after failure', async () => {
+  let calls = 0;
+  const send = redisCommand({ url: 'https://example.upstash.io', token: 'test-token', fetchImpl: async () => {
+    calls++;
+    if (calls === 1) return { ok: false };
+    return { ok: true, json: async () => ({ result: 'loaded-sha' }) };
+  } });
+  const attempts = await Promise.allSettled([send('SCRIPT', 'LOAD', 'script'), send('SCRIPT', 'LOAD', 'script')]);
+  assert.equal(calls, 1);
+  assert.ok(attempts.every(attempt => attempt.status === 'rejected' && attempt.reason.status === 503));
+  assert.deepEqual(await Promise.all([send('SCRIPT', 'LOAD', 'script'), send('SCRIPT', 'LOAD', 'script')]), ['loaded-sha', 'loaded-sha']);
+  assert.equal(calls, 2);
+});

@@ -1,7 +1,8 @@
 import { createApp } from '../server/src/app.js';
 import { connectDatabase, connectionErrorCode } from '../server/src/database.js';
 
-const app = createApp({ serveClient: false });
+// Vercel supplies X-Forwarded-For even when system env vars are not exposed.
+const app = createApp({ serveClient: false, trustProxy: true });
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');

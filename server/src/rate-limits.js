@@ -16,7 +16,7 @@ export function redisCommand({ url, token, fetchImpl = fetch }) {
   let endpoint;
   try { endpoint = new URL(url); } catch { throw unavailable(); }
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.search || endpoint.hash || endpoint.pathname !== '/' || !token) throw unavailable();
-  return async (...command) => {
+  async function execute(command) {
     try {
       const response = await fetchImpl(endpoint.href, {
         method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -35,6 +35,17 @@ export function redisCommand({ url, token, fetchImpl = fetch }) {
       if (error.message === 'NOSCRIPT script unavailable') throw error;
       throw unavailable();
     }
+  }
+  const scriptLoads = new Map();
+  return (...command) => {
+    if (command[0] !== 'SCRIPT' || command[1] !== 'LOAD') return execute(command);
+    const script = command[2];
+    // All limiter scopes use the same scripts. Share simultaneous loads and
+    // let Redis request a fresh load after an eviction or a failed request.
+    if (!scriptLoads.has(script)) {
+      scriptLoads.set(script, execute(command).finally(() => scriptLoads.delete(script)));
+    }
+    return scriptLoads.get(script);
   };
 }
 
@@ -52,6 +63,8 @@ export function createLimiterFactory({ env = process.env, fetchImpl = fetch } = 
   const factory = (scope, limit, windowMs, { account = false, email = false } = {}) => rateLimit({
     windowMs, limit, standardHeaders: 'draft-7', legacyHeaders: false,
     passOnStoreError: false,
+    // Express resolves req.ip using the trusted X-Forwarded-For chain.
+    validate: { forwardedHeader: false },
     message: { success: false, message: 'Too many requests. Please try again later.' },
     ...(shared ? { store: new ProtectedRedisStore({ sendCommand, prefix: `${prefix}${scope}:` }) } : {}),
     keyGenerator: req => {
