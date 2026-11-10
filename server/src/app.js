@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { createLimiterFactory } from './rate-limits.js';
 import { issueEmail, mountEmailRoutes, requireVerified, sendTransactionalEmail } from './email.js';
 import { mountAccountRoutes } from './account.js';
+import { mountGoogleRoutes, verifyGoogleIdentity } from './google-auth.js';
 import { notifyUser, mountNotificationRoutes } from './notifications.js';
 import { academicFields, effectiveLevel } from './academics.js';
 import { mountSubjectRoutes, resolveSubject, subjectFilter } from './subjects.js';
@@ -23,12 +24,23 @@ import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAn
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
-export function createApp({ serveClient = true, sendEmail = sendTransactionalEmail } = {}) {
+export function createApp({ serveClient = true, sendEmail = sendTransactionalEmail, googleIdentity = verifyGoogleIdentity } = {}) {
   const limiter = createLimiterFactory();
   const app = express();
   app.disable('x-powered-by');
   if (process.env.TRUST_PROXY === '1' || process.env.VERCEL === '1') app.set('trust proxy', 1);
-  app.use(helmet({ contentSecurityPolicy: { directives: { 'img-src': ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'], 'script-src': ["'self'"], 'upgrade-insecure-requests': process.env.NODE_ENV === 'production' ? [] : null } } }));
+  app.use(helmet({
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    contentSecurityPolicy: { directives: {
+      'img-src': ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
+      'script-src': ["'self'", 'https://accounts.google.com/gsi/client'],
+      'style-src': ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'],
+      'frame-src': ['https://accounts.google.com/gsi/'],
+      'connect-src': ["'self'", 'https://accounts.google.com/gsi/'],
+      'upgrade-insecure-requests': process.env.NODE_ENV === 'production' ? [] : null,
+    } },
+  }));
   app.use(cors({ origin: process.env.CLIENT_URL || 'http://127.0.0.1:5173' }));
   app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'private, no-store, max-age=0'); next(); });
   app.use(express.json({ limit: '100kb' }));
@@ -70,8 +82,8 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   api.post('/auth/login', authLimit, authEmailLimit, wrap(async (req, res) => {
     const address = email(req.body.email);
     const secret = password(req.body.password);
-    const user = await User.findOne({ email: address, isDeleted: { $ne: true } }).select('+passwordHash');
-    if (!user || !(await bcrypt.compare(secret, user.passwordHash))) fail(401, 'Email or password is incorrect.');
+    const user = await User.findOne({ email: address, isDeleted: { $ne: true } }).select('+passwordHash +googleSubject');
+    if (!user?.passwordHash || !(await bcrypt.compare(secret, user.passwordHash))) fail(401, 'Email or password is incorrect.');
     if (user.isBanned) fail(403, 'Your account has been suspended.');
     ok(res, { user: safeUser(user), token: tokenFor(user) }, 'Welcome back!');
   }));
@@ -81,7 +93,8 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     ok(res, null, 'Signed out on all devices. Please sign in again.');
   }));
   mountEmailRoutes(api, { limiter, wrap, ok, sendEmail });
-  mountAccountRoutes(api, { limiter, wrap, ok, cloudinary });
+  mountGoogleRoutes(api, { authLimit, wrap, ok, googleIdentity });
+  mountAccountRoutes(api, { limiter, wrap, ok, cloudinary, googleIdentity });
   mountNotificationRoutes(api, { wrap, ok });
   mountSubjectRoutes(api, { wrap, ok });
   mountInstitutionRoutes(api, { wrap, ok });

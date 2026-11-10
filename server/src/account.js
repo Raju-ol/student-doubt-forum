@@ -4,7 +4,7 @@ import { User, Doubt, Answer, Comment, Vote, Report, Upload, Notification } from
 import { requireUser } from './auth.js';
 import { fail, password } from './validation.js';
 
-export function mountAccountRoutes(api, { limiter, wrap, ok, cloudinary }) {
+export function mountAccountRoutes(api, { limiter, wrap, ok, cloudinary, googleIdentity }) {
   api.get('/users/me/export', requireUser, limiter('export', 3, 60 * 60 * 1000, { account: true }), wrap(async (req, res) => {
     res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="doubt-forum-data.ndjson"');
@@ -32,9 +32,16 @@ export function mountAccountRoutes(api, { limiter, wrap, ok, cloudinary }) {
   }));
   api.delete('/users/me', requireUser, limiter('account-delete', 5, 60 * 60 * 1000, { account: true }), wrap(async (req, res) => {
     if (req.user.role === 'admin') fail(403, 'Transfer administrator ownership before deleting this account. Contact the project owner.');
-    const user = await User.findById(req.user._id).select('+passwordHash');
-    if (!await bcrypt.compare(password(req.body.password), user.passwordHash)) fail(401, 'Password is incorrect.');
     if (req.body.confirmation !== 'DELETE') fail(400, 'Type DELETE to confirm account deletion.');
+    const user = await User.findById(req.user._id).select('+passwordHash +googleSubject');
+    if (!user || user.isDeleted || user.isBanned || user.role === 'admin') fail(403, 'This account cannot be deleted here.');
+    if (req.body.credential && user.googleSubject) {
+      const identity = await googleIdentity(req.body.credential);
+      if (identity.subject !== user.googleSubject) fail(403, 'Choose the Google account linked to this profile.');
+    } else {
+      if (!user.passwordHash) fail(403, 'Confirm with your linked Google account.');
+      if (!await bcrypt.compare(password(req.body.password), user.passwordHash)) fail(401, 'Password is incorrect.');
+    }
     // Remove images first. A provider failure keeps the account accessible so
     // the user can retry; already-removed images are safe to retry.
     for await (const upload of Upload.find({ owner: user._id }).cursor()) {
@@ -45,9 +52,9 @@ export function mountAccountRoutes(api, { limiter, wrap, ok, cloudinary }) {
       await Doubt.updateMany({ 'images.publicId': upload.publicId }, { $pull: { images: { publicId: upload.publicId } } });
       await Upload.deleteOne({ _id: upload._id, owner: user._id });
     }
-    const removed = await User.findOneAndUpdate({ _id: user._id, passwordHash: user.passwordHash, isDeleted: { $ne: true } }, {
+    const removed = await User.findOneAndUpdate({ _id: user._id, passwordHash: user.passwordHash ?? null, googleSubject: user.googleSubject ?? null, role: { $ne: 'admin' }, isDeleted: { $ne: true } }, {
       $set: { name: 'Deleted user', email: `deleted-${user._id}-${randomBytes(8).toString('hex')}@deleted.invalid`, passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12), role: 'student', isDeleted: true, deletedAt: new Date(), emailVerifiedAt: null, institution: null, academicLevel: null, isBanned: true },
-      $unset: { verificationHash: 1, verificationExpires: 1, resetHash: 1, resetExpires: 1, semester: 1 }, $inc: { tokenVersion: 1 },
+      $unset: { googleSubject: 1, verificationHash: 1, verificationExpires: 1, resetHash: 1, resetExpires: 1, semester: 1 }, $inc: { tokenVersion: 1 },
     });
     if (!removed) fail(409, 'Your account changed during deletion. Sign in again and retry.');
     // Authored discussions and votes remain attached to the anonymous tombstone

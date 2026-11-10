@@ -48,7 +48,7 @@ export function mountEmailRoutes(api, { limiter, wrap, ok, sendEmail }) {
   const addressLimit = limiter('email-action-address', 3, 60 * 60 * 1000, { email: true });
   api.post('/auth/forgot-password', recoveryEnabled, ipLimit, addressLimit, wrap(async (req, res) => {
     const address = email(req.body.email);
-    const user = await User.findOne({ email: address, isBanned: false });
+    const user = await User.findOne({ email: address, isBanned: false, passwordHash: { $type: 'string' } });
     if (user && recoveryAllowed(user.email)) { try { await issueEmail(user, 'reset', sendEmail); } catch { console.error('Email delivery failed: password_reset'); } }
     // Same response for unknown addresses, banned users, and delivery failure.
     ok(res, null, 'If the account is available, a reset link has been sent.');
@@ -56,7 +56,7 @@ export function mountEmailRoutes(api, { limiter, wrap, ok, sendEmail }) {
   api.post('/auth/reset-password', recoveryEnabled, ipLimit, wrap(async (req, res) => {
     const hash = tokenHash(req.body.token);
     const passwordHash = await bcrypt.hash(password(req.body.password), 12);
-    const user = await User.findOneAndUpdate({ resetHash: hash, resetExpires: { $gt: new Date() }, isBanned: false, ...(publicRecoveryEnabled() ? {} : { email: emailTestRecipient() }) }, { $set: { passwordHash }, $unset: { resetHash: 1, resetExpires: 1 }, $inc: { tokenVersion: 1 } });
+    const user = await User.findOneAndUpdate({ resetHash: hash, resetExpires: { $gt: new Date() }, isBanned: false, passwordHash: { $type: 'string' }, ...(publicRecoveryEnabled() ? {} : { email: emailTestRecipient() }) }, { $set: { passwordHash }, $unset: { resetHash: 1, resetExpires: 1 }, $inc: { tokenVersion: 1 } });
     if (!user) fail(400, 'This link is invalid or has expired. Request a new one.');
     ok(res, null, 'Password changed. Sign in with your new password.');
   }));

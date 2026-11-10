@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { api } from './api';
+import { GoogleButton } from './google-button';
 import { markdownToText } from './excerpt';
 import { safeReturn, signInPath } from './navigation';
 import { useUnsavedChanges } from './useUnsavedChanges';
@@ -30,7 +31,20 @@ export function AuthPage({ signup = false }) {
   useEffect(() => { setError(''); }, [signup]);
   async function submit(event) { event.preventDefault(); setBusy(true); setError(''); const body = parseAcademicForm(Object.fromEntries(new FormData(event.currentTarget))); try { const result = await api(signup ? '/auth/signup' : '/auth/login', { method: 'POST', body }); login(result); navigate(destination, { replace: true }); } catch (err) { setError(err.message); } finally { setBusy(false); } }
   if (user) return <div className="state"><h1>You are signed in</h1><Link to="/" className="button">Explore questions</Link></div>;
-  return <div className="auth-layout"><section className="auth-story"><span className="overline">LEARN TOGETHER. GO FURTHER.</span><h1>Every answer<br />starts with<br /><span>a little curiosity.</span></h1><p>A space to ask freely, share what you know, and make college a little less confusing.</p><div className="auth-story__quote">“The only silly question is the one you never ask.”</div></section><section className="panel auth-form"><Mark small /><h2>{signup ? 'Make yourself at home.' : 'Good to see you again.'}</h2><p className="muted">{signup ? 'Join your campus learning community.' : 'Your next discovery is waiting.'}</p><form onSubmit={submit} key={signup ? 'signup' : 'login'}><ErrorBox message={error} />{signup && <label>Full name<input name="name" autoComplete="name" required minLength={2} maxLength={60} placeholder="Your name" /></label>}<label>Email address<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@college.edu" /></label><label>Password<input name="password" type={showPassword ? "text" : "password"} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={8} maxLength={72} placeholder={signup ? 'At least 8 characters' : 'Your password'} /></label><button className="text-button password-toggle" type="button" aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Hide password" : "Show password"}</button>{signup && <><AcademicFields id="signup-level" /><InstitutionSelect id="signup-institution" /></>}<button className="button button--full" disabled={busy}>{busy ? 'Please wait…' : signup ? 'Create your account →' : 'Sign in →'}</button></form>{!signup && <p><Link to="/forgot-password">Forgot password?</Link></p>}<p className="auth-switch">{signup ? 'Already part of the community?' : 'New around here?'} <Link to={(signup ? '/login' : '/signup') + '?returnTo=' + encodeURIComponent(destination)}>{signup ? 'Sign in' : 'Create an account'}</Link></p></section></div>;
+  async function continueWithGoogle(credential) {
+    setBusy(true);
+    setError('');
+    try {
+      const result = await api('/auth/google', { method: 'POST', body: { credential } });
+      login(result);
+      navigate(destination, { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return <div className="auth-layout"><section className="auth-story"><span className="overline">LEARN TOGETHER. GO FURTHER.</span><h1>Every answer<br />starts with<br /><span>a little curiosity.</span></h1><p>A space to ask freely, share what you know, and make college a little less confusing.</p><div className="auth-story__quote">“The only silly question is the one you never ask.”</div></section><section className="panel auth-form"><Mark small /><h2>{signup ? 'Make yourself at home.' : 'Good to see you again.'}</h2><p className="muted">{signup ? 'Join your campus learning community.' : 'Your next discovery is waiting.'}</p><form onSubmit={submit} key={signup ? 'signup' : 'login'}><ErrorBox message={error} />{signup && <label>Full name<input name="name" autoComplete="name" required minLength={2} maxLength={60} placeholder="Your name" /></label>}<label>Email address<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@college.edu" /></label><label>Password<input name="password" type={showPassword ? "text" : "password"} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={8} maxLength={72} placeholder={signup ? 'At least 8 characters' : 'Your password'} /></label><button className="text-button password-toggle" type="button" aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Hide password" : "Show password"}</button>{signup && <><AcademicFields id="signup-level" /><InstitutionSelect id="signup-institution" /></>}<button className="button button--full" disabled={busy}>{busy ? 'Please wait…' : signup ? 'Create your account →' : 'Sign in →'}</button></form><GoogleButton onCredential={continueWithGoogle} disabled={busy} />{!signup && <p><Link to="/forgot-password">Forgot password?</Link></p>}<p className="auth-switch">{signup ? 'Already part of the community?' : 'New around here?'} <Link to={(signup ? '/login' : '/signup') + '?returnTo=' + encodeURIComponent(destination)}>{signup ? 'Sign in' : 'Create an account'}</Link></p></section></div>;
 }
 export function Ask({ edit = false }) {
   const { subjects: catalogue } = useAuth(); const subjects = catalogue.map(item => item.name);

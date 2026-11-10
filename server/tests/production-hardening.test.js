@@ -60,7 +60,7 @@ test('failed initialization releases the connection for a successful retry', asy
 
 test('account lookup failure returns 503 while invalid credentials still return 401', async t => {
   process.env.JWT_SECRET = randomBytes(48).toString('hex');
-  t.mock.method(User, 'findById', async () => { throw new Error('database unavailable'); });
+  t.mock.method(User, 'findById', () => ({ select: async () => { throw new Error('database unavailable'); } }));
   const invoke = async header => { let error; await identify({ get: () => header }, {}, value => { error = value; }); return error; };
   assert.equal((await invoke(`Bearer ${tokenFor({ _id: '0123456789abcdef01234567' })}`)).status, 503);
   assert.equal((await invoke('Bearer invalid')).status, 401);
@@ -86,12 +86,12 @@ test('deployment protects static documents as well as API responses', async () =
   assert.match(headers['Content-Security-Policy'], /script-src 'self'/);
   assert.match(headers['Content-Security-Policy'], /https:\/\/res.cloudinary.com/);
   assert.equal(headers['X-Content-Type-Options'], 'nosniff');
-  assert.equal(headers['Referrer-Policy'], 'no-referrer');
+  assert.equal(headers['Referrer-Policy'], 'strict-origin-when-cross-origin');
 });
 
 test('content creation is limited per account without blocking another account or logout', async t => {
   process.env.JWT_SECRET = randomBytes(48).toString('hex');
-  t.mock.method(User, 'findById', async id => ({ _id: id, tokenVersion: 0 }));
+  t.mock.method(User, 'findById', id => ({ select: async () => ({ _id: id, tokenVersion: 0 }) }));
   const server = createApp({ serveClient: false }).listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
