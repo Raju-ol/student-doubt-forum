@@ -83,3 +83,9 @@ The owner chose the Gen Z directions from the design canvas and asked for them s
 - Checks: `server/tests/theme.test.js` now verifies 4.5:1 contrast for 19 text/background pairs in each theme. Build passed and 59 non-database tests passed. All pages were screenshotted in all three themes at 1366 px and 360 px with sample data, with no horizontal overflow or page errors.
 
 Commit review verified the production build and all 99 tests using local MongoDB. The review restored desktop account and sign-out links and aligned the discovery label with the API's accepted-answer filter. A Chrome check with sample data confirmed all three themes at desktop, tablet and phone widths, plus the Saved-to-question round trip.
+
+## 10. Chalkboard replaces After Hours (11 November 2026)
+
+The owner liked Sticker best and asked for a cuter dark mode. A Sticker Night version and three new dark ideas (Chalkboard, Neon Arcade, Midnight Candy) were mocked up on the design canvas, and the owner chose **Chalkboard**. It is a dark green board with chalk-white dashed outlines, handwritten headings in Caveat Brush (bundled with `@fontsource/caveat-brush`) and pastel sticky notes: pink for Study Library and zero answers, mint for accepted answers, yellow for highlights and the Ask button. Question titles and answers stay in Inter for easy reading. A faint chalk-dust texture appears behind Chalkboard only; Sticker and Bento keep the plain backgrounds they had in `bc3b3d0`, which a screenshot comparison of every page confirmed. The accepted answer uses a mint outline so its text stays light on the board.
+
+The switcher reads Auto, Sticker, Chalkboard and Bento. The stored value is still `dark`, so saved choices carry over. The Unbounded font package is removed. `server/tests/theme.test.js` checks Chalkboard's 19 text/background pairs at 4.5:1 or better and keeps the texture limited to Chalkboard.

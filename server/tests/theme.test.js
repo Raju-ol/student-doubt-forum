@@ -54,3 +54,12 @@ test('application colors are centralized and every theme meets 4.5:1 text contra
     for (const pair of pairs) assert.ok(contrast(...pair) >= 4.5, `${name}: ${pair.join(' / ')} = ${contrast(...pair).toFixed(2)}`);
   }
 });
+
+test('chalk-dust texture is limited to Chalkboard; Sticker and Bento stay plain', async () => {
+  const css = await readFile(new URL('../../client/src/genz.css', import.meta.url), 'utf8');
+  const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{[^{}]*radial-gradient\(var\(--dot\)[^{}]*\}/g)].map(match => match[1].trim());
+  assert.ok(rules.length >= 1, 'texture rule missing');
+  for (const selector of rules) assert.match(selector, /^:root\[data-theme=dark\] body$|^:root:not\(\[data-theme\]\) body$/, selector);
+  const variables = await readFile(new URL('../../client/src/styles/variables.css', import.meta.url), 'utf8');
+  for (const block of variables.split('}')) if (/(^|\n)\s*:root\{|:root\[data-theme=bento\]\{/.test(block)) assert.doesNotMatch(block, /--dot:/);
+});

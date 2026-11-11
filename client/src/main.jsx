@@ -9,7 +9,7 @@ import { NotificationsPage } from './notifications';
 import { CatalogPage } from './catalog-page';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/space-grotesk';
-import '@fontsource-variable/unbounded';
+import '@fontsource/caveat-brush';
 import '@fontsource-variable/bricolage-grotesque';
 import './styles.css';
 import './p0.css';

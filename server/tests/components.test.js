@@ -76,7 +76,7 @@ test('theme switcher offers four looks, saves the choice, follows system and res
     await React.act(async () => root.render(React.createElement(ThemeControl)));
     assert.equal(host.querySelector('select'), null);
     assert.equal(host.querySelector('.theme-control').getAttribute('role'), 'group');
-    assert.deepEqual([...host.querySelectorAll('button')].map(button => button.textContent), ['Auto', 'Sticker', 'After Hours', 'Bento']);
+    assert.deepEqual([...host.querySelectorAll('button')].map(button => button.textContent), ['Auto', 'Sticker', 'Chalkboard', 'Bento']);
     for (const button of host.querySelectorAll('button')) assert.equal(button.getAttribute('type'), 'button');
     assert.equal(option('system').getAttribute('aria-pressed'), 'true');
     assert.equal(document.documentElement.dataset.theme, 'dark'); // System preference.
