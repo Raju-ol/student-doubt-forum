@@ -10,7 +10,7 @@ const userSchema = new Schema({
   email: { type: String, unique: true, required: true, lowercase: true },
   passwordHash: { type: String, select: false },
   googleSubject: { type: String, unique: true, sparse: true, select: false },
-  role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
+  role: { type: String, enum: ['student', 'teacher', 'moderator', 'admin'], default: 'student' },
   semester: { type: Number, min: 1, max: 8 },
   academicLevel: { type: academicLevel, default: undefined },
   institution: ref('Institution', false),

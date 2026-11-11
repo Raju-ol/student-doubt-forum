@@ -40,7 +40,7 @@ export function Navbar() {
       <NavLink to="/" end>Explore</NavLink>
       <Link to="/?scope=all&tag=study-library">Study Library</Link>
       <Link to="/?view=saved">Saved</Link>
-      {user?.role === 'admin' && <NavLink to="/admin">Moderation</NavLink>}
+      {['admin', 'moderator'].includes(user?.role) && <NavLink to="/admin">Moderation</NavLink>}
       <ThemeControl />
       {user && <NotificationBell />}
       <Link className="button button--small nav-ask" to="/ask"><Icon name="plus" size={18} />Ask a doubt</Link>
@@ -69,7 +69,10 @@ export function MobileTabBar() {
   </nav>;
 }
 export function Avatar({ name = '?', large = false }) { return <span className={`avatar ${large ? 'avatar--large' : ''}`} aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>; }
-export function Badge({ role }) { return role === 'teacher' || role === 'admin' ? <span className={`badge badge--${role}`}>{role === 'teacher' ? '✓ Teacher' : 'Admin'}</span> : null; }
+export function Badge({ role }) {
+  const labels = { teacher: '✓ Teacher', moderator: 'Moderator', admin: 'Admin' };
+  return labels[role] ? <span className={`badge badge--${role}`}>{labels[role]}</span> : null;
+}
 export function Author({ user, createdAt }) { return <div className="author"><Avatar name={user?.name || 'Deleted user'} /><Link to={user ? `/users/${user._id}` : '/'}>{user?.name || 'Deleted user'}</Link><Badge role={user?.role} />{createdAt && <span className="muted">{date(createdAt)}</span>}</div>; }
 export function ErrorBox({ message, retry }) { return message ? <div className="error" role="alert">{message}{retry && <button className="text-button retry-button" onClick={retry}>Try again</button>}</div> : null; }
 export function Loading() { return <div className="state" role="status"><span className="spinner" /> Loading…</div>; }
@@ -121,7 +124,19 @@ export function VoteButtons({ item, type, refresh }) {
   async function vote(value) { if (!user) { navigate(signInPath(location)); return; } setBusy(true); try { await api(`/${type}s/${item._id}/vote`, { method: 'POST', token, body: { value } }); await refresh(); } catch (error) { notify(error.message); } finally { setBusy(false); } }
   return <div className="vote" aria-label="Voting"><button aria-label="Upvote" aria-pressed={item.myVote === 1} disabled={busy || item.author?._id === user?._id} onClick={() => vote(1)}>▲</button><strong>{item.votes}</strong><button aria-label="Downvote" aria-pressed={item.myVote === -1} disabled={busy || item.author?._id === user?._id} onClick={() => vote(-1)}>▼</button></div>;
 }
-export function Protected({ children, admin = false }) { const { user, loading } = useAuth(); const location = useLocation(); if (loading) return <Loading />; if (!user) return <div className="panel state"><h2>Join the conversation</h2><p>Sign in to ask questions and help other students.</p><Link className="button" to={signInPath(location)}>Sign in to continue</Link></div>; if (admin && user.role !== 'admin') return <ErrorBox message="This page is for administrators." />; return children; }
+export function Protected({ children, admin = false, moderation = false }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return <Loading />;
+  if (!user) return <div className="panel state">
+    <h2>Join the conversation</h2>
+    <p>Sign in to ask questions and help other students.</p>
+    <Link className="button" to={signInPath(location)}>Sign in to continue</Link>
+  </div>;
+  if (admin && user.role !== 'admin') return <ErrorBox message="This page is for administrators." />;
+  if (moderation && !['admin', 'moderator'].includes(user.role)) return <ErrorBox message="Moderator access required." />;
+  return children;
+}
 export function SemesterSelect({ value, onChange, id = 'semester', defaultValue }) { return <select id={id} name="semester" value={value} defaultValue={defaultValue} onChange={onChange} required>{Array.from({ length: 8 }, (_, i) => <option key={i + 1} value={i + 1}>Semester {i + 1}</option>)}</select>; }
 
 // marked, KaTeX and highlight.js are about 130 KB gzipped, so they are loaded

@@ -1,12 +1,79 @@
 # Student Doubt Forum — Complete Manual Testing Playbook
 
-Version 1.1 · Updated 10 November 2026 · Share this file with the tester
+Version 2.4 · Updated 11 November 2026 · One shared checklist for a two-person QA team
 
-**Website:** https://student-doubt-forum-theta.vercel.app/
+## Start here
+
+| What | Value |
+|---|---|
+| Live website | https://student-doubt-forum-theta.vercel.app/ |
+| Verified live release | **c9f78df**, Chalkboard dark mode. Four choices are Auto, Sticker, Chalkboard and Bento. |
+| Cleanup state | Cleanup VERIFIED on 11 November 2026. Everything and Study Library both returned 0 questions. Removed 203 questions, 202 answers, 2 comments, 2 votes, 3 notifications and 1 attached image. 18 accounts, 30 subjects and 1 college were retained. Contribution-based reputation starts at 0. |
+| How to confirm the visual release | Reload and open the theme choices (phone: Menu first). Confirm Chalkboard is available. Record the release and actual starting question count. |
+
+
+### Test accounts by role (labels only)
+
+Keep passwords, reset links and sign-in codes out of this file and out of screenshots.
+
+| Label | Role | Who uses it | Notes |
+|---|---|---|---|
+| A | Student, question author | Tester A, desktop | Manual QA Student A works. It cannot receive email |
+| B | Student, answer author | Tester B, phone | Manual QA Student B works. It cannot receive email |
+| C | Student, third voter | Either tester, third private window | Optional. Mark C-only cases BLOCKED if no approved account |
+| T | Teacher | Owner promotes, then restores | Owner action |
+| D | Disposable, deletion only | Owner-approved | Never use A, B or an admin |
+| Inbox account | Password account with a real inbox | Owner-approved | Only for EM01–EM03 |
+| Admin | Moderation and catalogue | Owner's own session | Testers never ask for admin credentials |
+
+### Empty-site baseline and test data
+
+The owner requested a clean site so the team can write its own questions and answers. A verified encrypted backup is held privately by the owner. The cleanup is verified and the team can begin its new QA run. The starting baseline is **0 questions** in Everything and **0 study-library questions**, with existing accounts, subjects and colleges available. Record the actual live result. Counts will increase as the team adds QA content.
+
+- Initial Explore and Study Library should show a useful empty state. Zero results is expected after cleanup. Subjects can still be present without questions.
+- Tester A creates a DBMS question with a distinctive QA title, one tag, an optional academic level, and a safe screenshot. Tester B answers. Use that thread for discovery, notifications, acceptance and saving.
+- Prepare a second question and another answer for ordering cases. Put a code block and simple maths in owned QA content for rendering checks.
+- Pagination needs enough matching questions. Use staging when the prerequisite is absent and record BLOCKED until it is prepared.
+- Earlier Saved lists are device-local snapshots. Their old entries may survive server cleanup and open content not found. Unsave old bookmarks before this run, then save the team's new questions.
+- Retain the library import completion record. Live starts empty. First-import and duplicate-import tests use fresh staging.
+
+### First smoke steps (about 15 minutes, both testers)
+
+1. Note the release (see the table above) and fill the run block in §2.
+2. A, on desktop: open the live site, sign in, choose **Ask a doubt** and post one question titled `QA-<initials>-<date>-SM`. Copy its link to B.
+3. B, on a phone: open the link, write an answer and choose **Post your answer**.
+4. A: open the bell (**Notifications**), open the new item, then choose **✓ Accept answer** on B's answer.
+5. B: open **Notifications** and confirm the acceptance item. Both refresh the question and confirm **✓ Solved** and **the answer that clicked**.
+6. B: open **Menu**, try all four theme choices, then tap **Library**, **Saved** and the middle **+** in the bottom bar.
+7. Record SM01–SM06 in §3. Stop and report if sign-in or posting fails.
+
+### Who runs what
+
+| Person | Start with | Owns |
+|---|---|---|
+| Tester A | Desktop, account A | Desktop discovery and posting: §4, §5, §6, §9, §10, and in §18 QA-LIB, QA-DISC, QA-EXP, QA-NAV-02, QA-NAV-03, QA-QD-01, QA-QD-02, QA-PERF |
+| Tester B | Phone, account B | Phone, themes, labels and Saved: §19 Chalkboard first, then §11, §13 (owner-approved rows), §14, and in §18 QA-GO, QA-SAVE, QA-NAV-01, QA-NAV-04, QA-NAV-05, QA-LABEL-01, QA-LABEL-03, QA-THEME |
+| Both together | Separate sessions, same QA question | Cross-user walkthrough: §3, §7, §8, QA-LABEL-02 and QA-FLOW-01 |
+| Owner / developer | Only when privileged or isolated data is needed | §12 moderation, O rows, §15 staging/local checks, QA-LIB-02, QA-GO-02 |
+
+### How to record a run
+
+1. Pick one run ID, for example QA-11NOV-R1. Keep one shared copy of this file and write each result beside its case ID.
+2. Finish P0 cases first. Check the environment label (L, O, S) on each row before acting. If a case needs C, an inbox account, admin, or staging and you do not have it, record BLOCKED and name what is missing.
+3. Write results as `PASS · c9f78df · Tester B · Android Chrome · 360 px`, or `FAIL · BUG-001 · ...`. Always include the release.
+4. For labels, copy the exact wording you saw and say what it should communicate.
+5. Compare findings, retest fixes and submit the filled playbook with the §17 summary.
+
+### Results history
+
+- Version 2.0 and 2.1 of this playbook (release bc3b3d0) had no recorded results: every case was still NOT RUN when Chalkboard (c9f78df) went live on 11 November 2026. All cases below are for c9f78df unless a result says otherwise.
+- External QA Run 01 results stay in [QA_REVIEW_RUN01.md](QA_REVIEW_RUN01.md) as evidence for the builds they were recorded on.
+- Automated developer checks are listed in [TESTING.md](TESTING.md). They never count as manual PASS results here.
+- New and changed cases in this version start at NOT RUN. When a case is rerun on a later release, keep the old result in the same cell and add the new one after it, each with its release ID.
 
 **Goal:** Poora application test karna, reproducible bugs report karna, aur har test ka actual result record karna. Coding knowledge normal UI tests ke liye required nahi hai.
 
-This checklist is a test plan, **not a claim that these tests have passed**. Every case below starts as NOT RUN. Developer automated checks last passed at 78 tests (QA Escape fix); those do not replace browser testing. Recheck the release deployed when testing begins.
+This checklist is a test plan, **not a claim that these tests have passed**. Every case below starts as NOT RUN. See the [release verification record](TESTING.md) for the latest developer and live checks. Recheck the release deployed when testing begins.
 
 ## 1. Read this first
 
@@ -28,17 +95,21 @@ This checklist is a test plan, **not a claim that these tests have passed**. Eve
 | O | Owner-supervised / explicitly approved targets; may alter permissions, account or data permanently |
 | S | Staging/local disposable environment only; developer assistance may be needed |
 
+**Priority labels:** P0 = core flow, run first. P1 = standard regression. An explicit staging or owner instruction on a case overrides the section’s default environment.
+
 ### Current expected behavior — important
 
 | Feature | What to expect in this release |
 |---|---|
 | Email verification | All-user verification is OFF; unverified friends can sign up/post |
-| Password recovery | Owner-only test mode; only the configured Resend-account email receives reset mail. Owner performs that test privately |
-| Other addresses on Forgot password | Same generic confirmation, but no email; this alone is not a defect in this configuration |
+| Password recovery | Gmail recovery for eligible forum password accounts. Verify with an approved QA account that has a real inbox |
+| Forgot password privacy | Generic confirmation. Unknown addresses and Google-only accounts do not receive reset mail |
 | Notifications | In-app bell/inbox for replies, comments and first acceptance; can take about 60 seconds on a visible idle page |
 | Email notifications / phone push / mentions | Not implemented; do not mark missing behavior as a regression |
-| System theme | Follows device/OS preference; System and Dark may look identical on a dark OS |
-| Theme control | One button cycles System → Light → Dark → System; icons are not three separate direct-selection buttons |
+| Auto theme | Follows device preference: Sticker on a light device, Chalkboard on a dark device (c9f78df). On the previous release bc3b3d0 the dark look was Chalkboard |
+| Theme control | Four direct choices: Auto, Sticker, Chalkboard, Bento (c9f78df). A saved Chalkboard choice opens as Chalkboard. On a phone, open Menu first |
+| Discovery labels | No accepted answer can include questions with replies. No answers yet means the count is zero. The quick view and filter are both called No accepted answer |
+| Saved questions | Stored per browser profile and device, up to 200. Saved status is a snapshot taken when saving, and saves are not linked to the signed-in account |
 | College | Optional/self-reported public discovery metadata, not verified membership or private college access |
 | College feeds | Existing unassigned legacy posts may only appear in Everything/subject-worldwide; no automatic production backfill |
 | Search | Whole/stemmed English words, not arbitrary partial substrings |
@@ -57,8 +128,8 @@ Use a normal browser window and an Incognito/private window for separate session
 |---|---|---|
 | A | Student asking questions | Controlled test email, no elevated role |
 | B | Student answering/commenting | Different controlled test email |
-| C | Third-party voter and permission checks | Different controlled test email; useful for voting without self-votes |
-| T | Teacher badge checks | Owner may promote a named disposable account, then restore it |
+| C | Optional independent voter and permission checks | Tester 1 or 2 uses an approved extra account in a third isolated browser session. Mark C-only cases BLOCKED if unavailable |
+| T | Teacher and moderator badge checks | Owner may promote a named disposable account, then restore it |
 | D | Account deletion only | Separate disposable account; owner must approve deletion; never A/B/owner/admin |
 | Admin | Moderation/catalogue tests | Owner-operated session or separately authorized limited test arrangement |
 
@@ -69,7 +140,8 @@ Prepare: one small JPG, PNG and WebP; a >3 MiB image; an unsupported PDF/text fi
 ### Run information — fill before testing
 
 ```text
-Tester:
+Tester 1 / desktop / account label:
+Tester 2 / phone / account label:
 Start/end date and time (timezone):
 Website/environment:
 Deployment/commit (owner supplies if available):
@@ -82,6 +154,8 @@ Known configuration / unavailable prerequisites:
 ```
 
 ### Result rules
+
+Use one shared copy. Record tester and device next to failures and blockers. If results differ by device, use one row, for example PASS (A/desktop) · FAIL (B/phone, BUG-002).
 
 Replace `NOT RUN` with `PASS`, `FAIL`, `BLOCKED` or `N/A` in the last column.
 
@@ -98,10 +172,10 @@ Replace `NOT RUN` with `PASS`, `FAIL`, `BLOCKED` or `N/A` in the last column.
 |---|---|---|---|
 | SM01 | Open home, login, signup, a question direct link; refresh each | No blank page, broken route or raw server error | NOT RUN |
 | SM02 | Login A; create one QA question; B answers | Saved question/answer survive refresh and appear under correct authors | NOT RUN |
-| SM03 | A accepts B's answer; C upvotes it | Accepted state and score visible; no duplicate mutation | NOT RUN |
+| SM03 | A accepts and upvotes B's answer; B refreshes the discussion | Accepted state and score visible; no duplicate mutation | NOT RUN |
 | SM04 | Check A/B notification inboxes; mark one read | Correct recipient/event; read state and badge update | NOT RUN |
 | SM05 | Upload one small screenshot to a QA question | Preview and posted attachment render on desktop/phone | NOT RUN |
-| SM06 | Cycle theme and test mobile Menu | All modes work; menu/buttons reachable without page overflow | NOT RUN |
+| SM06 | Open mobile Menu, choose each of the four themes, then tap Library, Saved and the middle + (Ask a doubt) in the bottom bar | All four looks apply; Library, Saved and Ask open; nothing overflows sideways | NOT RUN |
 
 If login/posting is broadly unavailable, report a blocker before creating more data.
 
@@ -190,7 +264,7 @@ Do not click a suspicious payload to prove it is unsafe; developer inspects sani
 
 ## 7. Answers, comments, votes, acceptance and reputation (P0/P1)
 
-Use A as question author, B as answer author, C as independent voter. Record B's reputation baseline **R** before REP cases and avoid unrelated votes on B during them.
+Use A as author and B as responder. B can vote on A's question, and A can vote on B's answer. Use C for independent-voter cases. Undo smoke votes and acceptance before recording B's reputation baseline **R** for REP cases.
 
 | ID | Env | Steps | Expected result | Result |
 |---|---|---|---|---|
@@ -248,7 +322,7 @@ Owner informally reported answer/acceptance/comment live flows working on 10 Nov
 | FE06 | Click a tag from a card/detail | Correct tag-filtered feed opens | NOT RUN |
 | FE07 | If >10 matching questions exist, use pagination; otherwise owner seeds staging | Correct next/previous state, no missing/duplicate rows on unchanged dataset | NOT RUN |
 | FE08 | Refresh a filtered URL and use browser Back/Forward | Controls and results reflect URL; changing a filter resets pagination | NOT RUN |
-| SU01 | Inspect subject dropdown/sidebar | Catalogue loads across fields; icons remain associated with subject, not position | NOT RUN |
+| SU01 | Scroll the subject strip and choose DBMS, then All subjects | Catalogue loads and selection, results and URL stay in sync | NOT RUN |
 | SU02 | Search/filter using canonical subject and known alias, e.g. DBMS/Databases | Same subject scope; new known-alias API input canonicalizes (developer case if no UI alias input) | NOT RUN |
 | SU03 | Open/edit a legacy question whose subject is not in catalogue | Existing subject remains readable/editable; no silent loss | NOT RUN |
 | AC01 | Signup/profile/question with no academic level | Valid; clear unspecified label rather than `undefined`/broken text | NOT RUN |
@@ -286,7 +360,7 @@ If only one college is available, mark the two-college cases BLOCKED pending sta
 | PR04 | L | Inspect another user's profile | No unauthorized Edit profile or Sign out everywhere action | NOT RUN |
 | RO01 | O | Owner promotes named T account to teacher, then restores student | Teacher badge appears/disappears in appropriate posts/profile after refresh; no admin privilege granted | NOT RUN |
 | RO02 | O | Owner suspends only named disposable account with active session | Existing session action/login rejected; restore makes valid login possible | NOT RUN |
-| RO03 | O | Inspect admin account controls | Admin accounts cannot be casually suspended/demoted/deleted through these user actions | NOT RUN |
+| RO03 | O | Inspect admin account controls | Admin accounts cannot be suspended or deleted. Own and primary-admin role changes are protected. Another admin can change a secondary admin role | NOT RUN |
 | RO04 | S | Controlled API sends forged role/reputation/tokenVersion on public signup/profile update | Privilege escalation ignored/rejected; no admin granted or score overwritten | NOT RUN |
 
 ## 12. Reports, moderation and catalogue administration (P1, O unless stated)
@@ -321,19 +395,19 @@ On live, use existing real approved catalogue entries; adding throwaway records 
 
 Deletion is irreversible through the UI. Discussion text/comments/votes and moderation records can remain; remove personal information from test text first. This flow is not a guarantee of complete erasure or legal compliance. Never delete A/B/C before finishing dependent tests.
 
-### Current owner-only recovery configuration
+### Password recovery with Gmail
 
 | ID | Env | Steps | Expected result | Result |
 |---|---|---|---|---|
-| EM01 | O | Owner privately requests reset for configured Resend-account email | Generic confirmation; actual mail in Inbox/Spam with correct website link | NOT RUN |
-| EM02 | O | Owner opens link and sets a new password privately, then logs in | New login works; old password/old sessions rejected | NOT RUN |
-| EM03 | O | Owner reopens the consumed reset link | Reuse rejected safely | NOT RUN |
-| EM04 | L | Request reset once for a controlled non-allowlisted test email | Generic response but no mail in this configuration; no leak of allowlist/account existence | NOT RUN |
+| EM01 | O | In a separate approved password account with a real inbox, sign out and use Forgot password | Generic confirmation; actual mail in Inbox/Spam with correct website link | NOT RUN |
+| EM02 | O | Tester opens the QA reset link, sets a new password privately and signs in | New login works; old password/old sessions rejected | NOT RUN |
+| EM03 | O | Tester reopens the consumed QA reset link | Reuse rejected safely | NOT RUN |
+| EM04 | L | Request reset once for a controlled email with no forum account | Generic response and no reset mail. The form does not reveal account existence | NOT RUN |
 | EM05 | S | Developer tests expired link, invalid token, too-short/over-72-byte password and older other-user token | Safe rejection; no unintended password update | NOT RUN |
 | EM06 | L | New unverified student signs up/posts | Posting remains possible while EMAIL_ENABLED is off | NOT RUN |
 | EM07 | S | Owner/developer configures full verification with a suitable test mail adapter | One-use verification links, unverified posting block, verified posting success, resend limits and expiry | NOT RUN |
 
-Full verification/all-user email is **not active** until an owned sender domain is verified. Tester must not enable EMAIL_ENABLED, change Resend settings, receive the owner's reset link or choose the owner's password. Owner already informally reported real recovery/login working; a formal rerun needs owner participation.
+Gmail password recovery and mandatory verification are separate. Verification is expected to be off. Use only the approved QA inbox and account. Manual QA Student A/B aliases cannot receive mail. Keep reset links and passwords private.
 
 ## 14. Theme, mobile, keyboard and usability (P1, L)
 
@@ -341,17 +415,17 @@ Test at least desktop Chrome plus one other desktop browser, Android Chrome if a
 
 | ID | Steps | Expected result | Result |
 |---|---|---|---|
-| UX01 | Click theme button through 3 modes | System → Light → Dark → System; indicator position, visible name and colors agree | NOT RUN |
-| UX02 | Activate theme with Tab + Enter/Space | Native button works; focus visible; no dropdown appears | NOT RUN |
-| UX03 | Reload after Light/Dark; change OS theme while System selected | Saved preference restored; only System follows OS | NOT RUN |
+| UX01 | Select each of the four theme choices (Auto, Sticker, the dark choice, Bento). On a phone, find them in Menu. The dark choice is Chalkboard on bc3b3d0 and Chalkboard on the Chalkboard release | Each applies immediately and exactly one option is selected. Record which dark name you saw | NOT RUN |
+| UX02 | Tab to each theme option and activate it with Enter/Space | Accessible names match the choices and selected state is announced | NOT RUN |
+| UX03 | Reload after selecting Sticker, the dark choice or Bento. Then select Auto and switch the device between light and dark | Explicit choice persists after reload. Auto shows Sticker on a light device and the dark choice on a dark device | NOT RUN |
 | UX04 | Enable OS reduced-motion setting | Theme indicator does not require animation; control still works | NOT RUN |
-| UX05 | Review feed, detail, editor preview, profile, account, inbox, admin in Light/Dark | Readable text/badges/errors/code/maths; no invisible labels or white-on-white controls | NOT RUN |
+| UX05 | Review feed, detail, editor preview, profile, account, inbox, admin in Sticker, the dark choice and Bento | Readable text/badges/errors/code/maths; no invisible labels or white-on-white controls | NOT RUN |
 | UX06 | Phone portrait/landscape, 320/375/390px widths where possible | No whole-page horizontal overflow; menus/forms/actions reachable; code/table may scroll internally | NOT RUN |
 | UX07 | Open/close mobile Menu; Escape; navigate from it | Expanded state matches; closes on navigation; keyboard focus usable | NOT RUN |
 | UX08 | Tab through forms, toolbar, tabs, vote buttons, dialogs and notification controls | Logical focus order, visible focus, usable labels; no keyboard trap | NOT RUN |
 | UX09 | Use Skip to content and 200% browser zoom | Main content reachable; content/actions not lost or obscured | NOT RUN |
 | UX10 | Inspect loading, empty and validation/error states | Meaningful messages; retry possible where offered; no indefinite spinner or duplicate success | NOT RUN |
-| UX11 | Use screen reader if available | Theme current/next mode, tabs/selected panel, menu state and alerts understandable | NOT RUN |
+| UX11 | Use screen reader if available | Theme option name and selected state, tabs/selected panel, menu state and alerts understandable | NOT RUN |
 | UX12 | Slowly double-click a save/post action and observe busy state | Action cannot accidentally produce duplicates during in-flight request; record observed behavior | NOT RUN |
 | UX13 | Open invalid route, malformed/missing discussion/profile link | Safe not-found/error screen; navigation back still usable | NOT RUN |
 
@@ -436,7 +510,7 @@ Redact passwords, authorization headers, reset fragments/links, API keys, databa
 ## 17. Final report and handover
 
 ```text
-Test run ID / tester / dates:
+Test run ID / both testers / dates:
 Release(s) tested:
 Browsers/devices actually tested:
 Total unique cases:
@@ -468,3 +542,77 @@ Before finishing:
 - P0 flows must pass and Critical/High issues must be resolved or explicitly accepted by owner before recommending the demo ready.
 
 **Tester ka kaam:** behavior observe aur evidence record karna. **Owner/developer ka kaam:** approve privileged actions, fix bugs, deploy, manage credentials/network/email activation and decide release readiness.
+
+## 18. Live redesign, labels, and added feature checks
+
+Run these alongside the assigned sections after SM01–SM06.
+
+| ID | Env | Tester | What to do | Expected result | Result |
+| --- | --- | --- | --- | --- | --- |
+| QA-GO-01 | L | B | Open Sign in on the stable live URL and use an approved Google account | Google sign-in opens the intended forum profile | NOT RUN |
+| QA-GO-02 | S | B + developer | In Account, link Google to an existing password account in staging | Matching email and correct password link the same account. Invalid credentials or mismatched email are rejected | NOT RUN |
+| QA-LIB-01 | L | A | Open Library before the team posts. If needed, tag one owned QA question study-library, open it from Library and go Back to results | After verified cleanup the initial view is empty. Only matching QA questions subsequently appear. Back preserves the library view | NOT RUN |
+| QA-LIB-02 | S | Owner | On fresh staging, preview and publish the library once, then retry | 200 questions and answers import once. Student access is rejected | NOT RUN |
+| QA-DISC-01 | L | A | Check Accepted answers and No accepted answer against accepted, zero-answer and replied-but-unaccepted QA threads | Accepted only shows accepted threads. Both other threads match No accepted answer. Only the zero-answer row says No answers yet | NOT RUN |
+| QA-DISC-02 | L | A | Open Filters, choose scope/status/academic level, remove one chip, clear the rest, then refresh and use Back/Forward | Advanced filter count and chip labels stay accurate. Removing one filter preserves the others. URLs and controls stay in sync | NOT RUN |
+| QA-SAVE-01 | L | B | Save a public QA question, open Saved, refresh, open the question, go Back to results, then unsave | Saved question survives refresh. Back returns to Saved. Unsave removes it and updates the count | NOT RUN |
+| QA-SAVE-02 | L | B | Save on one browser profile, open the site in a fresh independent profile, and try Save/Unsave by keyboard | Profiles have separate lists. Saved says Stored on this device only. The pressed state reflects the save status | NOT RUN |
+| QA-SAVE-03 | L | B | In an isolated browser profile, block site storage if supported, then try Save | Helpful message appears. Reading still works and no false saved state appears | NOT RUN |
+| QA-NAV-01 | L | B | On a phone, tap Explore, Library, central +, Saved and Me/Sign in. Open Menu for notifications, Account and themes | Each opens the intended screen. Active tab is clear. Bottom bar does not cover controls | NOT RUN |
+| QA-NAV-02 | L | A | On desktop, sign in and use Account and Sign out in the header | Both actions are visible. Account requires login after sign-out | NOT RUN |
+| QA-LABEL-01 | L | B | Check visible and accessible names for Menu, themes, filters, Save, votes, uploads and bell. Tab through at 200% zoom | Labels stay readable and describe the correct action or state. Focus is visible | NOT RUN |
+| QA-LABEL-02 | L | Both | A posts, B replies, A accepts, then both open Notifications | Accepted label is on the right answer. New/read labels, count and actor match what happened | NOT RUN |
+| QA-THEME-01 | L | B | Open Explore scope and academic filters, the Ask subject dropdown and the profile college dropdown in all three looks | Selected text and available options are readable | NOT RUN |
+| QA-PERF-01 | L | A | Record first and repeat Explore load times at normal browsing pace | Record device, network and whether retry helped. If a 500 appears, record its time and route | NOT RUN |
+| QA-EXP-01 | L | A | On desktop, read the Explore top. Search a word from your QA title, then clear it with the × on the search chip | Headline reads “stuck on something? someone’s been there.” The results heading changes to Results for “your word” and back to Latest questions. The count line reads “N questions” | NOT RUN |
+| QA-EXP-02 | L | A | Click Accepted answers, then click it again. Repeat with No accepted answer and Study Library. Search a word first, then click Accepted answers | The chip shows as selected and the heading matches it (Accepted answers / No accepted answer / Study Library). Clicking a selected chip turns it off. Your search word is kept when you switch between Accepted answers and No accepted answer | NOT RUN |
+| QA-EXP-03 | L | A | Choose DBMS in the subject strip, then All subjects. Open Filters and set Answer status and an academic level. Count the number on Filters | The heading shows the subject name, and All subjects clears it. The Filters number counts only scope (when changed), answer status and academic level. Subject, search and tag show as removable chips, without adding to the number. Clear all appears only when two or more chips are shown | NOT RUN |
+| QA-EXP-04 | L | A | With No accepted answer selected, choose Next →, open a question, choose Back to results, then use the browser Back and Forward buttons | Pager reads “Page 2 of N”. Back to results returns to the same page with the same filter. Browser Back/Forward keep the URL and the list in sync | NOT RUN |
+| QA-EXP-05 | L | A | On a desktop window at least 1024 px wide, use the two side cards: “be someone’s hero today” and “exam-ready explainers”. Then make the window narrower than 1024 px | Find one to answer → opens the No accepted answer view. Open the library opens Study Library. Below 1024 px the side cards are hidden and nothing is lost from the list | NOT RUN |
+| QA-NAV-03 | L | A | Signed in on desktop, read the header left to right. Narrow the window to about 800 px | Header shows Explore, Study Library, Saved, the theme choices, the bell, Ask a doubt, your avatar, My questions, Account and Sign out. At about 640–1100 px the Study Library and Saved header links hide, and the same views stay available as Explore chips | NOT RUN |
+| QA-NAV-04 | L | Both | B creates two unread notifications for A (answer and comment on A's QA question). A checks the bell on desktop and in the phone Menu, then opens one item and uses Mark all as read | The bell shows the unread number (99+ above 99) and its accessible name says the count. In the phone Menu it reads Notifications with the number. After opening one item and Mark all as read, the number clears and stays cleared after refresh | NOT RUN |
+| QA-NAV-05 | L | B | On a phone, open Menu, press Escape or tap Menu again, then open it and pick Account. Repeat from the bottom bar Me tab | Menu lists Explore, Study Library, Saved, the four themes with names, Notifications, your name, My questions, Account and Sign out. The menu closes on Escape and after navigating. Me opens your profile. Signed out, Me reads Sign in | NOT RUN |
+| QA-LABEL-03 | L | B | Find each exact label below on the phone and on desktop. Copy any label that differs | Explore rows: “✓ Accepted answer”, “No accepted answer”, “No answers yet”, “Any level”, “N answers”. Save button: Save / Saved. Question page: “✓ Solved”, “No accepted answer yet”, “No answers yet”, “N answers · 1 accepted”, “N answers · none accepted yet”, “No one has answered yet”, “the answer that clicked”, “Accepted by the student who asked”, “Highest voted first”, “Write an answer ↓”, “Post your answer” | NOT RUN |
+| QA-SAVE-04 | L | B | Open Saved, open a saved question, choose Back to results. Then open the same question from Explore and Save/Unsave it there | Back to results returns to Saved questions, not Explore. Save and Saved on the question page match the Saved list after refresh | NOT RUN |
+| QA-SAVE-05 | L | B | Save a question, read the toast, then sign out and open Saved. Sign in as A in the same browser profile and open Saved. Later, have A accept an answer on a saved question | Toast: “Saved on this device. Find it under Saved on Explore.” Unsave toast: “Removed from saved questions.” The list stays the same signed in or out and for any account in that profile, because saves belong to the browser. The row keeps “Status as of saving” and does not update to Accepted on its own | NOT RUN |
+| QA-QD-01 | L | A | Open a QA question that has an accepted answer and two other answers, on desktop and phone | Order is: Back to results, the QUESTION card, the summary line, “the answer that clicked” with the accepted answer, “2 other answers” (Highest voted first), then Your answer. Markdown, images, votes, comments and Report still work in each part | NOT RUN |
+| QA-QD-02 | L | A | Signed in, choose Write an answer ↓ on a question. Then sign out and repeat | Signed in: the page scrolls to Your answer and the cursor is in the editor. Signed out: Your answer shows Sign in to answer and create an account, and sign-in returns you to the same question | NOT RUN |
+| QA-FLOW-01 | L | Both | Full walkthrough on one new QA question: A posts with a tag and image; B answers; A gets the notification and accepts; B gets the acceptance notification; A removes acceptance, then accepts again; both refresh | Each step shows the right author, labels and counts. Explore row changes from No answers yet → No accepted answer → ✓ Accepted answer. Only the first acceptance notifies B. Record which theme each tester used | NOT RUN |
+
+For password recovery, use EM01–EM07. Manual QA Student A and B can cover the two-browser walkthrough. Their test addresses cannot receive mail. Record account labels and keep credentials out of the report.
+
+## 19. Chalkboard dark mode — live release c9f78df
+
+Prerequisite for every row: the theme choices read **Auto, Sticker, Chalkboard, Bento**. If you see After Hours, reload once; if it persists, record `BLOCKED · old copy shown` with the browser name. Owner: Tester B unless stated. Environment: L.
+
+| ID | Env | Tester | What to do | Expected result | Result |
+| --- | --- | --- | --- | --- | --- |
+| CB-01 | L | B | On desktop and phone, open the theme choices and hover or read each name | Four choices: Auto, Sticker, Chalkboard, Bento. After Hours no longer appears. Exactly one is selected | NOT RUN |
+| CB-02 | L | B | Choose Chalkboard and look at Explore, a question, Ask, sign-in, profile, Notifications and the 404 page | Dark green board, chalk-white dashed outlines, handwritten headings, pastel sticky notes (pink Study Library, mint accepted, yellow highlight and Ask). Question titles and answers stay in normal print and are easy to read | NOT RUN |
+| CB-03 | L | B | Select Auto. Switch the device to dark, then to light, without reloading; reload once in each | Dark device shows Chalkboard. Light device shows Sticker. The Auto option stays selected | NOT RUN |
+| CB-04 | L | B | Use a browser profile in which After Hours was chosen before 11 Nov 2026 and open the site. If no such profile exists, record BLOCKED · no pre-release profile | The site opens in Chalkboard and the Chalkboard option is selected. No reset to Auto is needed | NOT RUN |
+| CB-05 | L | A | Check Sticker and Bento on Explore, a question and sign-in. If you kept screenshots from bc3b3d0, compare them at the same window size | No visible change from bc3b3d0 in either look. In particular, Sticker has no dotted background. Report any difference with both screenshots | NOT RUN |
+| CB-06 | L | B | In Chalkboard, open a question with an accepted answer, code and maths; open the editor Preview; trigger one form error | The accepted answer has a mint outline and readable text. Code, maths, errors and badges are readable. Nothing is white-on-white | NOT RUN |
+| CB-07 | L | B | In Chalkboard on a phone at 360 px, use Menu, the bottom bar, Filters and Save | Controls are reachable, labels are readable and nothing overflows sideways. The middle + opens Ask a doubt | NOT RUN |
+| CB-08 | L | B | On a slow network (browser throttling to Slow 4G), choose Chalkboard on a fresh profile and watch the headline | The headline may appear in a plain font first, then switch to the handwritten font. Text never disappears. Record how long the switch took | NOT RUN |
+
+Chalkboard went live as c9f78df on 11 November 2026. When the next release ships, keep these results with c9f78df and add the new ones after them.
+
+## 20. Admin and Moderator roles
+
+Owner performs these cases with an approved QA target and restores the target
+to its original role afterward. The primary owner role is protected.
+
+| ID | Env | Tester | Steps | Expected result | Result |
+| --- | --- | --- | --- | --- | --- |
+| RM01 | O | Owner + A | Admin signs in, opens Moderation, selects Users and finds the QA account by exact email | Role dropdown offers Student, Teacher, Moderator and Admin | NOT RUN |
+| RM02 | O | Owner + B | Select Moderator for the QA target, Save role and confirm, then refresh that user's page | Moderator badge and Moderation link appear; Reports opens | NOT RUN |
+| RM03 | O | B | As Moderator, open a prepared QA report and dismiss it | Only the intended report changes; queue refreshes | NOT RUN |
+| RM04 | O | Owner + B | Moderator removes a reported disposable QA question | Confirmation names the destructive action; approved target is removed | NOT RUN |
+| RM05 | O | B | As Moderator, inspect Moderation and open the catalogue URL | Reports available. Users/role/suspension controls and catalogue access unavailable | NOT RUN |
+| RM06 | O | Owner + A | Promote the approved QA target to Admin and refresh it. Restore it to Student from the primary owner session | Admin can manage users; restored student loses admin API access and UI after refresh | NOT RUN |
+| RM07 | O | Owner | Inspect the current admin's own role selector and attempt changing the primary owner's role from the approved secondary admin | Own selector disabled; primary owner remains Admin and change is rejected | NOT RUN |
+| RM08 | O | Owner | Grant and restore Teacher on the QA target. Cancel another role confirmation | Teacher badge follows saved role; cancel leaves role unchanged | NOT RUN |
+
+The normal student account cannot grant itself a role during signup or profile
+editing. Admin permissions are stored in the database and checked by the API.

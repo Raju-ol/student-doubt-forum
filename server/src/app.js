@@ -20,7 +20,8 @@ import { existsSync } from 'node:fs';
 import mongoose from 'mongoose';
 import { User, Doubt, Answer, Comment, Report, Upload } from './models.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
-import { identify, requireUser, requireAdmin, owns, safeUser, tokenFor } from './auth.js';
+import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
+import { changeUserRole } from './admin-roles.js';
 import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
@@ -226,25 +227,28 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     if (!image) fail(404, 'Unused image not found.');
     await cloudinary.uploader.destroy(publicId); await image.deleteOne(); ok(res, null, 'Image removed.');
   }));
-  const admin = express.Router(); api.use('/admin', requireUser, requireAdmin, admin);
+  const admin = express.Router(); api.use('/admin', requireUser, requireModerator, admin);
+  admin.use('/study-library', requireAdmin);
   mountStudyLibraryRoutes(admin, { wrap, ok, limiter });
-  admin.get('/users', wrap(async (req, res) => {
+  admin.get('/users', requireAdmin, wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const [items, total] = await Promise.all([User.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25), User.countDocuments({ isDeleted: { $ne: true } })]);
     ok(res, { items: items.map(safeUser), page, pages: Math.ceil(total / 25), total });
   }));
-  admin.patch('/users/:id/ban', wrap(async (req, res) => {
+  admin.patch('/users/:id/ban', requireAdmin, wrap(async (req, res) => {
     const user = await findDoc(User, req.params.id);
     if (user.isDeleted) fail(404, 'This account has been deleted.');
     if (user.role === 'admin') fail(403, 'Administrator accounts cannot be suspended here.');
     if (typeof req.body.isBanned !== 'boolean') fail(400, 'Provide the account status.');
-    user.isBanned = req.body.isBanned; await user.save(); ok(res, safeUser(user), 'Account status updated.');
+    const updated = await User.findOneAndUpdate({
+      _id: user._id, role: user.role, isDeleted: { $ne: true }
+    }, { $set: { isBanned: req.body.isBanned } }, { new: true });
+    if (!updated) fail(409, 'This account changed. Refresh the user list and try again.');
+    ok(res, safeUser(updated), 'Account status updated.');
   }));
-  admin.patch('/users/:id/role', wrap(async (req, res) => {
-    const user = await findDoc(User, req.params.id);
-    if (user.isDeleted) fail(404, 'This account has been deleted.');
-    if (user.role === 'admin' || !['student', 'teacher'].includes(req.body.role)) fail(403, 'Only student and teacher roles can be changed here.');
-    user.role = req.body.role; await user.save(); ok(res, safeUser(user), 'Role updated.');
+  admin.patch('/users/:id/role', requireAdmin, wrap(async (req, res) => {
+    const user = await changeUserRole(req.user, req.params.id, req.body.role);
+    ok(res, safeUser(user), 'Role updated. The user can refresh to see their updated access.');
   }));
   admin.get('/reports', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);

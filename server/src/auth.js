@@ -25,4 +25,5 @@ export async function identify(req, res, next) {
 }
 export function requireUser(req, res, next) { if (!req.user) return next(Object.assign(new Error('Please sign in to continue.'), { status: 401 })); next(); }
 export function requireAdmin(req, res, next) { if (req.user?.role !== 'admin') return next(Object.assign(new Error('Administrator access required.'), { status: 403 })); next(); }
+export function requireModerator(req, res, next) { if (!['admin', 'moderator'].includes(req.user?.role)) return next(Object.assign(new Error('Moderator access required.'), { status: 403 })); next(); }
 export function owns(user, author) { if (String(user._id) !== String(author) && user.role !== 'admin') fail(403, 'You do not have permission to change this content.'); }

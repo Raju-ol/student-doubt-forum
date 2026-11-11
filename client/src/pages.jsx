@@ -323,7 +323,95 @@ export function Profile() {
   return <div className="profile"><section className="panel profile__header"><Avatar name={data.user.name} large /><div><span className="overline">COMMUNITY MEMBER</span><h1>{data.user.name}</h1><Badge role={data.user.role} /><p className="muted">{levelLabel(data.user)} · Joined {date(data.user.createdAt)}</p>{user?._id === id && <div className="content-actions"><button className="text-button" onClick={() => setEditing(!editing)}>Edit profile</button><button className="text-button" disabled={busy} onClick={signOutEverywhere}>Sign out everywhere</button></div>}</div><div className="reputation"><strong>{data.user.reputation}</strong><span>Reputation</span></div></section>{editing && <form className="panel" onSubmit={save}><label>Name<input name="name" defaultValue={data.user.name} required minLength={2} maxLength={60} /></label><AcademicFields id="profile-level" defaultValue={levelOf(data.user)} /><InstitutionSelect id="profile-institution" defaultValue={data.user.institution} /><button className="button" disabled={busy}>Save profile</button></form>}<TabList id="profile-tabs" label="Profile contributions" items={[{value:"doubts",label:`Recent questions (${data.doubts.length})`},{value:"answers",label:`Recent answers (${data.answers.length})`}]} value={tab} onChange={setTab} /><div id="profile-tabs-panel" role="tabpanel" aria-labelledby={`profile-tabs-${tab}`} tabIndex={0}>{tab === 'doubts' ? data.doubts.length ? <div className="doubt-list">{data.doubts.map(d => <DoubtCard doubt={d} key={d._id} />)}</div> : <Empty title="No questions yet" /> : data.answers.length ? data.answers.map(answer => <article className="panel profile-answer" key={answer._id}><Link to={`/doubts/${answer.doubt?._id}`}><h3>{answer.doubt?.title || 'Question removed'}</h3></Link><p className="prose">{markdownToText(answer.body).slice(0, 300)}</p><span className="muted">{date(answer.createdAt)}</span></article>) : <Empty title="No answers yet">A helpful explanation can make someone’s day.</Empty>}</div></div>;
 }
 export function Admin() {
-  const [tab, setTab] = useState('users'); const [page, setPage] = useState(1); const { data, loading, error, refresh } = useResource(`/admin/${tab}?page=${page}`); const { token, notify } = useAuth(); const [busy, setBusy] = useState(false);
-  async function action(route, body) { setBusy(true); try { await api(route, { method: 'PATCH', token, body }); refresh(); notify('Moderation action saved.'); } catch (err) { notify(err.message); } finally { setBusy(false); } }
-  return <section className="admin"><span className="overline">ADMINISTRATION</span><h1>Keep the community helpful.</h1><Link to="/admin/catalog">Manage subject catalogue →</Link><p className="muted">Manage access and review reported content.</p><TabList id="admin-tabs" label="Moderation sections" items={[{value:"users",label:"Users"},{value:"reports",label:"Reports"}]} value={tab} onChange={value => { setTab(value); setPage(1); }} /><div id="admin-tabs-panel" role="tabpanel" aria-labelledby={`admin-tabs-${tab}`} tabIndex={0}><ErrorBox message={error} />{loading ? <Loading /> : tab === 'users' ? <div className="table-wrap panel"><table><thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>{data?.items.map(account => <tr key={account._id}><td><Link to={`/users/${account._id}`}>{account.name}</Link><small>{account.email}</small></td><td>{account.role}</td><td><span className={`badge ${account.isBanned ? 'badge--banned' : 'badge--solved'}`}>{account.isBanned ? 'Suspended' : 'Active'}</span></td><td>{account.role !== 'admin' && <div className="table-actions"><button className="text-button" disabled={busy} onClick={() => { if (window.confirm(`${account.isBanned ? 'Restore' : 'Suspend'} access for ${account.name}?`)) action(`/admin/users/${account._id}/ban`, { isBanned: !account.isBanned }); }}>{account.isBanned ? 'Restore access' : 'Suspend'}</button><button className="text-button" disabled={busy} onClick={() => action(`/admin/users/${account._id}/role`, { role: account.role === 'teacher' ? 'student' : 'teacher' })}>{account.role === 'teacher' ? 'Make student' : 'Make teacher'}</button></div>}</td></tr>)}</tbody></table></div> : data?.items.length ? data.items.map(report => <article className="panel report" key={report._id}><span className="badge">Reported {report.targetType}</span><h3>{report.content?.title || report.content?.body?.slice(0, 120) || 'Content already removed'}</h3><p className="prose">{report.reason}</p><p className="muted">Reported by {report.reporter?.name} · {date(report.createdAt)}</p>{report.content && <Link to={`/doubts/${report.targetType === 'doubt' ? report.target : report.content.doubt}`}>View discussion →</Link>}<div className="form-actions"><button className="button button--secondary" disabled={busy} onClick={() => action(`/admin/reports/${report._id}`, { status: 'dismissed' })}>Dismiss report</button><button className="button button--danger" disabled={busy} onClick={() => { if (window.confirm('Remove this reported content? Removing a question also removes its answers, comments and attachments. This cannot be undone.')) action(`/admin/reports/${report._id}`, { status: 'removed' }); }}>Remove content</button></div></article>) : <Empty title="All caught up">There are no pending reports to review.</Empty>}{data && <Pager page={page} pages={data.pages} onChange={setPage} />}</div></section>;
+  const { user, token, notify } = useAuth();
+  const managesUsers = user.role === 'admin';
+  const [tab, setTab] = useState('users');
+  const [page, setPage] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const section = managesUsers ? tab : 'reports';
+  const { data, loading, error, refresh } = useResource(`/admin/${section}?page=${page}`);
+
+  async function action(route, body) {
+    setBusy(true);
+    try {
+      await api(route, { method: 'PATCH', token, body });
+      refresh();
+      notify('Moderation action saved.');
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <section className="admin">
+    <span className="overline">{managesUsers ? 'Administration' : 'Moderation'}</span>
+    <h1>Keep the community helpful.</h1>
+    {managesUsers && <>
+      <Link to="/admin/catalog">Manage subject catalogue →</Link>
+      <p className="muted">Admins manage users and catalogues. Moderators review reports and remove reported content.</p>
+      <p className="muted">Your own role and the primary admin are protected. Users can refresh after a role change to see their updated access.</p>
+      <TabList id="admin-tabs" label="Moderation sections"
+        items={[{ value: 'users', label: 'Users' }, { value: 'reports', label: 'Reports' }]}
+        value={section} onChange={value => { setTab(value); setPage(1); }} />
+    </>}
+    {!managesUsers && <p className="muted">Review reports and remove reported content that breaks the community rules.</p>}
+    <div id="admin-tabs-panel" role={managesUsers ? 'tabpanel' : undefined}
+      aria-labelledby={managesUsers ? `admin-tabs-${section}` : undefined} tabIndex={0}>
+      <ErrorBox message={error} retry={refresh} />
+      {loading ? <Loading /> : error ? null : section === 'users'
+        ? <div className="table-wrap panel"><table>
+            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>{data?.items.map(account => <UserAccessRow key={account._id} account={account}
+              currentUserId={user._id} busy={busy} onAction={action} />)}</tbody>
+          </table></div>
+        : data?.items.length ? data.items.map(report => <article className="panel report" key={report._id}>
+            <span className="badge">Reported {report.targetType}</span>
+            <h3>{report.content?.title || report.content?.body?.slice(0, 120) || 'Content already removed'}</h3>
+            <p className="prose">{report.reason}</p>
+            <p className="muted">Reported by {report.reporter?.name} · {date(report.createdAt)}</p>
+            {report.content && <Link to={`/doubts/${report.targetType === 'doubt' ? report.target : report.content.doubt}`}>View discussion →</Link>}
+            <div className="form-actions">
+              <button className="button button--secondary" disabled={busy}
+                onClick={() => action(`/admin/reports/${report._id}`, { status: 'dismissed' })}>Dismiss report</button>
+              <button className="button button--danger" disabled={busy} onClick={() => {
+                if (window.confirm('Remove this reported content? Removing a question also removes its answers, comments and attachments. This cannot be undone.')) {
+                  action(`/admin/reports/${report._id}`, { status: 'removed' });
+                }
+              }}>Remove content</button>
+            </div>
+          </article>) : <Empty title="All caught up">There are no pending reports to review.</Empty>}
+      {data && !loading && !error && <Pager page={page} pages={data.pages} onChange={setPage} />}
+    </div>
+  </section>;
+}
+
+function UserAccessRow({ account, currentUserId, busy, onAction }) {
+  const [role, setRole] = useState(account.role);
+  useEffect(() => setRole(account.role), [account.role]);
+  const self = account._id === currentUserId;
+  return <tr>
+    <td><Link to={`/users/${account._id}`}>{account.name}</Link><small>{account.email}</small></td>
+    <td><select aria-label={`Role for ${account.email}`} value={role} disabled={busy || self}
+      onChange={event => setRole(event.target.value)}>
+      <option value="student">Student</option>
+      <option value="teacher">Teacher</option>
+      <option value="moderator">Moderator</option>
+      <option value="admin">Admin</option>
+    </select></td>
+    <td><span className={`badge ${account.isBanned ? 'badge--banned' : 'badge--solved'}`}>{account.isBanned ? 'Suspended' : 'Active'}</span></td>
+    <td><div className="table-actions">
+      {self ? <span className="muted">Your account</span> : <button className="text-button"
+        disabled={busy || role === account.role} onClick={() => {
+          if (window.confirm(`Change ${account.email} from ${account.role} to ${role}? Admins can manage other users' access.`)) {
+            onAction(`/admin/users/${account._id}/role`, { role });
+          }
+        }}>Save role</button>}
+      {account.role !== 'admin' && <button className="text-button" disabled={busy} onClick={() => {
+        if (window.confirm(`${account.isBanned ? 'Restore' : 'Suspend'} access for ${account.name}?`)) {
+          onAction(`/admin/users/${account._id}/ban`, { isBanned: !account.isBanned });
+        }
+      }}>{account.isBanned ? 'Restore access' : 'Suspend'}</button>}
+    </div></td>
+  </tr>;
 }
