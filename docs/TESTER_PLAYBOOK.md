@@ -7,7 +7,7 @@ Version 2.4 · Updated 11 November 2026 · One shared checklist for a two-person
 | What | Value |
 |---|---|
 | Live website | https://student-doubt-forum-theta.vercel.app/ |
-| Verified live release | **c9f78df**, Chalkboard dark mode. Four choices are Auto, Sticker, Chalkboard and Bento. |
+| Verified live release | **735b517**, website Admin/Moderator role management on Chalkboard. Four theme choices are Auto, Sticker, Chalkboard and Bento. |
 | Cleanup state | Cleanup VERIFIED on 11 November 2026. Everything and Study Library both returned 0 questions. Removed 203 questions, 202 answers, 2 comments, 2 votes, 3 notifications and 1 attached image. 18 accounts, 30 subjects and 1 college were retained. Contribution-based reputation starts at 0. |
 | How to confirm the visual release | Reload and open the theme choices (phone: Menu first). Confirm Chalkboard is available. Record the release and actual starting question count. |
 
