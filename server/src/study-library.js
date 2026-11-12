@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import mongoose from 'mongoose';
 import questions from './demo-questions.json' with { type: 'json' };
 import answers from './demo-answers.json' with { type: 'json' };
-import { Answer, Doubt, Subject, User } from './models.js';
+import { Answer, Comment, Doubt, Subject, User, Vote } from './models.js';
 import { ensureSubjects, subjectKey } from './subjects.js';
 import { fail, text } from './validation.js';
 
@@ -91,11 +91,32 @@ async function importStudyLibrary(adminId) {
   return { alreadyImported: false, ...result };
 }
 
+// Removes every library question, its answers, votes and comments, and the
+// completion marker, so a fresh publish can rebuild the full set — the recovery
+// path when the marker survives but the content was deleted from the database.
+async function resetStudyLibrary() {
+  const author = idFor('question-author');
+  const doubtIds = (await Doubt.find({ author }).select('_id').lean()).map(doubt => doubt._id);
+  const answerIds = (await Answer.find({ doubt: { $in: doubtIds } }).select('_id').lean()).map(answer => answer._id);
+  await Vote.deleteMany({ $or: [{ targetType: 'doubt', target: { $in: doubtIds } }, { targetType: 'answer', target: { $in: answerIds } }] });
+  await Comment.deleteMany({ answer: { $in: answerIds } });
+  await Answer.deleteMany({ _id: { $in: answerIds } });
+  await Doubt.deleteMany({ _id: { $in: doubtIds } });
+  await imports().deleteOne({ _id: batch });
+  return { removedQuestions: doubtIds.length, removedAnswers: answerIds.length };
+}
+
 export function mountStudyLibraryRoutes(admin, { wrap, ok, limiter }) {
   admin.get('/study-library', wrap(async (req, res) => {
     const complete = await imports().findOne({ _id: batch });
+    const presentCount = await Doubt.countDocuments({ author: idFor('question-author') });
     const subjects = [...new Set(questions.map(question => question.subject))];
-    ok(res, { published: Boolean(complete), questionCount: questions.length, subjects, tag: demoTag });
+    ok(res, { published: Boolean(complete), presentCount, questionCount: questions.length, subjects, tag: demoTag });
+  }));
+  admin.delete('/study-library', limiter('study-library-import', 5, 15 * 60 * 1000, { account: true }), wrap(async (req, res) => {
+    if (req.body.confirm !== batch) fail(400, 'Confirm the study library reset.');
+    const result = await resetStudyLibrary();
+    ok(res, result, 'Study library reset. Publish it again to restore the full set.');
   }));
   admin.post('/study-library', limiter('study-library-import', 5, 15 * 60 * 1000, { account: true }), wrap(async (req, res) => {
     if (req.body.confirm !== batch) fail(400, 'Confirm the study library import.');

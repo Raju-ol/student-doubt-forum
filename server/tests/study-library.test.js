@@ -48,6 +48,7 @@ test('only an administrator can publish the study library, with no duplicate or 
   await request(endpoint, { token: adminToken, method: 'POST', body: {}, status: 400 });
   const preview = await request(endpoint, { token: adminToken });
   assert.equal(preview.published, false);
+  assert.equal(preview.presentCount, 0);
   assert.equal(preview.questionCount, 200);
   assert.equal(preview.subjects.length, 10);
   assert.equal(await Doubt.countDocuments(), 1);
@@ -70,4 +71,20 @@ test('only an administrator can publish the study library, with no duplicate or 
   assert.equal(retry.alreadyImported, true);
   assert.equal(await Doubt.countDocuments(), 200);
   assert.equal(await Answer.countDocuments(), 199);
+
+  // Recovery path: reset clears the marker and remaining library content so a
+  // fresh publish restores the complete set, leaving student content intact.
+  await request(endpoint, { token: tokenFor(student), method: 'DELETE', body, status: 403 });
+  const reset = await request(endpoint, { token: adminToken, method: 'DELETE', body });
+  assert.equal(reset.removedQuestions, 199);
+  assert.equal(reset.removedAnswers, 199);
+  assert.equal(await Doubt.countDocuments(), 1);
+  assert.equal(await Answer.countDocuments(), 0);
+  assert.equal((await Doubt.findById(original._id)).body, original.body);
+  const statusAfterReset = await request(endpoint, { token: adminToken });
+  assert.equal(statusAfterReset.published, false);
+  assert.equal(statusAfterReset.presentCount, 0);
+  const republished = await request(endpoint, { token: adminToken, method: 'POST', body });
+  assert.deepEqual(republished, { alreadyImported: false, questionCount: 200, answerCount: 200 });
+  assert.equal(await Doubt.countDocuments({ tags: 'study-library' }), 200);
 });
