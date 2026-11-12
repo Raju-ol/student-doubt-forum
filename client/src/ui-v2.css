@@ -1,8 +1,5 @@
 /* ui-v2 "Soft Study" overrides. Loaded LAST so it wins the cascade over genz.css (see docs/UI_V2_CHANGE_RECORD.md). */
 
-/* Step 8 contrast tokens (light; dark overrides live in the Step 7 block). Ratios verified >=4.5:1, see change record. */
-:root{--accent-text:#9A5200;--on-accent:#2B2113;--accent-btn:#F08A24;--accent-btn-hover:#D97706;--text-muted:#6F624B}
-
 /* Step 2: header = brand | centered search pill | Ask a Doubt + theme + bell + avatar */
 .header__search{position:relative;flex:1 1 200px;max-width:340px;min-width:0;margin:0 auto;display:flex;align-items:center}
 .header__search svg{position:absolute;left:16px;color:var(--text-muted);pointer-events:none}
@@ -104,25 +101,12 @@
 .explore .explore__aside .explore__card .button{background:var(--accent-btn)!important;color:var(--on-accent)!important;border:0!important;border-radius:var(--radius-pill)!important;box-shadow:none!important;transform:none!important;font:600 14px var(--font-ui)!important}
 .explore .explore__aside .explore__card .button:hover{background:var(--accent-btn-hover)!important;text-decoration:none}
 
-/* Step 7: theme pass. Light gets the warm ink/paper; dark is remapped from Chalkboard (green, chalk, tilt) to the
-   plan's deep violet by re-pointing the legacy tokens that the whole app already uses. Loaded last, same specificity as variables.css. */
-:root[data-theme=light]{--page:var(--bg);--text:#2B2113;--header-bg:var(--bg)}
-:root[data-theme=dark]{
-  --page:var(--bg);--card:var(--surface);--card-2:var(--surface-soft);--chip-bg:var(--surface);
-  --text:#EDE9FA;--muted:var(--text-muted);--border:#3A2E5E;--line-soft:rgba(237,233,250,.14);
-  --primary:var(--accent);--on-primary:#0F0A1F;--accent-text:#A78BFA;--on-accent:#fff;--accent-btn:#6D4AE8;--accent-btn-hover:#5B3BD6;--header-bg:var(--bg);--overlay:rgba(28,21,50,.95);--code-bg:var(--surface-soft);
-  --solved:var(--success);--solved-bg:var(--success-bg);--solved-ink:var(--success);--zero-bg:var(--warn-bg);--zero-ink:var(--warn);--hot-bg:var(--accent-soft);--hot-ink:var(--text);
-  --accent-1:var(--accent-soft);--accent-2:var(--surface-soft);--accent-3:var(--accent-soft);--accent-4:var(--surface-soft);--accent-ink:var(--text);
-  --edge-style:solid;--edge:1px;--tilt:0deg;--tilt-2:0deg;--dot:transparent;--glow:0 0 0 3px rgba(139,108,255,.3);
-  --shadow-sm:var(--shadow-card);--shadow:var(--shadow-card);--shadow-lg:var(--shadow-card);
-  --radius-card:16px;--radius-ctl:12px;--font-display:var(--font-ui);--display-weight:700;--danger:#FCA5A5;--teacher:#FBBF24;
-  --edge-a5b4fc:#8B6CFF}
 :root[data-theme=dark] body{background-image:none;font-family:var(--font-ui)}
 :root[data-theme=dark] h1,:root[data-theme=dark] .brand,:root[data-theme=dark] .explore__heading h2,:root[data-theme=dark] .qd__section-head h2,:root[data-theme=dark] .qd__compose h2,:root[data-theme=dark] .auth-form h2,:root[data-theme=dark] .state__big{font-weight:700;letter-spacing:-.02em}
 :root[data-theme=dark] .banner .explore__title{font-size:28px;line-height:1.12}
 :root[data-theme=dark] .explore .explore__heading h2{font-size:20px}
 :root[data-theme=dark] .brand{font-size:24px}
-:root[data-theme=dark] .brand__icon{background:var(--brand);color:#fff;border-radius:10px;transform:none}
+:root[data-theme=dark] .brand__icon{background:var(--brand);color:#FFFFFF;border-radius:10px;transform:none}
 :root[data-theme=dark] mark,:root[data-theme=dark] .explore__mark{background:var(--accent-soft);color:var(--text);box-shadow:none}
 :root[data-theme=dark] .qd__question h1{font-size:32px}
 :root[data-theme=dark] .auth-story h1{font-size:44px}

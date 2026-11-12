@@ -86,3 +86,10 @@ Template per step:
 - Deviation: plan says white text on the solid accent button; in LIGHT the button text is dark ink because white on orange cannot reach 4.5:1. Also the plan's `--accent`/`--accent-strong` hex values are unchanged; they are used for fills only.
 - Checked: 360px (no horizontal overflow, single column, bottom tab bar), 768px (no overflow; header wraps to 3 rows), 1920x950 (earlier steps). Not checked: keyboard walk on real data, dark at 360/768, logged-in views, remaining legacy Sticker-style heavy outlines/hard shadows in light theme on the results panel, Menu button and auth pages (left as is; not part of Steps 2-6).
 - Screenshot: docs/screenshots/ui-v2-step8-mobile-360.jpg
+
+## Step 9 — QA (commit: see git log, 2026-11-13)
+- Changed: `client/src/styles.css`, `client/src/styles/variables.css`, `client/src/ui-v2.css`
+- What: Ran the repo's test suite (`npm test`): it caught a real problem, because `server/tests/theme.test.js` requires all hex colors to live in `variables.css` (none in `styles.css`) and checks 4.5:1 contrast for every theme's tokens. Fixed by moving the Step 1 token blocks out of `styles.css` and the Step 7/8 theme blocks out of `ui-v2.css` into `variables.css` (literal hex values so the test can read them). The test then flagged dark `--primary` (#8B6CFF) on `--card-2` at 4.34:1; lightened to #9A80FF. Result: 107/107 tests pass; `npm run build` passes.
+- Why: Plan §3 Step 9 (QA before ship), §4 (build + tests before commit).
+- Revert: `git revert <hash>`
+- Not done: `scripts/live-smoke.js` and the tester playbook need a live HTTPS deployment (Vercel preview of this branch); not run. No `gh` CLI here, so the PR must be opened from GitHub. Before/after screenshots: after-state screenshots exist per step; there is no "before" capture of the old UI. Merge to main and production verification are NOT done.
