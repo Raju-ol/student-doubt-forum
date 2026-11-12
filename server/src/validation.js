@@ -20,7 +20,8 @@ export function password(value) {
 }
 export function tags(value = []) {
   if (!Array.isArray(value) || value.length > 5) fail(400, 'Use up to 5 tags.');
-  return [...new Set(value.map(tag => text(tag, 'Tag', 1, 24).toLowerCase()))];
+  // Students often type tags as "#java"; the UI prepends its own "#", so strip leading hashes before storing.
+  return [...new Set(value.map(tag => text(typeof tag === 'string' ? tag.replace(/^[#\s]+/, '') : tag, 'Tag', 1, 24).toLowerCase()))];
 }
 export function positiveInt(value, fallback, max) {
   if (value === undefined) return fallback;

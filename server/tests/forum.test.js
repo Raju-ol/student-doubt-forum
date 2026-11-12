@@ -50,6 +50,12 @@ test('Student Doubt Forum integration flow', async t => {
     doubt = await request('/doubts', 'POST', { title: 'Why do we normalize database tables?', body: 'I understand tables but I am confused about database normalization and redundancy.', subject: 'DBMS', semester: 3, tags: ['SQL', 'normalization'], author: b.user._id }, a.token, 201);
     assert.equal(doubt.author, a.user._id);
   });
+  await t.test('tags are stored without leading # characters', async () => {
+    const extra = await request('/doubts', 'POST', { title: 'Do hash-prefixed tags get cleaned?', body: 'Posting with hash-prefixed tags to confirm the stored tags drop the leading symbol.', subject: 'DBMS', semester: 3, tags: ['#Java', '##daitm', 'java'] }, a.token, 201);
+    assert.deepEqual(extra.tags, ['java', 'daitm']);
+    await request('/doubts', 'POST', { title: 'Is a hash-only tag rejected?', body: 'A tag that is only hash characters should fail validation instead of storing empty.', subject: 'DBMS', semester: 3, tags: ['##'] }, a.token, 400);
+    await request(`/doubts/${extra._id}`, 'DELETE', null, a.token);
+  });
   await t.test('indexed word search, filters, pagination and punctuation work', async () => {
     const list = await request('/doubts?search=normalize&subject=DBMS&semester=3&tag=sql'); assert.equal(list.total, 1); assert.equal(list.items[0]._id, doubt._id);
     assert.equal((await request('/doubts?search=%5B')).total, 0);
