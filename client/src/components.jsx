@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Plus, Search as SearchIcon } from 'lucide-react';
 import { useAuth } from './context';
 import { api } from './api';
 import { markdownToText } from './excerpt';
@@ -31,19 +32,27 @@ export function Icon({ name, size = 20 }) { return <svg className="icon" aria-hi
 export function Navbar() {
   const { user, logout } = useAuth(); const navigate = useNavigate(); const location = useLocation();
   const [expanded, setExpanded] = useState(false); const menuButton = useRef(null);
+  const [headerSearch, setHeaderSearch] = useState(() => new URLSearchParams(location.search).get('search') || '');
+  useEffect(() => setHeaderSearch(location.pathname === '/' ? new URLSearchParams(location.search).get('search') || '' : ''), [location.pathname, location.search]);
+  function submitSearch(event) { event.preventDefault(); const text = headerSearch.trim(); navigate(text ? `/?search=${encodeURIComponent(text)}` : '/'); }
   useEffect(() => setExpanded(false), [location.pathname, location.search]);
   function closeMenu(event) { if (expanded && event.key === 'Escape') { event.preventDefault(); setExpanded(false); menuButton.current?.focus(); } }
   return <header className="header" onKeyDown={closeMenu}><div className="header__inner">
     <Link className="header__brand" to="/" aria-label="Doubt Forum home"><Mark /></Link>
     <button className="nav-toggle" ref={menuButton} aria-expanded={expanded} aria-controls="main-navigation" onClick={() => setExpanded(!expanded)}><Icon name="menu" /><span>Menu</span></button>
+    <form className="header__search" role="search" onSubmit={submitSearch}>
+      <label className="visually-hidden" htmlFor="header-search">Search questions</label>
+      <SearchIcon aria-hidden="true" size={18} />
+      <input id="header-search" type="search" placeholder="Search topics or questions" value={headerSearch} maxLength={120} onChange={event => setHeaderSearch(event.target.value)} />
+    </form>
     <nav id="main-navigation" className={expanded ? "navigation navigation--open" : "navigation"} aria-label="Main navigation">
       <NavLink to="/" end>Explore</NavLink>
       <Link to="/?scope=all&tag=study-library">Study Library</Link>
       <Link to="/?view=saved">Saved</Link>
       {['admin', 'moderator'].includes(user?.role) && <NavLink to="/admin">Moderation</NavLink>}
+      <Link className="button button--small nav-ask" to="/ask"><Plus aria-hidden="true" size={18} />Ask a Doubt</Link>
       <ThemeControl />
       {user && <NotificationBell />}
-      <Link className="button button--small nav-ask" to="/ask"><Icon name="plus" size={18} />Ask a doubt</Link>
       {user ? <>
         <Link className="user-link" to={`/users/${user._id}`}><Avatar name={user.name} /><span>{user.name.split(' ')[0]}</span></Link>
         <Link to={`/users/${user._id}?tab=doubts`}>My questions</Link>

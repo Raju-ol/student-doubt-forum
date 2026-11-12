@@ -20,3 +20,11 @@ Template per step:
 - Why: Plan §1 foundation.
 - Revert: `git revert <hash>`
 - Deviations: (1) Fonts via `@fontsource/poppins` + `@fontsource/caveat` instead of a Google Fonts `<link>`: production CSP in `vercel.json` (`font-src 'self'`, `style-src` without fonts.googleapis.com) would block it, and `vercel.json` is off-limits. Same mechanism the project already uses for Inter/Caveat Brush. (2) `--text` and `--radius-card` NOT redefined: both already exist in `variables.css` and are used (56 and 8 uses); redefining would change the look in this step. Later steps decide per-element use. (3) Dark block uses `:root[data-theme=dark]` to match `theme-init.js` (it always sets `data-theme` to light/dark/bento). Bento inherits the light tokens.
+
+## Step 2 — Header  (commit: see git log, 2026-11-13)
+- Changed: `client/src/components.jsx` (Navbar), `client/src/ui-v2.css` (new, imported last in `main.jsx`), `client/src/main.jsx`
+- What: Added a centered pill search to the header (submits to `/?search=<text>`, same param Explore already uses). "Ask a Doubt" is now a solid `--accent` pill with a lucide Plus icon, moved to the first spot in the right-hand group (before theme switch, bell, avatar). Route unchanged (`/ask`, still protected, so logged-out users go to sign-in as before). Bell and avatar unchanged.
+- Why: Plan §3 Step 2, decision 2.
+- Revert: `git revert <hash>`
+- Deviations: (1) Styles live in new `ui-v2.css` loaded after `genz.css`, not in `styles.css`: genz.css sets `.nav-ask` colors with `!important` and loads later, so styles.css could not win. (2) Header had no search before (it lives in the Explore page); the new header search is additional, the Explore search is untouched until Step 4. (3) Mobile (<640px): Ask stays hidden in the collapsed menu because the bottom tab bar already has Ask (existing behavior). (4) Known: white text on `--accent` is below 4.5:1 in both themes; to be resolved in Step 8 (contrast pass).
+- Screenshot: none (steps 4-7 required); checked manually in light and dark.

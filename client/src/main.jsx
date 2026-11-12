@@ -21,6 +21,7 @@ import './p0.css';
 import './explore.css';
 import './question-detail.css';
 import './genz.css';
+import './ui-v2.css';
 class ErrorBoundary extends React.Component {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
