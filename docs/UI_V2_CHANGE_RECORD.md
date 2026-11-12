@@ -69,3 +69,11 @@ Template per step:
 - Revert: `git revert <hash>`
 - Deviations: most of Step 6 describes features the app does not have: file-type chips (PDF/DOC/PPT), download buttons, "Upload Resource" callout, "Popular Resources" list, "Trending Topics" chips, "Quick Links" block. The Study Library is curated questions (tag `study-library`), not files. Per §4 I did not invent them (they would need backend/upload work); `--chip-*` tokens stay unused. Subject chips (Step 4) already serve as the topics row. The results panel still has the old heavy outline; left for Step 7 theme pass. Verified on mock data, light theme only.
 - Screenshot: docs/screenshots/ui-v2-step6-widgets.jpg
+
+## Step 7 — Dark theme pass  (commit: see git log, 2026-11-13)
+- Changed: `client/src/ui-v2.css` only
+- What: The existing dark theme ("Chalkboard": green, dashed chalk outlines, tilted stickers, Caveat Brush headings, dust texture) is remapped to the plan's deep violet by re-pointing the legacy tokens the whole app already uses (`--page`, `--card`, `--text`, `--muted`, `--border`, `--primary`, `--header-bg`, accents, shadows, `--edge-style`, tilt, display font -> Poppins). Because everything reads these tokens, all pages (auth, ask, detail, profile, admin, account) follow. Light theme gets the warm ink `#2B2113` and `--bg` page. Heading sizes that dark forced to 62px/48px etc. were brought down to sane sizes; Bento's hero title is also capped to the compact hero size.
+- Why: Plan §3 Step 7, decision 1.
+- Revert: `git revert <hash>`
+- Deviations: (1) This changes the look of the whole dark theme, not just the new components, since the plan defines dark as violet; the Chalkboard look is gone. (2) Pages walked in dark with mock data: Explore, Sign up, 404, plus Bento Explore. NOT walked (need login/backend): Ask, question detail, profile, notifications, account, admin/catalog; any hard-coded light colors there remain unverified. (3) Muted/accent text contrast is not yet measured (Step 8). (4) Leftover legacy dark rules in `genz.css` for sticky-note pastels are neutralized only via tokens.
+- Screenshot: docs/screenshots/ui-v2-step7-dark-explore.jpg
