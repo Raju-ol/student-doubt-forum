@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Search as SearchIcon, Home, BookOpen, Bookmark, User } from 'lucide-react';
+import { Plus, Search as SearchIcon, Home, BookOpen, Bookmark, User, ArrowRight } from 'lucide-react';
 import { useAuth } from './context';
 import { api } from './api';
 import { markdownToText } from './excerpt';
@@ -99,21 +99,22 @@ export function questionStatus(doubt) {
 }
 export function QuestionRow({ doubt }) {
   const location = useLocation(); const status = questionStatus(doubt); const count = doubt.answerCount ?? 0;
+  const from = { from: location.pathname + location.search };
   return <li className="qrow">
-    <div className={`qrow__count qrow__count--${status.tone}`}><strong>{count}</strong><span>{count === 1 ? 'answer' : 'answers'}</span></div>
-    <div className="qrow__main">
-      <h3 className="qrow__title"><Link to={`/doubts/${doubt._id}`} state={{ from: location.pathname + location.search }}>{doubt.title}</Link></h3>
-      <p className="qrow__preview">{markdownToText(doubt.body)}</p>
-      <div className="qrow__meta">
-        <span className="qrow__subject">{doubt.subject}</span>
-        <span className={`qrow__status qrow__status--${status.tone}`}>{status.tone === 'solved' ? '✓ ' : ''}{status.label}</span>
-        <span>{levelOf(doubt)?.label || 'Any level'}</span>
-        <span>{doubt.votes} {Math.abs(doubt.votes) === 1 ? 'vote' : 'votes'}</span>
-        {doubt.tags?.slice(0, 3).map(tag => <Link key={tag} className="qrow__tag" to={`/?tag=${encodeURIComponent(tag)}`}>#{tag}</Link>)}
-        <span className="qrow__by">{doubt.author?.name || 'Deleted user'} · {date(doubt.createdAt)}</span>
-      </div>
+    <div className="qrow__top">
+      <span className="qrow__subject">{doubt.subject}</span>
+      <span className={`qrow__status qrow__status--${status.tone}`}>{status.tone === 'solved' ? '✓ ' : ''}{status.label}</span>
+      <SaveButton doubt={doubt} compact />
     </div>
-    <SaveButton doubt={doubt} compact />
+    <h3 className="qrow__title"><Link to={`/doubts/${doubt._id}`} state={from}>{doubt.title}</Link></h3>
+    <div className="qrow__meta">
+      <span>{doubt.votes} {Math.abs(doubt.votes) === 1 ? 'vote' : 'votes'}</span>
+      <span>{count} {count === 1 ? 'answer' : 'answers'}</span>
+      <span>{levelOf(doubt)?.label || 'Any level'}</span>
+      {doubt.tags?.slice(0, 3).map(tag => <Link key={tag} className="qrow__tag" to={`/?tag=${encodeURIComponent(tag)}`}>#{tag}</Link>)}
+      <span>{doubt.author?.name || 'Deleted user'} · {date(doubt.createdAt)}</span>
+      <Link className="qrow__view" to={`/doubts/${doubt._id}`} state={from}>View discussion <ArrowRight aria-hidden="true" size={16} /><span className="visually-hidden">: {doubt.title}</span></Link>
+    </div>
   </li>;
 }
 // Native button, so Enter and Space work; aria-pressed announces the state.

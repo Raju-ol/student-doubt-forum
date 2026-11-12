@@ -44,3 +44,11 @@ Template per step:
 - Revert: `git revert <hash>`
 - Deviations: (1) The in-hero search form was removed, because the header now has the same search (Step 2, same `?search=` param) and it would not fit the ~150px height. Search state/chips logic untouched. (2) Library hero title is "Study Library" (no existing Library title). (3) Subject chip row could not be visually checked: it needs the catalogue API, which wasn't running (chip style was already text-bg when active; only the text color changed). (4) Only one sparkle doodle added, not 2–3. (5) Screenshot is Explore, light theme, with API errors visible (no backend).
 - Screenshot: docs/screenshots/ui-v2-step4-explore-hero.jpg
+
+## Step 5 — Question cards  (commit: see git log, 2026-11-13)
+- Changed: `client/src/components.jsx` (`QuestionRow` markup only), `client/src/ui-v2.css`
+- What: Each question is now a white card (16px radius, soft shadow, hover lifts 1px with stronger shadow; disabled under reduced-motion). Top row: subject chip (`--accent-soft`/`--accent-strong`), status badge (Accepted answer = success tones, other = warn tones), Save button. Then a 600-weight title, a muted meta row (votes, answers, level, tags, asker · date) and a "View discussion →" link in `--accent-strong` at the right. Existing status wording kept (API's "No accepted answer" / "No answers yet" are not renamed to Resolved/Unresolved because they are more accurate).
+- Why: Plan §3 Step 5.
+- Revert: `git revert <hash>`
+- Deviations / not met: (1) **5 cards do NOT fit at 1080p.** At a 1920x950 viewport 3 cards fit fully (4th is cut off): the area above the list (header, hero, quick chips, list toolbar) is ~505px and each card is ~123px. Fitting 5 would need cards <=77px or trimming the area above, which was not in the plan; needs a decision. (2) "Views" count omitted: the API data has no view count. (3) The answer-count box on the left was removed; the count is in the meta row. (4) Body preview line removed to save height. (5) Screenshot uses a throwaway mock API (not in repo); the real backend wasn't running, so long titles were checked on mock data only (they wrap).
+- Screenshot: docs/screenshots/ui-v2-step5-question-cards.jpg

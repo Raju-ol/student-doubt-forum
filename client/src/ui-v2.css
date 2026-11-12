@@ -39,3 +39,27 @@
 .explore__subjects{margin-top:16px}
 .explore__discover{margin-top:16px}
 .explore__subject[aria-pressed=true]{background:var(--text);border-color:var(--text);color:var(--surface)}
+
+/* Step 5: question cards. Selectors start with .explore .qlist to beat theme-specific rules in explore.css/genz.css. */
+.explore .qlist{display:flex;flex-direction:column;gap:12px;padding:4px 0}
+.explore .qlist .qrow{display:block;position:relative;padding:12px 18px;border:1px solid var(--line-soft);border-radius:var(--radius-card);background:var(--surface);box-shadow:var(--shadow-card);transition:transform .15s ease,box-shadow .15s ease}
+.explore .qlist .qrow:last-child{border:1px solid var(--line-soft)}
+.explore .qlist .qrow:hover,.explore .qlist .qrow:focus-within{transform:translateY(-1px);box-shadow:0 6px 18px rgba(120,90,40,.16)}
+:root[data-theme=dark] .explore .qlist .qrow:hover{box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.explore .qrow__top{display:flex;align-items:center;gap:8px}
+.explore .qrow__top .save-button{margin:-10px -8px -10px auto}
+.explore .qrow__status{margin-left:0}
+.explore .qrow .qrow__subject{padding:2px 12px;border-radius:var(--radius-pill);background:var(--accent-soft);color:var(--accent-strong);font:600 12px var(--font-ui)}
+.explore .qrow .qrow__status{padding:2px 12px;border:0;border-radius:var(--radius-pill);font:600 12px var(--font-ui);background:var(--warn-bg);color:var(--warn)}
+.explore .qrow .qrow__status--solved{background:var(--success-bg);color:var(--success)}
+.explore .qrow__title{margin:6px 0 4px;font:600 17px/1.35 var(--font-ui);letter-spacing:-.01em}
+.explore .qrow__title a{color:var(--text)}
+.explore .qrow__title a:hover{color:var(--accent-strong)}
+.explore .qrow__meta{margin:0;font:400 13px var(--font-ui);color:var(--text-muted)}
+.explore .qrow__tag{color:var(--text-muted)}
+.explore .qrow .qrow__view{display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:4px 0;font:600 14px var(--font-ui);color:var(--accent-strong)}
+.explore .qrow__view:hover{text-decoration:underline}
+.explore .qrow .save-button{min-height:44px;border:0;background:transparent;color:var(--text-muted);font:500 13px var(--font-ui)}
+.explore .qrow .save-button:hover{color:var(--accent-strong);background:var(--accent-soft)}
+.explore .qrow .save-button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent-strong)}
+@media(prefers-reduced-motion:reduce){.explore .qlist .qrow{transition:none}.explore .qlist .qrow:hover{transform:none}}
