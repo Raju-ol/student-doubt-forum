@@ -1,7 +1,7 @@
 /* ui-v2 "Soft Study" overrides. Loaded LAST so it wins the cascade over genz.css (see docs/UI_V2_CHANGE_RECORD.md). */
 
 /* Step 2: header = brand | centered search pill | Ask a Doubt + theme + bell + avatar */
-.header__search{position:relative;flex:1 1 280px;max-width:480px;min-width:0;margin:0 auto;display:flex;align-items:center}
+.header__search{position:relative;flex:1 1 200px;max-width:340px;min-width:0;margin:0 auto;display:flex;align-items:center}
 .header__search svg{position:absolute;left:16px;color:var(--text-muted);pointer-events:none}
 .header__search input{width:100%;min-height:44px;padding:0 18px 0 42px;border:1px solid var(--line-soft);border-radius:var(--radius-pill);background:var(--surface);color:var(--text);font:500 14px var(--font-ui);box-shadow:none}
 .header__search input::placeholder{color:var(--text-muted)}
@@ -11,3 +11,16 @@
 .header .nav-ask:focus-visible{outline:3px solid var(--accent-strong);outline-offset:3px}
 @media(max-width:1023px){.header__search{flex-basis:200px}}
 @media(max-width:639px){.header__search{order:3;flex:1 1 100%;max-width:none;margin:0}}
+
+/* Step 3: navigation items (header links + mobile tab bar). Active = --accent-soft pill, --accent text/icon.
+   Light-theme orange text on cream is low contrast; --accent-strong is used for the text. Step 8 verifies ratios. */
+.header nav>a.navpill{display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:var(--radius-pill);color:var(--text);font:500 14px var(--font-ui);text-decoration:none}
+.header nav>a.navpill:hover{background:var(--surface-soft);color:var(--text);text-decoration:none}
+.header nav>a.navpill[aria-current=page]{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;text-decoration:none}
+.header nav>a.navpill svg{flex:none}
+.header nav>a.navpill:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tabbar__item{font-family:var(--font-ui)}
+.tabbar__item[aria-current=page]{color:var(--accent-strong)}
+.tabbar__item[aria-current=page]::before{display:none}
+.tabbar__item[aria-current=page]>svg{box-sizing:content-box;padding:4px 14px;margin:-4px -14px;border-radius:var(--radius-pill);background:var(--accent-soft)}
+@media(min-width:1024px){.header nav.navigation{flex-wrap:nowrap;gap:10px;margin-left:0;flex:none}.header nav>a.navpill{padding:0 10px}.header__inner{gap:16px}}

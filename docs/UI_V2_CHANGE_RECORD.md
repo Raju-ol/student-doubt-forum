@@ -28,3 +28,11 @@ Template per step:
 - Revert: `git revert <hash>`
 - Deviations: (1) Styles live in new `ui-v2.css` loaded after `genz.css`, not in `styles.css`: genz.css sets `.nav-ask` colors with `!important` and loads later, so styles.css could not win. (2) Header had no search before (it lives in the Explore page); the new header search is additional, the Explore search is untouched until Step 4. (3) Mobile (<640px): Ask stays hidden in the collapsed menu because the bottom tab bar already has Ask (existing behavior). (4) Known: white text on `--accent` is below 4.5:1 in both themes; to be resolved in Step 8 (contrast pass).
 - Screenshot: none (steps 4-7 required); checked manually in light and dark.
+
+## Step 3 — Sidebar (navigation)  (commit: see git log, 2026-11-13)
+- Changed: `client/src/components.jsx` (Navbar links, MobileTabBar), `client/src/ui-v2.css`
+- What: Navigation items now use lucide icons (Home, BookOpen, Bookmark; mobile bar also User). Active item = `--accent-soft` pill with `--accent-strong` text/icon (desktop header links + mobile tab bar). Active state is now computed for Explore / Study Library / Saved (previously Explore was highlighted on all three). Header nav kept on one row at >=1024px.
+- Why: Plan §3 Step 3.
+- Revert: `git revert <hash>`
+- Deviations: (1) The app has NO left sidebar and no "Learn • Ask • Grow" card or trophy (searched `pages.jsx`/`components.jsx`). Per §4 (adapt minimally, don't redesign) I applied the sidebar styling to the nav items that exist (header links + mobile tab bar) and did NOT invent a sidebar or that card. If a real sidebar/card is wanted it needs a design decision. The existing right-hand cards ("be someone's hero", "Study Library") are left for Step 6. (2) Active text uses `--accent-strong` rather than `--accent` for better contrast on cream (plan §3 Step 8 allows this). (3) Logged-in header width (bell + name) not visually checked: backend not running in this session.
+- Screenshot: none (steps 4-7 required).

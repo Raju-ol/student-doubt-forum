@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Search as SearchIcon } from 'lucide-react';
+import { Plus, Search as SearchIcon, Home, BookOpen, Bookmark, User } from 'lucide-react';
 import { useAuth } from './context';
 import { api } from './api';
 import { markdownToText } from './excerpt';
@@ -36,6 +36,9 @@ export function Navbar() {
   useEffect(() => setHeaderSearch(location.pathname === '/' ? new URLSearchParams(location.search).get('search') || '' : ''), [location.pathname, location.search]);
   function submitSearch(event) { event.preventDefault(); const text = headerSearch.trim(); navigate(text ? `/?search=${encodeURIComponent(text)}` : '/'); }
   useEffect(() => setExpanded(false), [location.pathname, location.search]);
+  const navParams = new URLSearchParams(location.search); const onExplore = location.pathname === '/';
+  const here = { library: onExplore && navParams.get('tag') === 'study-library', saved: onExplore && navParams.get('view') === 'saved' };
+  here.explore = onExplore && !here.library && !here.saved;
   function closeMenu(event) { if (expanded && event.key === 'Escape') { event.preventDefault(); setExpanded(false); menuButton.current?.focus(); } }
   return <header className="header" onKeyDown={closeMenu}><div className="header__inner">
     <Link className="header__brand" to="/" aria-label="Doubt Forum home"><Mark /></Link>
@@ -46,9 +49,9 @@ export function Navbar() {
       <input id="header-search" type="search" placeholder="Search topics or questions" value={headerSearch} maxLength={120} onChange={event => setHeaderSearch(event.target.value)} />
     </form>
     <nav id="main-navigation" className={expanded ? "navigation navigation--open" : "navigation"} aria-label="Main navigation">
-      <NavLink to="/" end>Explore</NavLink>
-      <Link to="/?scope=all&tag=study-library">Study Library</Link>
-      <Link to="/?view=saved">Saved</Link>
+      <Link className="navpill" to="/" aria-current={here.explore ? 'page' : undefined}><Home aria-hidden="true" size={18} />Explore</Link>
+      <Link className="navpill" to="/?scope=all&tag=study-library" aria-current={here.library ? 'page' : undefined}><BookOpen aria-hidden="true" size={18} />Study Library</Link>
+      <Link className="navpill" to="/?view=saved" aria-current={here.saved ? 'page' : undefined}><Bookmark aria-hidden="true" size={18} />Saved</Link>
       {['admin', 'moderator'].includes(user?.role) && <NavLink to="/admin">Moderation</NavLink>}
       <Link className="button button--small nav-ask" to="/ask"><Plus aria-hidden="true" size={18} />Ask a Doubt</Link>
       <ThemeControl />
@@ -68,13 +71,13 @@ export function MobileTabBar() {
   const onExplore = location.pathname === '/';
   const library = onExplore && params.get('tag') === 'study-library'; const saved = onExplore && params.get('view') === 'saved';
   const here = { explore: onExplore && !library && !saved, library, saved, me: user && location.pathname === `/users/${user._id}` };
-  const tab = (key, to, icon, label) => <Link className="tabbar__item" to={to} aria-current={here[key] ? 'page' : undefined}><Icon name={icon} size={22} /><span>{label}</span></Link>;
+  const tab = (key, to, Glyph, label) => <Link className="tabbar__item" to={to} aria-current={here[key] ? 'page' : undefined}><Glyph aria-hidden="true" size={22} /><span>{label}</span></Link>;
   return <nav className="tabbar" aria-label="Quick navigation">
-    {tab('explore', '/', 'home', 'Explore')}
-    {tab('library', '/?scope=all&tag=study-library', 'book', 'Library')}
+    {tab('explore', '/', Home, 'Explore')}
+    {tab('library', '/?scope=all&tag=study-library', BookOpen, 'Library')}
     <Link className="tabbar__ask" to="/ask" aria-label="Ask a doubt" aria-current={location.pathname === '/ask' ? 'page' : undefined}><Icon name="plus" size={28} /></Link>
-    {tab('saved', '/?view=saved', 'bookmark', 'Saved')}
-    {user ? tab('me', `/users/${user._id}`, 'user', 'Me') : tab('me', '/login', 'user', 'Sign in')}
+    {tab('saved', '/?view=saved', Bookmark, 'Saved')}
+    {user ? tab('me', `/users/${user._id}`, User, 'Me') : tab('me', '/login', User, 'Sign in')}
   </nav>;
 }
 export function Avatar({ name = '?', large = false }) { return <span className={`avatar ${large ? 'avatar--large' : ''}`} aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>; }
