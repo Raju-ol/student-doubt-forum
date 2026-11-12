@@ -77,3 +77,12 @@ Template per step:
 - Revert: `git revert <hash>`
 - Deviations: (1) This changes the look of the whole dark theme, not just the new components, since the plan defines dark as violet; the Chalkboard look is gone. (2) Pages walked in dark with mock data: Explore, Sign up, 404, plus Bento Explore. NOT walked (need login/backend): Ask, question detail, profile, notifications, account, admin/catalog; any hard-coded light colors there remain unverified. (3) Muted/accent text contrast is not yet measured (Step 8). (4) Leftover legacy dark rules in `genz.css` for sticky-note pastels are neutralized only via tokens.
 - Screenshot: docs/screenshots/ui-v2-step7-dark-explore.jpg
+
+## Step 8 — Responsive + a11y  (commit: see git log, 2026-11-13)
+- Changed: `client/src/ui-v2.css` only
+- What: Computed WCAG contrast for every new token pair and fixed failures with new tokens: `--accent-text` (light #9A5200 / dark #A78BFA) for all accent-colored text, icons and focus rings; `--accent-btn` + `--on-accent` for solid buttons (light: orange #F08A24 with dark ink #2B2113, 6.3:1; dark: violet #6D4AE8 with white, 5.5:1); light `--text-muted` darkened to #6F624B (5.96:1 on white, 4.94 on soft). Dark `--on-primary` is now dark ink (legacy `.button` white-on-#8B6CFF was 3.7:1). Global visible focus ring (3px `--accent-text`) on links, buttons, inputs, selects, textareas. Phone fixes: badges don't wrap, tab-bar Ask button uses `--accent-btn` (was lime).
+- Why: Plan §3 Step 8 (explicitly allows darker accent text; here also darker button fills).
+- Measured (before -> after): light muted on white 4.18 -> 5.96; light white-on-orange button 2.51 -> 6.29 (ink on orange); light accent text on soft 2.67 -> 4.86; dark white on #8B6CFF 3.69 -> 5.53 (button fill #6D4AE8). Already passing: body text 14-16:1 both themes, dark muted 5.6-6.8, success 4.57 / 8.0, warn 4.51 / 8.3.
+- Deviation: plan says white text on the solid accent button; in LIGHT the button text is dark ink because white on orange cannot reach 4.5:1. Also the plan's `--accent`/`--accent-strong` hex values are unchanged; they are used for fills only.
+- Checked: 360px (no horizontal overflow, single column, bottom tab bar), 768px (no overflow; header wraps to 3 rows), 1920x950 (earlier steps). Not checked: keyboard walk on real data, dark at 360/768, logged-in views, remaining legacy Sticker-style heavy outlines/hard shadows in light theme on the results panel, Menu button and auth pages (left as is; not part of Steps 2-6).
+- Screenshot: docs/screenshots/ui-v2-step8-mobile-360.jpg
