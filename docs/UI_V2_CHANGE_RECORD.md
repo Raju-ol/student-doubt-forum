@@ -61,3 +61,11 @@ Template per step:
 - Bug fixed: the Step 4 hero reused the class `hero`, which already exists in `styles.css` (old landing hero: `.hero p{margin:20px 0 25px}`, grid, 64px padding). Those rules were silently inflating the hero to 250px and overriding the tagline/subtitle sizes. Renamed my classes to `banner`, `banner__text/script/doodle/sub/art`; Step 4's intended sizes now actually apply.
 - Caveats: when the subject chip strip loads (needs the real catalogue API) it adds ~50px, so the 5th card will be partly below the fold at 950px. Verified on mock data only.
 - Screenshot: docs/screenshots/ui-v2-step5b-five-cards.jpg
+
+## Step 6 — Library cards + sidebar widgets  (commit: see git log, 2026-11-13)
+- Changed: `client/src/ui-v2.css` only
+- What: Quick-view chips (Study Library / Accepted answers / No accepted answer / Saved) are now plain pills (surface bg, soft border, no tilt/colored fills); active chip = `--text` bg with `--surface` text. The two right-hand cards ("be someone's hero today", "exam-ready explainers") are flat soft cards (`--accent-soft` / `--surface`, `--shadow-card`, Poppins headings), with accent-strong links and a solid `--accent` pill button.
+- Why: Plan §3 Step 6, §6 (no neon, no tilt gimmicks).
+- Revert: `git revert <hash>`
+- Deviations: most of Step 6 describes features the app does not have: file-type chips (PDF/DOC/PPT), download buttons, "Upload Resource" callout, "Popular Resources" list, "Trending Topics" chips, "Quick Links" block. The Study Library is curated questions (tag `study-library`), not files. Per §4 I did not invent them (they would need backend/upload work); `--chip-*` tokens stay unused. Subject chips (Step 4) already serve as the topics row. The results panel still has the old heavy outline; left for Step 7 theme pass. Verified on mock data, light theme only.
+- Screenshot: docs/screenshots/ui-v2-step6-widgets.jpg

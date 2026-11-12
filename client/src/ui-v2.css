@@ -83,3 +83,20 @@
   .explore .qlist .qrow{padding:10px 16px}
   .explore .qrow__title{margin:4px 0 2px;font-size:16px;line-height:1.3}
 }
+
+/* Step 6: Library/side widgets, adapted to what exists (no file resources, uploads or trending list in the app).
+   Quick-view chips (Study Library / Accepted answers / No accepted answer / Saved) + the two aside cards. */
+.explore .explore__discover a.explore__chip{border:1px solid var(--line-soft);border-radius:var(--radius-pill);background:var(--surface);color:var(--text);box-shadow:none;transform:none;font:500 14px var(--font-ui)}
+.explore .explore__discover a.explore__chip:hover{background:var(--surface-soft);transform:none}
+.explore .explore__discover a.explore__chip[aria-current]{background:var(--text);border-color:var(--text);color:var(--surface)}
+.explore .explore__discover a.explore__chip[aria-current] .explore__chip-count{background:var(--surface);color:var(--text)}
+.explore .explore__chip-count{background:var(--accent-soft);color:var(--accent-strong)}
+.explore .explore__aside .explore__card{padding:20px;border:1px solid var(--line-soft);border-radius:var(--radius-card);background:var(--surface);color:var(--text);box-shadow:var(--shadow-card);transform:none}
+.explore .explore__aside .explore__card--hero{background:var(--accent-soft)}
+.explore .explore__aside .explore__card--library{background:var(--surface)}
+.explore .explore__aside .explore__card h2{margin:0 0 6px;font:600 18px/1.3 var(--font-ui);letter-spacing:-.01em;color:var(--text)}
+.explore .explore__aside .explore__card p{font:400 14px/1.5 var(--font-ui);color:var(--text)}
+.explore .explore__aside .explore__card .explore__card-kicker{font:600 12px var(--font-ui);color:var(--accent-strong)}
+.explore .explore__aside .explore__card-link{font:600 14px var(--font-ui);color:var(--accent-strong)}
+.explore .explore__aside .explore__card .button{background:var(--accent)!important;color:#fff!important;border:0!important;border-radius:var(--radius-pill)!important;box-shadow:none!important;transform:none!important;font:600 14px var(--font-ui)!important}
+.explore .explore__aside .explore__card .button:hover{background:var(--accent-strong)!important;text-decoration:none}
