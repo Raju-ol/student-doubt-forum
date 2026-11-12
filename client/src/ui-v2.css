@@ -24,3 +24,18 @@
 .tabbar__item[aria-current=page]::before{display:none}
 .tabbar__item[aria-current=page]>svg{box-sizing:content-box;padding:4px 14px;margin:-4px -14px;border-radius:var(--radius-pill);background:var(--accent-soft)}
 @media(min-width:1024px){.header nav.navigation{flex-wrap:nowrap;gap:10px;margin-left:0;flex:none}.header nav>a.navpill{padding:0 10px}.header__inner{gap:16px}}
+
+/* Step 4: compact heroes (Explore + Library). Script font is used ONLY for .hero__script. */
+.explore{margin-top:20px}
+.hero{position:relative;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:150px;padding:18px 28px;border-radius:var(--radius-card);background:var(--surface-soft);overflow:visible}
+.hero__text{min-width:0;max-width:640px}
+.hero__script{margin:0 0 2px;font:600 24px/1.1 var(--font-script);color:var(--accent-strong);display:flex;align-items:center;gap:6px}
+.hero__doodle{fill:var(--accent);flex:none}
+.hero .explore__title{font-size:30px;line-height:1.12;max-width:none;font-family:var(--font-ui);font-weight:700;letter-spacing:-.02em}
+:root[data-theme=dark] .hero .explore__title{font-family:var(--font-ui)}
+.hero__sub{margin:6px 0 0;font:400 14px/1.4 var(--font-ui);color:var(--text-muted)}
+.hero__art{flex:none;width:auto;height:170px;margin:-10px 0;object-fit:contain}
+@media(max-width:767px){.hero__art{display:none}.hero{min-height:0;padding:16px 18px}.hero .explore__title{font-size:24px}}
+.explore__subjects{margin-top:16px}
+.explore__discover{margin-top:16px}
+.explore__subject[aria-pressed=true]{background:var(--text);border-color:var(--text);color:var(--surface)}

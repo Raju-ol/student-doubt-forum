@@ -36,3 +36,11 @@ Template per step:
 - Revert: `git revert <hash>`
 - Deviations: (1) The app has NO left sidebar and no "Learn • Ask • Grow" card or trophy (searched `pages.jsx`/`components.jsx`). Per §4 (adapt minimally, don't redesign) I applied the sidebar styling to the nav items that exist (header links + mobile tab bar) and did NOT invent a sidebar or that card. If a real sidebar/card is wanted it needs a design decision. The existing right-hand cards ("be someone's hero", "Study Library") are left for Step 6. (2) Active text uses `--accent-strong` rather than `--accent` for better contrast on cream (plan §3 Step 8 allows this). (3) Logged-in header width (bell + name) not visually checked: backend not running in this session.
 - Screenshot: none (steps 4-7 required).
+
+## Step 4 — Heroes  (commit: see git log, 2026-11-13)
+- Changed: `client/src/pages.jsx` (hero markup in Feed only), `client/src/ui-v2.css`
+- What: Explore and Library (same Feed, `tag=study-library`) get a compact ~150px hero: script tagline ("Better Together <3" / "Study Smart Not Hard!") with a small inline-SVG sparkle, title, one subtitle line, and the PNG illustration on the right (`hero-explore.png` / `hero-library.png`, empty alt, 480x320 attributes, hidden below 768px). Script font is used only for the tagline. Active subject chip = `--text` background with `--surface` (white in light) text. Spacing under the hero tightened.
+- Why: Plan §3 Step 4, decision 3, §6, Appendix A.
+- Revert: `git revert <hash>`
+- Deviations: (1) The in-hero search form was removed, because the header now has the same search (Step 2, same `?search=` param) and it would not fit the ~150px height. Search state/chips logic untouched. (2) Library hero title is "Study Library" (no existing Library title). (3) Subject chip row could not be visually checked: it needs the catalogue API, which wasn't running (chip style was already text-bg when active; only the text color changed). (4) Only one sparkle doodle added, not 2–3. (5) Screenshot is Explore, light theme, with API errors visible (no backend).
+- Screenshot: docs/screenshots/ui-v2-step4-explore-hero.jpg
