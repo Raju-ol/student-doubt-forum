@@ -80,15 +80,15 @@ export function Feed() {
 
   return <div className="explore">
     <section className="explore__top" aria-labelledby="explore-heading">
-      <div className="explore__search-row">
-        <h1 id="explore-heading" className="explore__title">stuck on something? <mark className="explore__mark">someone’s been there.</mark></h1>
-        <form className="explore__search" role="search" onSubmit={event => { event.preventDefault(); filter('search', search.trim()); }}>
-          <label className="visually-hidden" htmlFor="question-search">Search questions</label>
-          <span className="explore__search-icon"><Icon name="search" size={22} /></span>
-          <input id="question-search" type="search" placeholder="Search topics or questions" value={search}
-            maxLength={120} onChange={event => setSearch(event.target.value)} />
-          <button className="button" type="submit">Search</button>
-        </form>
+      <div className="banner">
+        <div className="banner__text">
+          <p className="banner__script">{isLibrary ? 'Study Smart Not Hard!' : 'Better Together <3'}<svg className="banner__doodle" aria-hidden="true" width="22" height="22" viewBox="0 0 24 24"><path d="M12 2c.6 5.4 3.6 8.4 9 9-5.4.6-8.4 3.6-9 9-.6-5.4-3.6-8.4-9-9 5.4-.6 8.4-3.6 9-9Z" /></svg></p>
+          {isLibrary
+            ? <h1 id="explore-heading" className="explore__title">Study Library</h1>
+            : <h1 id="explore-heading" className="explore__title">stuck on something? <mark className="explore__mark">someone’s been there.</mark></h1>}
+          <p className="banner__sub">{isLibrary ? 'Worked explanations for the night before the exam.' : 'Browse questions from students like you, or ask your own.'}</p>
+        </div>
+        <img className="banner__art" src={isLibrary ? '/illustrations/hero-library.png' : '/illustrations/hero-explore.png'} alt="" width="480" height="320" />
       </div>
       <nav className="explore__discover" aria-label="Quick views">
         <Link className="explore__chip explore__chip--library" to={isLibrary ? discover({ tag: '', scope: '' }, true) : '/?scope=all&tag=study-library'}

@@ -10,12 +10,18 @@ import { CatalogPage } from './catalog-page';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/space-grotesk';
 import '@fontsource/caveat-brush';
+import '@fontsource/poppins/400.css';
+import '@fontsource/poppins/500.css';
+import '@fontsource/poppins/600.css';
+import '@fontsource/poppins/700.css';
+import '@fontsource/caveat/600.css';
 import '@fontsource-variable/bricolage-grotesque';
 import './styles.css';
 import './p0.css';
 import './explore.css';
 import './question-detail.css';
 import './genz.css';
+import './ui-v2.css';
 class ErrorBoundary extends React.Component {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }

@@ -1,0 +1,132 @@
+/* ui-v2 "Soft Study" overrides. Loaded LAST so it wins the cascade over genz.css (see docs/UI_V2_CHANGE_RECORD.md). */
+
+/* Step 2: header = brand | centered search pill | Ask a Doubt + theme + bell + avatar */
+.header__search{position:relative;flex:1 1 200px;max-width:340px;min-width:0;margin:0 auto;display:flex;align-items:center}
+.header__search svg{position:absolute;left:16px;color:var(--text-muted);pointer-events:none}
+.header__search input{width:100%;min-height:44px;padding:0 18px 0 42px;border:1px solid var(--line-soft);border-radius:var(--radius-pill);background:var(--surface);color:var(--text);font:500 14px var(--font-ui);box-shadow:none}
+.header__search input::placeholder{color:var(--text-muted)}
+.header__search input:focus-visible{outline:3px solid var(--accent-text);outline-offset:2px}
+.header .nav-ask,:root:not([data-theme=bento]) .header .nav-ask,:root[data-theme=dark] .header .nav-ask{background:var(--accent-btn)!important;color:var(--on-accent)!important;border:0!important;border-radius:var(--radius-pill)!important;box-shadow:none!important;transform:none!important;min-height:44px;padding:0 18px!important;font:600 14px var(--font-ui)!important}
+.header .nav-ask:hover{background:var(--accent-btn-hover)!important;text-decoration:none}
+.header .nav-ask:focus-visible{outline:3px solid var(--accent-text);outline-offset:3px}
+@media(max-width:1023px){.header__search{flex-basis:200px}}
+@media(max-width:639px){.header__search{order:3;flex:1 1 100%;max-width:none;margin:0}}
+
+/* Step 3: navigation items (header links + mobile tab bar). Active = --accent-soft pill, --accent text/icon.
+   Text/icons use --accent-text (contrast-safe); --accent-strong is for fills/hover only. */
+.header nav>a.navpill{display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:var(--radius-pill);color:var(--text);font:500 14px var(--font-ui);text-decoration:none}
+.header nav>a.navpill:hover{background:var(--surface-soft);color:var(--text);text-decoration:none}
+.header nav>a.navpill[aria-current=page]{background:var(--accent-soft);color:var(--accent-text);font-weight:600;text-decoration:none}
+.header nav>a.navpill svg{flex:none}
+.header nav>a.navpill:focus-visible{outline:3px solid var(--accent-text);outline-offset:2px}
+.tabbar__item{font-family:var(--font-ui)}
+.tabbar__item[aria-current=page]{color:var(--accent-text)}
+.tabbar__item[aria-current=page]::before{display:none}
+.tabbar__item[aria-current=page]>svg{box-sizing:content-box;padding:4px 14px;margin:-4px -14px;border-radius:var(--radius-pill);background:var(--accent-soft)}
+@media(min-width:1024px){.header nav.navigation{flex-wrap:nowrap;gap:10px;margin-left:0;flex:none}.header nav>a.navpill{padding:0 10px}.header__inner{gap:16px}}
+
+/* Step 4: compact heroes (Explore + Library). Script font is used ONLY for .banner__script. */
+.explore{margin-top:20px}
+.banner{position:relative;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:150px;padding:18px 28px;border-radius:var(--radius-card);background:var(--surface-soft);overflow:visible}
+.banner__text{min-width:0;max-width:640px}
+.banner__script{margin:0 0 2px;font:600 24px/1.1 var(--font-script);color:var(--accent-text);display:flex;align-items:center;gap:6px}
+.banner__doodle{fill:var(--accent);flex:none}
+.banner .explore__title{font-size:30px;line-height:1.12;max-width:none;font-family:var(--font-ui);font-weight:700;letter-spacing:-.02em}
+:root[data-theme=dark] .banner .explore__title{font-family:var(--font-ui)}
+.banner__sub{margin:6px 0 0;font:400 14px/1.4 var(--font-ui);color:var(--text-muted)}
+.banner__art{flex:none;width:auto;height:170px;margin:-10px 0;object-fit:contain}
+@media(max-width:767px){.banner__art{display:none}.banner{min-height:0;padding:16px 18px}.banner .explore__title{font-size:24px}}
+.explore__subjects{margin-top:16px}
+.explore__discover{margin-top:16px}
+.explore__subject[aria-pressed=true]{background:var(--text);border-color:var(--text);color:var(--surface)}
+
+/* Step 5: question cards. Selectors start with .explore .qlist to beat theme-specific rules in explore.css/genz.css. */
+.explore .qlist{display:flex;flex-direction:column;gap:12px;padding:4px 0}
+.explore .qlist .qrow{display:block;position:relative;padding:12px 18px;border:1px solid var(--line-soft);border-radius:var(--radius-card);background:var(--surface);box-shadow:var(--shadow-card);transition:transform .15s ease,box-shadow .15s ease}
+.explore .qlist .qrow:last-child{border:1px solid var(--line-soft)}
+.explore .qlist .qrow:hover,.explore .qlist .qrow:focus-within{transform:translateY(-1px);box-shadow:0 6px 18px rgba(120,90,40,.16)}
+:root[data-theme=dark] .explore .qlist .qrow:hover{box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.explore .qrow__top{display:flex;align-items:center;gap:8px}
+.explore .qrow__top .save-button{margin:-10px -8px -10px auto}
+.explore .qrow__status{margin-left:0}
+.explore .qrow .qrow__subject{padding:2px 12px;border-radius:var(--radius-pill);background:var(--accent-soft);color:var(--accent-text);font:600 12px var(--font-ui)}
+.explore .qrow .qrow__status{padding:2px 12px;border:0;border-radius:var(--radius-pill);font:600 12px var(--font-ui);background:var(--warn-bg);color:var(--warn)}
+.explore .qrow .qrow__status--solved{background:var(--success-bg);color:var(--success)}
+.explore .qrow__title{margin:6px 0 4px;font:600 17px/1.35 var(--font-ui);letter-spacing:-.01em}
+.explore .qrow__title a{color:var(--text)}
+.explore .qrow__title a:hover{color:var(--accent-text)}
+.explore .qrow__meta{margin:0;font:400 13px var(--font-ui);color:var(--text-muted)}
+.explore .qrow__tag{color:var(--text-muted)}
+.explore .qrow .qrow__view{display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:4px 0;font:600 14px var(--font-ui);color:var(--accent-text)}
+.explore .qrow__view:hover{text-decoration:underline}
+.explore .qrow .save-button{min-height:44px;border:0;background:transparent;color:var(--text-muted);font:500 13px var(--font-ui)}
+.explore .qrow .save-button:hover{color:var(--accent-text);background:var(--accent-soft)}
+.explore .qrow .save-button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent-text)}
+@media(prefers-reduced-motion:reduce){.explore .qlist .qrow{transition:none}.explore .qlist .qrow:hover{transform:none}}
+
+/* Step 5b: trim the area above the list so ~5 cards fit at 1080p (plan §3 Step 5). */
+@media(min-width:768px){
+  .header .header__inner{min-height:60px;padding-top:8px;padding-bottom:8px}
+  .explore{margin-top:12px}
+  .banner{min-height:140px;padding:12px 28px}
+  .banner__text{max-width:760px}
+  .banner .explore__title{font-size:28px}
+  .banner__art{height:150px;margin:-8px 0}
+  .banner__script{font-size:22px}
+  .explore__discover{margin-top:12px}
+  .explore__discover .explore__chip{min-height:40px;padding:4px 14px}
+  .explore__subjects{margin-top:10px;padding-bottom:4px}
+  .explore__results{margin-top:0}
+  .explore .explore__toolbar{padding:8px 18px}
+  .explore .explore__heading h2{font-size:20px}
+  .explore .qlist{gap:10px;padding:2px 12px 10px}
+  .explore .qlist .qrow{padding:10px 16px}
+  .explore .qrow__title{margin:4px 0 2px;font-size:16px;line-height:1.3}
+}
+
+/* Step 6: Library/side widgets, adapted to what exists (no file resources, uploads or trending list in the app).
+   Quick-view chips (Study Library / Accepted answers / No accepted answer / Saved) + the two aside cards. */
+.explore .explore__discover a.explore__chip{border:1px solid var(--line-soft);border-radius:var(--radius-pill);background:var(--surface);color:var(--text);box-shadow:none;transform:none;font:500 14px var(--font-ui)}
+.explore .explore__discover a.explore__chip:hover{background:var(--surface-soft);transform:none}
+.explore .explore__discover a.explore__chip[aria-current]{background:var(--text);border-color:var(--text);color:var(--surface)}
+.explore .explore__discover a.explore__chip[aria-current] .explore__chip-count{background:var(--surface);color:var(--text)}
+.explore .explore__chip-count{background:var(--accent-soft);color:var(--accent-text)}
+.explore .explore__aside .explore__card{padding:20px;border:1px solid var(--line-soft);border-radius:var(--radius-card);background:var(--surface);color:var(--text);box-shadow:var(--shadow-card);transform:none}
+.explore .explore__aside .explore__card--hero{background:var(--accent-soft)}
+.explore .explore__aside .explore__card--library{background:var(--surface)}
+.explore .explore__aside .explore__card h2{margin:0 0 6px;font:600 18px/1.3 var(--font-ui);letter-spacing:-.01em;color:var(--text)}
+.explore .explore__aside .explore__card p{font:400 14px/1.5 var(--font-ui);color:var(--text)}
+.explore .explore__aside .explore__card .explore__card-kicker{font:600 12px var(--font-ui);color:var(--accent-text)}
+.explore .explore__aside .explore__card-link{font:600 14px var(--font-ui);color:var(--accent-text)}
+.explore .explore__aside .explore__card .button{background:var(--accent-btn)!important;color:var(--on-accent)!important;border:0!important;border-radius:var(--radius-pill)!important;box-shadow:none!important;transform:none!important;font:600 14px var(--font-ui)!important}
+.explore .explore__aside .explore__card .button:hover{background:var(--accent-btn-hover)!important;text-decoration:none}
+
+:root[data-theme=dark] body{background-image:none;font-family:var(--font-ui)}
+:root[data-theme=dark] h1,:root[data-theme=dark] .brand,:root[data-theme=dark] .explore__heading h2,:root[data-theme=dark] .qd__section-head h2,:root[data-theme=dark] .qd__compose h2,:root[data-theme=dark] .auth-form h2,:root[data-theme=dark] .state__big{font-weight:700;letter-spacing:-.02em}
+:root[data-theme=dark] .banner .explore__title{font-size:28px;line-height:1.12}
+:root[data-theme=dark] .explore .explore__heading h2{font-size:20px}
+:root[data-theme=dark] .brand{font-size:24px}
+:root[data-theme=dark] .brand__icon{background:var(--brand);color:#FFFFFF;border-radius:10px;transform:none}
+:root[data-theme=dark] mark,:root[data-theme=dark] .explore__mark{background:var(--accent-soft);color:var(--text);box-shadow:none}
+:root[data-theme=dark] .qd__question h1{font-size:32px}
+:root[data-theme=dark] .auth-story h1{font-size:44px}
+:root[data-theme=dark] .form-layout h1,:root[data-theme=dark] .admin h1,:root[data-theme=dark] .profile__header h1{font-size:34px}
+:root[data-theme=dark] .explore__results,:root[data-theme=dark] .explore__search{border-color:var(--line-soft)}
+:root[data-theme=dark] .qrow__tag,:root[data-theme=dark] .qrow__meta{color:var(--text-muted)}
+@media(max-width:639px){:root[data-theme=dark] .banner .explore__title{font-size:24px}}
+:root[data-theme=bento] .banner .explore__title{font-size:28px;line-height:1.12}
+@media(max-width:639px){:root[data-theme=bento] .banner .explore__title{font-size:24px}}
+
+/* Step 8: a11y. Visible focus everywhere (>=3:1 against both page colors), larger tap targets on phones. */
+:root a:focus-visible,:root button:focus-visible,:root input:focus-visible,:root select:focus-visible,:root textarea:focus-visible,:root summary:focus-visible{outline:3px solid var(--accent-text);outline-offset:2px}
+.explore .qrow .qrow__view:focus-visible,.explore .qrow__title a:focus-visible{border-radius:6px}
+@media(max-width:639px){
+  .header__search input{min-height:44px}
+  .explore .qlist{padding:2px 0 10px}
+  .explore .qrow__meta{gap:4px 10px}
+  .explore .qrow .qrow__view{padding:10px 0}
+  .banner__script{font-size:20px}
+}
+.explore .qrow__top{flex-wrap:wrap}
+.explore .qrow .qrow__status,.explore .qrow .qrow__subject{white-space:nowrap}
+.tabbar__ask,:root:not([data-theme=bento]) .tabbar__ask,:root[data-theme=dark] .tabbar__ask{background:var(--accent-btn)!important;color:var(--on-accent)!important}
