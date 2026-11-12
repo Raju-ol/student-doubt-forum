@@ -52,3 +52,12 @@ Template per step:
 - Revert: `git revert <hash>`
 - Deviations / not met: (1) **5 cards do NOT fit at 1080p.** At a 1920x950 viewport 3 cards fit fully (4th is cut off): the area above the list (header, hero, quick chips, list toolbar) is ~505px and each card is ~123px. Fitting 5 would need cards <=77px or trimming the area above, which was not in the plan; needs a decision. (2) "Views" count omitted: the API data has no view count. (3) The answer-count box on the left was removed; the count is in the meta row. (4) Body preview line removed to save height. (5) Screenshot uses a throwaway mock API (not in repo); the real backend wasn't running, so long titles were checked on mock data only (they wrap).
 - Screenshot: docs/screenshots/ui-v2-step5-question-cards.jpg
+
+## Step 5b — Trim area above the list  (commit: see git log, 2026-11-13)
+- Changed: `client/src/pages.jsx` (class rename only), `client/src/ui-v2.css`
+- What: Tightened header, hero (min 140px, 28px title, 150px art), quick-view chips, list toolbar and card padding (cards ~101px) at >=768px so the first 5 cards fit at a 1920x950 viewport (5th card ends at 949px with one two-line title among them).
+- Why: Follow-up to Step 5's failed "5 cards at 1080p" check (Raju chose "trim area above").
+- Revert: `git revert <hash>`
+- Bug fixed: the Step 4 hero reused the class `hero`, which already exists in `styles.css` (old landing hero: `.hero p{margin:20px 0 25px}`, grid, 64px padding). Those rules were silently inflating the hero to 250px and overriding the tagline/subtitle sizes. Renamed my classes to `banner`, `banner__text/script/doodle/sub/art`; Step 4's intended sizes now actually apply.
+- Caveats: when the subject chip strip loads (needs the real catalogue API) it adds ~50px, so the 5th card will be partly below the fold at 950px. Verified on mock data only.
+- Screenshot: docs/screenshots/ui-v2-step5b-five-cards.jpg
