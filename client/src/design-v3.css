@@ -416,3 +416,6 @@
 .similar__list li{display:flex;flex-direction:column;gap:2px}
 .similar__list a{font-weight:700;overflow-wrap:anywhere}
 .similar__list .muted{font-size:13px}
+
+/* ---- Share button (role slice 2) ---- */
+.qd__byline-actions{display:inline-flex;align-items:center;gap:6px}

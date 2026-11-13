@@ -21,6 +21,7 @@ import { existsSync } from 'node:fs';
 import mongoose from 'mongoose';
 import { User, Doubt, Answer, Comment, Report, Upload, TeacherRequest, Vote } from './models.js';
 import { mountSimilarRoutes } from './similar.js';
+import { mountSharePage } from './share.js';
 import { mountTeacherRoutes, mountTeacherAdminRoutes, teacherRequestFields, teacherSubjectList } from './teachers.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
@@ -321,6 +322,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     if (req.body.status === 'removed') { const Model = report.targetType === 'doubt' ? Doubt : Answer; const target = await Model.findById(report.target); if (target) { if (report.targetType === 'doubt') await removeDoubt(target, cloudinary); else await removeAnswer(target); } }
     report.status = req.body.status; await report.save(); ok(res, report, 'Report resolved.');
   }));
+  mountSharePage(app);
   app.use('/api', (req, res) => res.status(404).json({ success: false, message: 'API route not found.' }));
   const clientDist = fileURLToPath(new URL('../../client/dist', import.meta.url));
   if (serveClient && existsSync(clientDist)) { app.use(express.static(clientDist)); app.get('/{*path}', (req, res) => res.sendFile(path.join(clientDist, 'index.html'))); }

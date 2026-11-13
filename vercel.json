@@ -22,6 +22,11 @@
   ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" },
+    {
+      "source": "/doubts/:id",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|Slackbot|TelegramBot|Discordbot|LinkedInBot|SkypeUriPreview).*" }],
+      "destination": "/api"
+    },
     { "source": "/:path*", "destination": "/index.html" }
   ]
 }

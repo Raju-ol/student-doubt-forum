@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Search as SearchIcon, Home, BookOpen, Bookmark, User, ArrowRight, MessageCircle, Eye, Trophy, Heart, Menu as MenuIcon, X as CloseIcon, GraduationCap, ThumbsUp } from 'lucide-react';
+import { Plus, Search as SearchIcon, Home, BookOpen, Bookmark, User, ArrowRight, MessageCircle, Eye, Trophy, Heart, Menu as MenuIcon, X as CloseIcon, GraduationCap, ThumbsUp, Share2 } from 'lucide-react';
 import { useAuth } from './context';
 import { api } from './api';
 import { markdownToText } from './excerpt';
@@ -183,6 +183,19 @@ export function VoteButtons({ item, type, refresh }) {
   const { token, user, notify } = useAuth(); const navigate = useNavigate(); const location = useLocation(); const [busy, setBusy] = useState(false);
   async function vote(value) { if (!user) { navigate(signInPath(location)); return; } setBusy(true); try { await api(`/${type}s/${item._id}/vote`, { method: 'POST', token, body: { value } }); await refresh(); } catch (error) { notify(error.message); } finally { setBusy(false); } }
   return <div className="vote" aria-label="Voting"><button aria-label="Upvote" aria-pressed={item.myVote === 1} disabled={busy || item.author?._id === user?._id} onClick={() => vote(1)}>▲</button><strong>{item.votes}</strong><button aria-label="Downvote" aria-pressed={item.myVote === -1} disabled={busy || item.author?._id === user?._id} onClick={() => vote(-1)}>▼</button></div>;
+}
+// Opens the phone's share sheet where there is one, otherwise copies the link.
+export function ShareButton({ doubt }) {
+  const { notify } = useAuth();
+  async function share() {
+    const url = `${window.location.origin}/doubts/${doubt._id}`;
+    try {
+      if (typeof navigator.share === 'function') { await navigator.share({ title: doubt.title, url }); return; }
+    } catch (error) { if (error?.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(url); notify('Link copied. Paste it into WhatsApp or anywhere you like.'); }
+    catch { notify(`Copy this link: ${url}`); }
+  }
+  return <button type="button" className="save-button" onClick={share} title="Share this question"><Share2 aria-hidden="true" size={18} /><span>Share</span></button>;
 }
 // Questions take one small "Same doubt" press instead of up/down arrows, so
 // pressing means "I have this doubt too", never a judgement of the asker.

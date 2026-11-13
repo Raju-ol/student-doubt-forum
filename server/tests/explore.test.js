@@ -210,6 +210,37 @@ test('a question page ends with Similar doubts, and shows nothing when there are
   try { assert.equal(none.host.querySelector('.qd__related'), null); } finally { await none.cleanup(); }
 });
 
+test('Share uses the share sheet when there is one, otherwise copies the link, otherwise shows it', async () => {
+  const detail = { ...doubt('d9', 'open', 0), answers: [] };
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  const withNavigator = value => Object.defineProperty(globalThis, 'navigator', { value, configurable: true });
+  const view = await mount('/doubts/d9', { detail });
+  try {
+    const share = () => [...view.host.querySelectorAll('.qd__byline .save-button')].find(button => /Share/.test(button.textContent));
+    assert.ok(share(), 'a Share button sits beside Save');
+    const copied = [];
+    withNavigator({ clipboard: { writeText: async text => { copied.push(text); } } });
+    await view.click(share());
+    assert.deepEqual(copied, ['http://localhost/doubts/d9']);
+    assert.match(view.host.textContent, /Link copied/);
+    const shared = [];
+    withNavigator({ share: async data => { shared.push(data); } });
+    await view.click(share());
+    assert.deepEqual(shared, [{ title: 'Title d9', url: 'http://localhost/doubts/d9' }]);
+    withNavigator({ clipboard: { writeText: async () => { throw new Error('blocked'); } } });
+    await view.click(share());
+    assert.match(view.host.textContent, /Copy this link: http:\/\/localhost\/doubts\/d9/);
+    // Dismissing the share sheet is not an error and shows no message.
+    withNavigator({ share: async () => { throw Object.assign(new Error('cancelled'), { name: 'AbortError' }); }, clipboard: { writeText: async () => { throw new Error('must not be used'); } } });
+    view.host.querySelector('.toast button')?.click();
+    await view.click(share());
+    assert.doesNotMatch(view.host.textContent, /Copy this link|Link copied/);
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'navigator', original); else delete globalThis.navigator;
+    await view.cleanup();
+  }
+});
+
 test('the duplicate check waits for a real title, debounces, and opens links in a new tab', async () => {
   const short = await mount('/similar?t=How%20do');
   try {

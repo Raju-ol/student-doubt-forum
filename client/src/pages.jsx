@@ -13,7 +13,7 @@ import { InstitutionSelect } from './institution-select';
 import { useAuth } from './context';
 import { RelatedQuestions, SimilarWhileAsking } from './similar';
 import { useSavedQuestions, savedStorageAvailable } from './saved-questions';
-import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SameDoubtButton, SemesterSelect, date, Markdown, MarkdownEditor, TeacherRequestFields } from './components';
+import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SameDoubtButton, ShareButton, SemesterSelect, date, Markdown, MarkdownEditor, TeacherRequestFields } from './components';
 
 export function useResource(route) {
   const { token } = useAuth(); const [data, setData] = useState(null); const [error, setError] = useState(''); const [loading, setLoading] = useState(true); const [version, setVersion] = useState(0);
@@ -281,7 +281,7 @@ export function Detail() {
           : <span className="qd__state">{total ? 'No accepted answer yet' : 'No answers yet'}</span>}
       </div>
       <h1 id="question-title">{doubt.title}</h1>
-      <div className="qd__byline"><Author user={doubt.author} createdAt={doubt.createdAt} /><SaveButton doubt={{ ...doubt, answerCount: total }} /></div>
+      <div className="qd__byline"><Author user={doubt.author} createdAt={doubt.createdAt} /><span className="qd__byline-actions"><ShareButton doubt={doubt} /><SaveButton doubt={{ ...doubt, answerCount: total }} /></span></div>
       <div className="post-body">
         <div className="post-body__content">
           <Markdown source={doubt.body} />
