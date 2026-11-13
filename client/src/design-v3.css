@@ -405,3 +405,14 @@
 .dx-resultbar .dx-count{margin:0}
 .dx-sort{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:14px;font-weight:600}
 .dx-sort select{min-height:36px;padding:0 10px;border:var(--edge) var(--edge-style) var(--border);border-radius:10px;background:var(--card);color:var(--text);font:inherit;font-size:14px}
+
+/* ---- Related questions and the duplicate check (role slice 2) ---- */
+.similar,.qd__related{margin:14px 0;padding:14px 18px;border:var(--edge) dashed var(--border);border-radius:16px;background:var(--card)}
+.qd__related{margin-top:30px}
+.qd__related h2{margin:0 0 8px;font-size:20px}
+.similar>strong{display:block;margin-bottom:6px}
+.similar small{display:block;margin-top:8px;color:var(--muted)}
+.similar__list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.similar__list li{display:flex;flex-direction:column;gap:2px}
+.similar__list a{font-weight:700;overflow-wrap:anywhere}
+.similar__list .muted{font-size:13px}

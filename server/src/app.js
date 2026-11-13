@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import mongoose from 'mongoose';
 import { User, Doubt, Answer, Comment, Report, Upload, TeacherRequest, Vote } from './models.js';
+import { mountSimilarRoutes } from './similar.js';
 import { mountTeacherRoutes, mountTeacherAdminRoutes, teacherRequestFields, teacherSubjectList } from './teachers.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
@@ -194,6 +195,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     await Upload.updateMany({ _id: { $in: uploads.map(u => u._id) } }, { doubt: doubt._id });
     ok(res, doubt, 'Your doubt has been posted.', 201);
   }));
+  mountSimilarRoutes(api, { wrap, ok });
   api.get('/doubts/:id', wrap(async (req, res) => {
     const doubt = await findDoc(Doubt, req.params.id);
     await doubt.populate('author', authorFields);

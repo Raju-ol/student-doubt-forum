@@ -72,4 +72,39 @@ test('feed sorting, related questions and the duplicate check', async t => {
   await t.test('an unknown sort is rejected', async () => {
     await call('/doubts?sort=popular', { status: 400 });
   });
+
+  const gcTwin = await ask('Garbage collection basics: how are unused objects freed?', { tags: ['java', 'memory'], createdAt: new Date('2026-10-05') });
+  const physics = await ask('Why does projectile range peak at 45 degrees?', { subject: 'Physics', createdAt: new Date('2026-10-06') });
+  const sample = await ask('Garbage collection worked example for the exam', { tags: ['study-library'], createdAt: new Date('2026-10-07') });
+  await reply(gcTwin, 2);
+  const keys = data => data.map(item => String(item._id));
+
+  await t.test('related questions share a title or tag topic, exclude the question itself and carry no body or author', async () => {
+    const related = await call(`/doubts/${quiet._id}/related`);
+    const found = keys(related);
+    assert.ok(found.includes(String(gcTwin._id)));
+    assert.ok(!found.includes(String(quiet._id)) && !found.includes(String(physics._id)));
+    const twin = related.find(item => String(item._id) === String(gcTwin._id));
+    assert.deepEqual(Object.keys(twin).sort(), ['_id', 'answerCount', 'createdAt', 'status', 'subject', 'title']);
+    assert.equal(twin.answerCount, 2); assert.equal(twin.status, 'open');
+    assert.ok(related.length <= 5);
+    // The internal sample tag never becomes a search term.
+    const sampleRelated = await call(`/doubts/${sample._id}/related`);
+    assert.ok(!keys(sampleRelated).includes(String(sample._id)));
+    await call('/doubts/not-an-id/related', { status: 400 });
+    await call('/doubts/000000000000000000000000/related', { status: 404 });
+  });
+  await t.test('the duplicate check ranks title matches, ignores noise and punctuation, and needs a real title', async () => {
+    const hits = await call(`/doubts/similar?title=${encodeURIComponent('how does garbage collection work')}`);
+    const found = keys(hits);
+    assert.ok(found.includes(String(quiet._id)) && found.includes(String(gcTwin._id)));
+    assert.ok(!found.includes(String(physics._id)));
+    // A match only inside a question body is not suggested.
+    await ask('Plain unrelated headline about nothing', { body: 'The long description mentions quicksort pivots somewhere inside it.' });
+    assert.deepEqual(await call(`/doubts/similar?title=${encodeURIComponent('quicksort pivots explained')}`), []);
+    // Quotes and a leading minus are typed by people and must not break or invert the search.
+    assert.ok(keys(await call(`/doubts/similar?title=${encodeURIComponent('"garbage" -collection freed objects')}`)).includes(String(gcTwin._id)));
+    assert.deepEqual(await call('/doubts/similar?title=Java'), []);
+    assert.deepEqual(await call('/doubts/similar'), []);
+  });
 });

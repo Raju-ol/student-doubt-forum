@@ -15,20 +15,26 @@ await mkdir(cache, { recursive: true });
 const directory = await mkdtemp(join(cache, 'forum-explore-'));
 const outfile = join(directory, 'pages.mjs');
 await build({
-  stdin: { contents: "export { Feed, Detail } from './pages.jsx'; export { Provider } from './context.jsx';", resolveDir: dirname(entry), sourcefile: 'qa-explore.jsx', loader: 'jsx' }, outfile, bundle: true, format: 'esm', platform: 'browser',
+  stdin: { contents: "export { Feed, Detail } from './pages.jsx'; export { Provider } from './context.jsx'; export { SimilarWhileAsking } from './similar.jsx';", resolveDir: dirname(entry), sourcefile: 'qa-explore.jsx', loader: 'jsx' }, outfile, bundle: true, format: 'esm', platform: 'browser',
   jsx: 'automatic', loader: { '.jsx': 'jsx', '.css': 'empty' },
   external: ['react', 'react-dom', 'react-dom/*', 'react/*', 'react-router-dom'],
   define: { 'import.meta.env.VITE_API_URL': '""' }, logLevel: 'silent'
 });
-const { Feed, Detail, Provider } = await import(pathToFileURL(outfile).href);
+const { Feed, Detail, Provider, SimilarWhileAsking } = await import(pathToFileURL(outfile).href);
 const { createRoot } = await import('react-dom/client');
-const { MemoryRouter, Routes, Route } = await import('react-router-dom');
+const { MemoryRouter, Routes, Route, useSearchParams } = await import('react-router-dom');
 test.after(() => rm(directory, { recursive: true, force: true }));
 
 const doubt = (id, status, answerCount, extra = {}) => ({ _id: id, title: `Title ${id}`, body: 'Body text', subject: 'DBMS', tags: [], votes: 0, myVote: 0, status, answerCount, author: { _id: 'u1', name: 'Asha' }, createdAt: '2026-11-01T00:00:00Z', images: [], ...extra });
 const FEED = [doubt('d1', 'open', 2), doubt('d2', 'open', 0), doubt('d3', 'solved', 1)];
 
-async function mount(path, { storage = 'memory', detail } = {}) {
+const SIMILAR = [{ _id: 's1', title: 'Garbage collection basics in Java', subject: 'Java', answerCount: 2, status: 'solved' }, { _id: 's2', title: 'Why finalizers are discouraged', subject: 'Java', answerCount: 1, status: 'open' }];
+function SimilarHarness() {
+  const [params] = useSearchParams();
+  return React.createElement(SimilarWhileAsking, { title: params.get('t') || '' });
+}
+
+async function mount(path, { storage = 'memory', detail, similar = SIMILAR } = {}) {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost/' });
   const data = new Map();
   const store = storage === 'blocked'
@@ -47,6 +53,7 @@ async function mount(path, { storage = 'memory', detail } = {}) {
   globalThis.fetch = async url => {
     requests.push(String(url));
     const body = String(url).startsWith('/api/v1/catalog') ? { subjects: [{ name: 'DBMS' }, { name: 'Java' }], institutions: [] }
+      : String(url).startsWith('/api/v1/doubts/similar') || String(url).endsWith('/related') ? similar
       : String(url).startsWith('/api/v1/doubts/') ? detail
       : { items: FEED, total: 23, page: 1, pages: 3 };
     return { ok: true, json: async () => ({ success: true, data: body }) };
@@ -57,6 +64,7 @@ async function mount(path, { storage = 'memory', detail } = {}) {
   await React.act(async () => root.render(React.createElement(MemoryRouter, { initialEntries: [path] },
     React.createElement(Provider, null, React.createElement(Routes, null,
       React.createElement(Route, { path: '/', element: React.createElement(Feed) }),
+      React.createElement(Route, { path: '/similar', element: React.createElement(SimilarHarness) }),
       React.createElement(Route, { path: '/doubts/:id', element: React.createElement(Detail) }))))));
   await React.act(async () => new Promise(resolve => setTimeout(resolve, 20)));
   return {
@@ -183,6 +191,50 @@ test('blocked storage explains itself instead of failing silently', async () => 
     assert.equal(feed.host.querySelector('.qcard .save-button').getAttribute('aria-pressed'), 'false');
     assert.match(feed.host.textContent, /blocking site storage/);
   } finally { await feed.cleanup(); }
+});
+
+test('a question page ends with Similar doubts, and shows nothing when there are none', async () => {
+  const detail = { ...doubt('d9', 'open', 0), answers: [] };
+  const view = await mount('/doubts/d9', { detail });
+  try {
+    const section = view.host.querySelector('.qd__related');
+    assert.equal(section.querySelector('h2').textContent, 'Similar doubts');
+    const links = [...section.querySelectorAll('a')];
+    assert.deepEqual(links.map(link => link.getAttribute('href')), ['/doubts/s1', '/doubts/s2']);
+    assert.match(section.textContent, /Java · 2 answers · Resolved ✓/);
+    assert.match(section.textContent, /Java · 1 answer(?!s)/);
+    assert.ok(view.requests.includes('/api/v1/doubts/d9/related'));
+    assert.equal(links[0].getAttribute('target'), null);
+  } finally { await view.cleanup(); }
+  const none = await mount('/doubts/d9', { detail, similar: [] });
+  try { assert.equal(none.host.querySelector('.qd__related'), null); } finally { await none.cleanup(); }
+});
+
+test('the duplicate check waits for a real title, debounces, and opens links in a new tab', async () => {
+  const short = await mount('/similar?t=How%20do');
+  try {
+    await React.act(async () => new Promise(resolve => setTimeout(resolve, 650)));
+    assert.equal(short.requests.some(url => url.includes('/similar')), false);
+    assert.equal(short.host.querySelector('.similar'), null);
+  } finally { await short.cleanup(); }
+  const long = await mount('/similar?t=How%20does%20garbage%20collection%20work');
+  try {
+    assert.equal(long.requests.some(url => url.includes('/similar')), false, 'not before the debounce delay');
+    await React.act(async () => new Promise(resolve => setTimeout(resolve, 650)));
+    const asked = long.requests.filter(url => url.includes('/similar'));
+    assert.equal(asked.length, 1);
+    assert.equal(new URL(asked[0], 'http://x').searchParams.get('title'), 'How does garbage collection work');
+    const box = long.host.querySelector('.similar');
+    assert.match(box.textContent, /Is yours already answered/);
+    const links = [...box.querySelectorAll('a')];
+    assert.equal(links.length, 2);
+    assert.ok(links.every(link => link.getAttribute('target') === '_blank' && /noreferrer/.test(link.getAttribute('rel'))));
+  } finally { await long.cleanup(); }
+  const quiet = await mount('/similar?t=A%20very%20unusual%20headline%20here', { similar: [] });
+  try {
+    await React.act(async () => new Promise(resolve => setTimeout(resolve, 650)));
+    assert.equal(quiet.host.querySelector('.similar'), null);
+  } finally { await quiet.cleanup(); }
 });
 
 test('question detail separates question, accepted answer, other answers and composer', async () => {
