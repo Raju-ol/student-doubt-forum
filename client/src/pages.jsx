@@ -13,7 +13,7 @@ import { InstitutionSelect } from './institution-select';
 import { useAuth } from './context';
 import { RelatedQuestions, SimilarWhileAsking } from './similar';
 import { GrowthPanel } from './growth';
-import { AuditList } from './admin-extras';
+import { AuditList, Overview } from './admin-extras';
 import { useSavedQuestions, savedStorageAvailable } from './saved-questions';
 import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SameDoubtButton, ShareButton, SemesterSelect, date, Markdown, MarkdownEditor, TeacherRequestFields } from './components';
 
@@ -347,7 +347,7 @@ export function Profile() {
 export function Admin() {
   const { user, token, notify } = useAuth();
   const managesUsers = user.role === 'admin';
-  const [tab, setTab] = useState('users');
+  const [tab, setTab] = useState('overview');
   const [page, setPage] = useState(1);
   const [busy, setBusy] = useState(false);
   const section = managesUsers ? tab : 'reports';
@@ -374,14 +374,15 @@ export function Admin() {
       <p className="muted">Admins manage users and catalogues. Moderators review reports and remove reported content.</p>
       <p className="muted">Your own role and the primary admin are protected. Users can refresh after a role change to see their updated access.</p>
       <TabList id="admin-tabs" label="Moderation sections"
-        items={[{ value: 'users', label: 'Users' }, { value: 'reports', label: 'Reports' }, { value: 'teacher-requests', label: 'Teacher requests' }, { value: 'audit', label: 'Audit log' }]}
+        items={[{ value: 'overview', label: 'Overview' }, { value: 'users', label: 'Users' }, { value: 'reports', label: 'Reports' }, { value: 'teacher-requests', label: 'Teacher requests' }, { value: 'audit', label: 'Audit log' }]}
         value={section} onChange={value => { setTab(value); setPage(1); }} />
     </>}
     {!managesUsers && <p className="muted">Review reports and remove reported content that breaks the community rules.</p>}
     <div id="admin-tabs-panel" role={managesUsers ? 'tabpanel' : undefined}
       aria-labelledby={managesUsers ? `admin-tabs-${section}` : undefined} tabIndex={0}>
       <ErrorBox message={error} retry={refresh} />
-      {loading ? <Loading /> : error ? null : section === 'audit' ? <AuditList items={data?.items} />
+      {loading ? <Loading /> : error ? null : section === 'overview' ? <Overview data={data} onOpen={value => { setTab(value); setPage(1); }} />
+        : section === 'audit' ? <AuditList items={data?.items} />
         : section === 'teacher-requests'
         ? data?.items.length ? data.items.map(request => <TeacherRequestCard key={request._id} request={request} busy={busy} onAction={action} />)
           : <Empty title="No pending teacher requests">When someone asks for the ✓ Teacher badge, the request appears here for review.</Empty>

@@ -24,6 +24,23 @@ const { StaticRouter } = await import('react-router-dom');
 test.after(() => rm(directory, { recursive: true, force: true }));
 const html = element => renderToStaticMarkup(React.createElement(StaticRouter, { location: '/admin' }, element));
 
+test('the overview compares this week with last and links to what is waiting', () => {
+  const data = {
+    weeks: { questions: { thisWeek: 5, lastWeek: 2 }, answers: { thisWeek: 1, lastWeek: 4 }, signups: { thisWeek: 3, lastWeek: 3 } },
+    waiting: { unanswered: 7, reports: 2, teacherRequests: 0 },
+    totals: { users: 40, questions: 120, answers: 260, resources: 9, downloads: 311 }
+  };
+  const markup = html(React.createElement(components.Overview, { data, onOpen() {} }));
+  assert.match(markup, /Questions asked<\/span><strong>5<\/strong><span class="overview__trend is-up">\+3 vs last week/);
+  assert.match(markup, /Answers given<\/span><strong>1<\/strong><span class="overview__trend">−3 vs last week/);
+  assert.match(markup, /New sign-ups<\/span><strong>3<\/strong><span class="overview__trend">same as last week/);
+  assert.match(markup, /Unanswered questions<\/span><strong>7<\/strong><a class="text-button" href="\/\?scope=all&amp;status=open&amp;sort=unanswered"[^>]*>See them/);
+  assert.match(markup, /Reports to review<\/span><strong>2<\/strong><button type="button" class="text-button">Open reports/);
+  assert.match(markup, /Library downloads<\/dt><dd>311<\/dd>/);
+  assert.equal(components.trend({ thisWeek: 0, lastWeek: 0 }), 'same as last week');
+  assert.equal(html(React.createElement(components.Overview, { data: null })), '');
+});
+
 test('the audit list shows who did what, with the action, newest first as given', () => {
   const markup = html(React.createElement(components.AuditList, { items: [
     { _id: 'a2', action: 'user.role', summary: 'Changed Riya from student to teacher <b>x</b>', createdAt: '2026-11-13T10:30:00Z', actor: { name: 'Anita', role: 'admin' } },
