@@ -15,6 +15,7 @@ and a Library page of downloadable study resources.
 | Status wording | Accepted answer is **Resolved**. No accepted answer is **Unresolved**. No replies at all is **Unanswered**. |
 | Library | `/library` lists shared resources (Notes, Previous Year Papers, Cheat Sheets, Books, Others) with Download or Open, Popular Resources and an Upload Resource card. `/library/share` shares a file or an https link. The 200 sample questions moved to the Worked Q&A link (`/?scope=all&tag=study-library`). |
 | Contributors | `/contributors` lists the top 10 students by reputation. |
+| About | `/about` ("How it works", linked from the menu card and the footer) is a static guide with a Student, Teacher and Admin/moderator picker, step-by-step tasks, a feature table with links, limits, house rules and an FAQ. `server/tests/about-page.test.js` checks that every link on it is a real route. |
 | Other pages | Question detail, Ask, Profile and sign-in pick up the new look through re-pointed colour tokens in `client/src/design-v3.css`. |
 
 ## Server additions
