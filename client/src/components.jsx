@@ -94,6 +94,7 @@ export function Navbar() {
         <span className="sidebar__trophy" aria-hidden="true"><Trophy size={30} /></span>
         <p>Learn · Ask · Grow</p>
         <Heart className="sidebar__heart" aria-hidden="true" size={16} />
+        <Link className="sidebar__about" to="/about">How it works</Link>
       </div>
       <ThemeControl />
     </aside>

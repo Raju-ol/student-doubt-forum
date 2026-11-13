@@ -329,3 +329,49 @@
 
 .labelled-field{display:grid;gap:6px;margin-bottom:18px}
 .labelled-field>label{font-weight:600}
+
+/* ---------- About / How it works ---------- */
+.sidebar__about{margin-top:4px;font:600 13px var(--font-ui);color:var(--v3-accent)}
+.footer a{color:inherit;text-decoration:underline}
+.about{max-width:980px;margin:0 auto;padding-top:6px}
+.about__glance{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:20px 0 8px}
+.about__tile{display:flex;flex-direction:column;gap:6px;padding:20px;border-radius:22px;background:var(--v3-surface);border:1px solid var(--v3-line);box-shadow:var(--v3-shadow);color:var(--v3-text)}
+.about__tile:hover{text-decoration:none;transform:translateY(-2px)}
+.about__tile h2{font:700 18px var(--font-ui)}
+.about__tile p{font:400 14px/1.5 var(--font-ui);color:var(--v3-muted)}
+.about__tile-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:var(--v3-t0-bg);color:var(--v3-t0)}
+.about__tile-link{margin-top:auto;display:inline-flex;align-items:center;gap:4px;font:600 13px var(--font-ui);color:var(--v3-accent)}
+.about__section{margin-top:34px}
+.about__section>h2{font:700 26px var(--font-ui);letter-spacing:-.02em;margin-bottom:14px}
+.about__section h3{font:700 17px var(--font-ui);margin:22px 0 10px}
+.about__intro{margin-top:14px;font:400 15px/1.6 var(--font-ui);color:var(--v3-muted)}
+.about__can{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.about__can a{display:flex;flex-direction:column;gap:2px;height:100%;padding:14px 16px;border-radius:16px;background:var(--v3-surface);border:1px solid var(--v3-line);color:var(--v3-text)}
+.about__can a:hover{text-decoration:none;background:var(--v3-hover)}
+.about__can strong{font:600 15px var(--font-ui)}
+.about__can span{font:400 13px/1.45 var(--font-ui);color:var(--v3-muted)}
+.about__steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.about__card{padding:20px 22px;border-radius:22px;background:var(--v3-surface);border:1px solid var(--v3-line);box-shadow:var(--v3-shadow)}
+.about__card h4{font:700 16px var(--font-ui);margin-bottom:10px}
+.about__card ol{margin:0;padding-left:20px;display:grid;gap:8px;font:400 14px/1.5 var(--font-ui);color:var(--v3-text)}
+.about__note{margin-top:14px;padding:12px 16px;border-radius:14px;background:var(--v3-warn-bg);color:var(--v3-warn);font:500 14px/1.5 var(--font-ui)}
+.about__table-wrap{overflow-x:auto;border-radius:20px;border:1px solid var(--v3-line);background:var(--v3-surface)}
+.about__table{width:100%;border-collapse:collapse;font:400 14px/1.5 var(--font-ui)}
+.about__table th,.about__table td{padding:12px 16px;text-align:left;vertical-align:top;border-bottom:1px solid var(--v3-line)}
+.about__table thead th{font:600 12px var(--font-ui);letter-spacing:.04em;text-transform:uppercase;color:var(--v3-muted)}
+.about__table tbody th{font-weight:600;white-space:nowrap}
+.about__table tbody tr:last-child>*{border-bottom:0}
+.about__limits{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:0}
+.about__limits div{padding:14px 16px;border-radius:16px;background:var(--v3-surface);border:1px solid var(--v3-line)}
+.about__limits dt{font:600 13px var(--font-ui);color:var(--v3-muted)}
+.about__limits dd{margin:2px 0 0;font:600 15px var(--font-ui)}
+.about__faq{display:grid;gap:10px}
+.about__faq details{padding:0 18px;border-radius:16px;background:var(--v3-surface);border:1px solid var(--v3-line)}
+.about__faq summary{padding:14px 0;cursor:pointer;font:600 15px var(--font-ui)}
+.about__faq p{padding:0 0 16px;font:400 14px/1.6 var(--font-ui);color:var(--v3-muted)}
+.about__cta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:34px 0 10px;padding:22px 26px;border-radius:24px;background:var(--v3-hero);border:1px solid var(--v3-line)}
+.about__cta svg{color:#E39B14}
+.about__cta div{flex:1;min-width:200px}
+.about__cta h2{font:700 20px var(--font-ui)}
+.about__cta p{font:400 14px var(--font-ui);color:var(--v3-muted)}
+.about .dx-hero__art{right:60px}
