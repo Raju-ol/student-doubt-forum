@@ -22,6 +22,7 @@ import mongoose from 'mongoose';
 import { User, Doubt, Answer, Comment, Report, Upload, TeacherRequest, Vote } from './models.js';
 import { mountSimilarRoutes } from './similar.js';
 import { mountSharePage } from './share.js';
+import { growthFor } from './growth.js';
 import { mountTeacherRoutes, mountTeacherAdminRoutes, teacherRequestFields, teacherSubjectList } from './teachers.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
@@ -263,8 +264,8 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     if (user.isDeleted) fail(404, 'This account has been deleted.');
     // Anonymous questions stay off a public profile; only the owner and staff see them there.
     const showAnonymous = seesAnonymousAuthor(req.user, user._id);
-    const [doubts, answers, score] = await Promise.all([Doubt.find({ author: user._id, ...(showAnonymous ? {} : { isAnonymous: { $ne: true } }) }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id)]);
-    ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, academicLevel: effectiveLevel(user), institution: user.institution || null, createdAt: user.createdAt, reputation: score }, doubts: await decorateMany(doubts, 'doubt', req.user), answers });
+    const [doubts, answers, score, growth] = await Promise.all([Doubt.find({ author: user._id, ...(showAnonymous ? {} : { isAnonymous: { $ne: true } }) }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id), growthFor(user._id, { includeAnonymous: showAnonymous })]);
+    ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, academicLevel: effectiveLevel(user), institution: user.institution || null, createdAt: user.createdAt, reputation: score }, doubts: await decorateMany(doubts, 'doubt', req.user), answers, growth });
   }));
   api.put('/users/me', requireUser, wrap(async (req, res) => {
     req.user.name = text(req.body.name, 'Name', 2, 60);

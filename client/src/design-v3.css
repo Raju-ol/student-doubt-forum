@@ -425,3 +425,16 @@
 .anon-toggle input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--primary)}
 .anon-toggle small{display:block;margin-top:2px;color:var(--muted)}
 .author__anon{font-weight:700}
+
+/* ---- Profile growth (role slice 3) ---- */
+.growth h2{margin:0 0 12px}
+.growth__stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:0}
+.growth__stats>div{padding:12px 14px;border:var(--edge) var(--edge-style) var(--border);border-radius:14px;background:var(--card)}
+.growth__stats dt{color:var(--muted);font-size:13px;font-weight:600}
+.growth__stats dd{margin:2px 0 0;font-family:var(--font-display);font-size:26px;font-weight:800}
+.growth__sub{margin:18px 0 8px;font-size:16px}
+.growth__milestones{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 14px;margin:0;padding:0;list-style:none}
+.growth__milestones li{display:flex;align-items:flex-start;gap:10px}
+.growth__milestones small{display:block;color:var(--muted)}
+.growth__check{display:grid;place-items:center;flex:none;width:22px;height:22px;margin-top:1px;border:2px solid var(--border);border-radius:50%}
+.growth__milestones .is-earned .growth__check{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}

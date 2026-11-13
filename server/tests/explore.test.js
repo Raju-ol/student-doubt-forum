@@ -15,12 +15,12 @@ await mkdir(cache, { recursive: true });
 const directory = await mkdtemp(join(cache, 'forum-explore-'));
 const outfile = join(directory, 'pages.mjs');
 await build({
-  stdin: { contents: "export { Feed, Detail } from './pages.jsx'; export { Provider } from './context.jsx'; export { SimilarWhileAsking } from './similar.jsx';", resolveDir: dirname(entry), sourcefile: 'qa-explore.jsx', loader: 'jsx' }, outfile, bundle: true, format: 'esm', platform: 'browser',
+  stdin: { contents: "export { Feed, Detail } from './pages.jsx'; export { Provider } from './context.jsx'; export { SimilarWhileAsking } from './similar.jsx'; export { GrowthPanel } from './growth.jsx';", resolveDir: dirname(entry), sourcefile: 'qa-explore.jsx', loader: 'jsx' }, outfile, bundle: true, format: 'esm', platform: 'browser',
   jsx: 'automatic', loader: { '.jsx': 'jsx', '.css': 'empty' },
   external: ['react', 'react-dom', 'react-dom/*', 'react/*', 'react-router-dom'],
   define: { 'import.meta.env.VITE_API_URL': '""' }, logLevel: 'silent'
 });
-const { Feed, Detail, Provider, SimilarWhileAsking } = await import(pathToFileURL(outfile).href);
+const { Feed, Detail, Provider, SimilarWhileAsking, GrowthPanel } = await import(pathToFileURL(outfile).href);
 const { createRoot } = await import('react-dom/client');
 const { MemoryRouter, Routes, Route, useSearchParams } = await import('react-router-dom');
 test.after(() => rm(directory, { recursive: true, force: true }));
@@ -29,6 +29,14 @@ const doubt = (id, status, answerCount, extra = {}) => ({ _id: id, title: `Title
 const FEED = [doubt('d1', 'open', 2), doubt('d2', 'open', 0), doubt('d3', 'solved', 1)];
 
 const SIMILAR = [{ _id: 's1', title: 'Garbage collection basics in Java', subject: 'Java', answerCount: 2, status: 'solved' }, { _id: 's2', title: 'Why finalizers are discouraged', subject: 'Java', answerCount: 1, status: 'open' }];
+const GROWTH = {
+  stats: { questions: 2, answers: 3, accepted: 1, answerUpvotes: 2, sameDoubt: 1, endorsed: 0 },
+  milestones: [
+    { key: 'first-question', label: 'First question', hint: 'Ask your first doubt', target: 1, progress: 1, earned: true },
+    { key: 'helper-10', label: '10 answers given', hint: 'Give 10 answers', target: 10, progress: 3, earned: false },
+    { key: 'teacher-endorsed', label: 'Teacher endorsed', hint: 'Have a teacher endorse one of your answers', target: 1, progress: 0, earned: false }
+  ]
+};
 function SimilarHarness() {
   const [params] = useSearchParams();
   return React.createElement(SimilarWhileAsking, { title: params.get('t') || '' });
@@ -65,6 +73,7 @@ async function mount(path, { storage = 'memory', detail, similar = SIMILAR, feed
     React.createElement(Provider, null, React.createElement(Routes, null,
       React.createElement(Route, { path: '/', element: React.createElement(Feed) }),
       React.createElement(Route, { path: '/similar', element: React.createElement(SimilarHarness) }),
+      React.createElement(Route, { path: '/growth', element: React.createElement(GrowthPanel, { growth: GROWTH }) }),
       React.createElement(Route, { path: '/doubts/:id', element: React.createElement(Detail) }))))));
   await React.act(async () => new Promise(resolve => setTimeout(resolve, 20)));
   return {
@@ -244,6 +253,21 @@ test('an endorsed answer is labelled with the teacher who endorsed it, and nobod
     assert.equal(labels.length, 1);
     assert.equal(labels[0].textContent, '✓ Teacher endorsed · Prof. Meera');
     assert.doesNotMatch(view.host.textContent, /Endorse(?!d)/);
+  } finally { await view.cleanup(); }
+});
+
+test('the growth panel lists the counts, earned milestones, and progress towards the next ones', async () => {
+  const view = await mount('/growth');
+  try {
+    const tiles = Object.fromEntries([...view.host.querySelectorAll('.growth__stats > div')].map(tile => [tile.querySelector('dt').textContent, tile.querySelector('dd').textContent]));
+    assert.deepEqual(tiles, { 'Questions asked': '2', 'Answers given': '3', 'Accepted answers': '1', 'Answer upvotes': '2', 'Same-doubt presses': '1', 'Teacher endorsements': '0' });
+    assert.match(view.host.querySelector('.growth__sub').textContent, /Milestones\s*1 of 3/);
+    const items = [...view.host.querySelectorAll('.growth__milestones li')];
+    assert.deepEqual(items.map(item => item.classList.contains('is-earned')), [true, false, false]);
+    assert.match(items[0].textContent, /First question.*\(earned\)/);
+    assert.match(items[1].textContent, /Give 10 answers · 3 of 10/);
+    // A one-step milestone shows no "0 of 1" counter, only the hint.
+    assert.equal(items[2].querySelector('small').textContent, 'Have a teacher endorse one of your answers');
   } finally { await view.cleanup(); }
 });
 
