@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Search as SearchIcon, Home, BookOpen, Bookmark, User, ArrowRight, ArrowUp, MessageCircle, Eye, Trophy, Heart, Menu as MenuIcon, X as CloseIcon } from 'lucide-react';
+import { Plus, Search as SearchIcon, Home, BookOpen, Bookmark, User, ArrowRight, ArrowUp, MessageCircle, Eye, Trophy, Heart, Menu as MenuIcon, X as CloseIcon, GraduationCap } from 'lucide-react';
 import { useAuth } from './context';
 import { api } from './api';
 import { markdownToText } from './excerpt';
@@ -49,7 +49,7 @@ export function Navbar() {
   useEffect(() => setExpanded(false), [location.pathname, location.search]);
   const navParams = new URLSearchParams(location.search); const onExplore = location.pathname === '/';
   const onLibrary = location.pathname.startsWith('/library') || (onExplore && navParams.get('tag') === 'study-library');
-  const here = { library: onLibrary, saved: onExplore && navParams.get('view') === 'saved', me: Boolean(user) && location.pathname === `/users/${user._id}` };
+  const here = { library: onLibrary, saved: onExplore && navParams.get('view') === 'saved', me: Boolean(user) && location.pathname === `/users/${user._id}`, teach: location.pathname === '/teach' };
   here.explore = onExplore && !here.library && !here.saved;
   const searchLabel = location.pathname.startsWith('/library') ? 'Search study materials…' : here.saved ? 'Search saved questions…' : 'Search questions…';
   function closeMenu(event) { if (expanded && event.key === 'Escape') { event.preventDefault(); setExpanded(false); menuButton.current?.focus(); } }
@@ -88,6 +88,7 @@ export function Navbar() {
         {item('explore', '/', Home, 'Explore')}
         {item('library', '/library', BookOpen, 'Library')}
         {item('saved', '/?view=saved', Bookmark, 'Saved')}
+        {user?.role === 'teacher' && item('teach', '/teach', GraduationCap, 'Teach')}
         {item('me', user ? `/users/${user._id}` : '/login', User, 'My Profile')}
       </nav>
       <div className="sidebar__card">
@@ -183,7 +184,7 @@ export function VoteButtons({ item, type, refresh }) {
   async function vote(value) { if (!user) { navigate(signInPath(location)); return; } setBusy(true); try { await api(`/${type}s/${item._id}/vote`, { method: 'POST', token, body: { value } }); await refresh(); } catch (error) { notify(error.message); } finally { setBusy(false); } }
   return <div className="vote" aria-label="Voting"><button aria-label="Upvote" aria-pressed={item.myVote === 1} disabled={busy || item.author?._id === user?._id} onClick={() => vote(1)}>▲</button><strong>{item.votes}</strong><button aria-label="Downvote" aria-pressed={item.myVote === -1} disabled={busy || item.author?._id === user?._id} onClick={() => vote(-1)}>▼</button></div>;
 }
-export function Protected({ children, admin = false, moderation = false }) {
+export function Protected({ children, admin = false, moderation = false, teacher = false }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return <Loading />;
@@ -194,7 +195,36 @@ export function Protected({ children, admin = false, moderation = false }) {
   </div>;
   if (admin && user.role !== 'admin') return <ErrorBox message="This page is for administrators." />;
   if (moderation && !['admin', 'moderator'].includes(user.role)) return <ErrorBox message="Moderator access required." />;
+  if (teacher && !['teacher', 'admin'].includes(user.role)) return <ErrorBox message="The teacher dashboard is for verified teachers. You can request the Teacher badge in Account settings." />;
   return children;
+}
+// Checkbox list of catalogue subjects, capped at five picks. Used by the
+// teacher sign-up checkbox and the teacher sections of Account settings.
+export function SubjectPicker({ value, onChange, label = 'Subjects you teach' }) {
+  const { subjects } = useAuth();
+  const limit = 5;
+  function toggle(name) {
+    if (value.includes(name)) onChange(value.filter(item => item !== name));
+    else if (value.length < limit) onChange([...value, name]);
+  }
+  return <fieldset className="subject-picker">
+    <legend>{label} <span className="muted">(up to {limit})</span></legend>
+    <div className="subject-picker__grid">
+      {subjects.map(subject => <label key={subject.name} className="subject-picker__item">
+        <input type="checkbox" checked={value.includes(subject.name)} disabled={!value.includes(subject.name) && value.length >= limit} onChange={() => toggle(subject.name)} />
+        <span>{subject.name}</span>
+      </label>)}
+    </div>
+  </fieldset>;
+}
+export function TeacherRequestFields({ subjects, onSubjects, note, onNote }) {
+  return <>
+    <SubjectPicker value={subjects} onChange={onSubjects} />
+    <label>What do you teach, and where?
+      <input value={note} onChange={event => onNote(event.target.value)} required minLength={5} maxLength={200} placeholder="e.g. Assistant professor, CS dept — XYZ College" />
+      <small>One line is enough. An admin reviews every request before the badge appears.</small>
+    </label>
+  </>;
 }
 export function SemesterSelect({ value, onChange, id = 'semester', defaultValue }) { return <select id={id} name="semester" value={value} defaultValue={defaultValue} onChange={onChange} required>{Array.from({ length: 8 }, (_, i) => <option key={i + 1} value={i + 1}>Semester {i + 1}</option>)}</select>; }
 

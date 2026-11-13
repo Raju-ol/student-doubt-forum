@@ -14,6 +14,8 @@ const userSchema = new Schema({
   semester: { type: Number, min: 1, max: 8 },
   academicLevel: { type: academicLevel, default: undefined },
   institution: ref('Institution', false),
+  // Catalogue subject names a verified teacher registered; set when a teacher request is approved.
+  teacherSubjects: { type: [{ type: String, maxlength: 60 }], default: undefined },
   // null identifies an existing account awaiting lazy initialisation/backfill.
   reputation: { type: Number, default: null },
   tokenVersion: { type: Number, default: 0, min: 0 },
@@ -88,12 +90,27 @@ resourceSchema.index({ category: 1, createdAt: -1 });
 resourceSchema.index({ downloads: -1, createdAt: -1 });
 resourceSchema.index({ title: 'text', description: 'text' }, { name: 'resource_search' });
 export const Resource = mongoose.model('Resource', resourceSchema);
-const notificationSchema = new Schema({ user: ref('User'), actor: ref('User'), type: { type: String, enum: ['question_answered', 'answer_accepted', 'answer_commented'], required: true }, target: ref('Doubt'), readAt: { type: Date, default: null }, eventKey: { type: String, required: true, unique: true } }, options);
+const notificationSchema = new Schema({ user: ref('User'), actor: ref('User'), type: { type: String, enum: ['question_answered', 'answer_accepted', 'answer_commented', 'teacher_approved', 'teacher_declined'], required: true }, target: ref('Doubt', false), readAt: { type: Date, default: null }, eventKey: { type: String, required: true, unique: true } }, options);
 notificationSchema.index({ user: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, readAt: 1, createdAt: -1 });
 export const Notification = mongoose.model('Notification', notificationSchema);
 const subjectSchema = new Schema({ name: { type: String, required: true, maxlength: 60 }, slug: { type: String, required: true, unique: true }, aliases: [String], keys: { type: [String], required: true }, field: { type: String, maxlength: 60 }, icon: { type: String, maxlength: 8 } }, options);
 subjectSchema.index({ keys: 1 }, { unique: true });
 export const Subject = mongoose.model('Subject', subjectSchema);
+const teacherRequestSchema = new Schema({
+  user: ref('User'),
+  institution: ref('Institution', false),
+  subjects: { type: [{ type: String, maxlength: 60 }], required: true },
+  note: { type: String, required: true, maxlength: 200 },
+  status: { type: String, enum: ['pending', 'approved', 'declined'], default: 'pending' },
+  decidedBy: ref('User', false),
+  decidedAt: { type: Date, default: null },
+  declineReason: { type: String, maxlength: 200, default: '' }
+}, options);
+// One open request per account; the admin queue reads pending requests oldest first.
+teacherRequestSchema.index({ user: 1 }, { unique: true, partialFilterExpression: { status: 'pending' } });
+teacherRequestSchema.index({ status: 1, createdAt: 1 });
+teacherRequestSchema.index({ user: 1, createdAt: -1 });
+export const TeacherRequest = mongoose.model('TeacherRequest', teacherRequestSchema);
 const institutionSchema = new Schema({ name: { type: String, required: true, maxlength: 140 }, slug: { type: String, required: true, unique: true }, country: { type: String, maxlength: 2 }, isVerified: { type: Boolean, default: false } }, options);
 export const Institution = mongoose.model('Institution', institutionSchema);

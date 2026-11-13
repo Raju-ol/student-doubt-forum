@@ -3,7 +3,7 @@ import { verificationRequired } from './email-policy.js';
 import { User } from './models.js';
 import { fail } from './validation.js';
 import { effectiveLevel } from './academics.js';
-export const safeUser = user => ({ _id: user._id, name: user.name, email: user.email, googleLinked: Boolean(user.googleSubject), emailVerified: Boolean(user.emailVerifiedAt), verificationRequired: verificationRequired(), role: user.role, semester: user.semester, academicLevel: effectiveLevel(user), institution: user.institution || null, isBanned: user.isBanned, createdAt: user.createdAt });
+export const safeUser = user => ({ _id: user._id, name: user.name, email: user.email, googleLinked: Boolean(user.googleSubject), emailVerified: Boolean(user.emailVerifiedAt), verificationRequired: verificationRequired(), role: user.role, teacherSubjects: user.teacherSubjects || undefined, semester: user.semester, academicLevel: effectiveLevel(user), institution: user.institution || null, isBanned: user.isBanned, createdAt: user.createdAt });
 export function tokenFor(user) { return jwt.sign({ ver: user.tokenVersion || 0 }, process.env.JWT_SECRET, { subject: String(user._id), expiresIn: '7d', algorithm: 'HS256' }); }
 export async function identify(req, res, next) {
   const header = req.get('authorization');

@@ -12,7 +12,7 @@ import { parseAcademicForm, levelOf, levelLabel } from './academics';
 import { InstitutionSelect } from './institution-select';
 import { useAuth } from './context';
 import { useSavedQuestions, savedStorageAvailable } from './saved-questions';
-import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SemesterSelect, date, Markdown, MarkdownEditor } from './components';
+import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SemesterSelect, date, Markdown, MarkdownEditor, TeacherRequestFields } from './components';
 
 export function useResource(route) {
   const { token } = useAuth(); const [data, setData] = useState(null); const [error, setError] = useState(''); const [loading, setLoading] = useState(true); const [version, setVersion] = useState(0);
@@ -208,8 +208,9 @@ function SavedList({ items, query = '', total = items.length }) {
 
 export function AuthPage({ signup = false }) {
   const { login, user } = useAuth(); const navigate = useNavigate(); const [query] = useSearchParams(); const destination = safeReturn(query.get('returnTo')); const [showPassword, setShowPassword] = useState(false); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
+  const [teaching, setTeaching] = useState(false); const [teacherSubjects, setTeacherSubjects] = useState([]); const [teacherNote, setTeacherNote] = useState('');
   useEffect(() => { setError(''); }, [signup]);
-  async function submit(event) { event.preventDefault(); setBusy(true); setError(''); const body = parseAcademicForm(Object.fromEntries(new FormData(event.currentTarget))); try { const result = await api(signup ? '/auth/signup' : '/auth/login', { method: 'POST', body }); login(result); navigate(destination, { replace: true }); } catch (err) { setError(err.message); } finally { setBusy(false); } }
+  async function submit(event) { event.preventDefault(); setBusy(true); setError(''); const body = parseAcademicForm(Object.fromEntries(new FormData(event.currentTarget))); if (signup && teaching) body.teacher = { subjects: teacherSubjects, note: teacherNote }; try { const result = await api(signup ? '/auth/signup' : '/auth/login', { method: 'POST', body }); login(result); navigate(destination, { replace: true }); } catch (err) { setError(err.message); } finally { setBusy(false); } }
   if (user) return <div className="state"><h1>You are signed in</h1><Link to="/" className="button">Explore questions</Link></div>;
   async function continueWithGoogle(credential) {
     setBusy(true);
@@ -224,7 +225,7 @@ export function AuthPage({ signup = false }) {
       setBusy(false);
     }
   }
-  return <div className="auth-layout"><section className="auth-story"><span className="overline">LEARN TOGETHER. GO FURTHER.</span><h1>no doubt is <mark>too small</mark> to ask.</h1><p>Ask freely, explain what you know, and make college a little less confusing for everyone.</p><div className="auth-story__quote">“The only silly question is the one you never ask.”</div></section><section className="panel auth-form"><Mark small /><h2>{signup ? 'Make yourself at home.' : 'Good to see you again.'}</h2><p className="muted">{signup ? 'Join your campus learning community.' : 'Your next discovery is waiting.'}</p><form onSubmit={submit} key={signup ? 'signup' : 'login'}><ErrorBox message={error} />{signup && <label>Full name<input name="name" autoComplete="name" required minLength={2} maxLength={60} placeholder="Your name" /></label>}<label>Email address<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@college.edu" /></label><label>Password<input name="password" type={showPassword ? "text" : "password"} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={8} maxLength={72} placeholder={signup ? 'At least 8 characters' : 'Your password'} /></label><button className="text-button password-toggle" type="button" aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Hide password" : "Show password"}</button>{signup && <><AcademicFields id="signup-level" /><InstitutionSelect id="signup-institution" /></>}<button className="button button--full" disabled={busy}>{busy ? 'Please wait…' : signup ? 'Create your account →' : 'Sign in →'}</button></form><GoogleButton onCredential={continueWithGoogle} disabled={busy} showDivider />{!signup && <p><Link to="/forgot-password">Forgot password?</Link></p>}<p className="auth-switch">{signup ? 'Already part of the community?' : 'New around here?'} <Link to={(signup ? '/login' : '/signup') + '?returnTo=' + encodeURIComponent(destination)}>{signup ? 'Sign in' : 'Create an account'}</Link></p></section></div>;
+  return <div className="auth-layout"><section className="auth-story"><span className="overline">LEARN TOGETHER. GO FURTHER.</span><h1>no doubt is <mark>too small</mark> to ask.</h1><p>Ask freely, explain what you know, and make college a little less confusing for everyone.</p><div className="auth-story__quote">“The only silly question is the one you never ask.”</div></section><section className="panel auth-form"><Mark small /><h2>{signup ? 'Make yourself at home.' : 'Good to see you again.'}</h2><p className="muted">{signup ? 'Join your campus learning community.' : 'Your next discovery is waiting.'}</p><form onSubmit={submit} key={signup ? 'signup' : 'login'}><ErrorBox message={error} />{signup && <label>Full name<input name="name" autoComplete="name" required minLength={2} maxLength={60} placeholder="Your name" /></label>}<label>Email address<input name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@college.edu" /></label><label>Password<input name="password" type={showPassword ? "text" : "password"} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={8} maxLength={72} placeholder={signup ? 'At least 8 characters' : 'Your password'} /></label><button className="text-button password-toggle" type="button" aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Hide password" : "Show password"}</button>{signup && <><AcademicFields id="signup-level" /><InstitutionSelect id="signup-institution" /><div className="teacher-optin"><label className="teacher-optin__check"><input type="checkbox" checked={teaching} onChange={event => setTeaching(event.target.checked)} /><span>I teach at a college or coaching institute <span className="muted">(optional)</span></span></label>{teaching && <div className="teacher-optin__fields"><p className="muted">Your account starts as a student right away. An admin reviews this request, and the ✓ Teacher badge appears once it is approved.</p><TeacherRequestFields subjects={teacherSubjects} onSubjects={setTeacherSubjects} note={teacherNote} onNote={setTeacherNote} /></div>}</div></>}<button className="button button--full" disabled={busy}>{busy ? 'Please wait…' : signup ? 'Create your account →' : 'Sign in →'}</button></form><GoogleButton onCredential={continueWithGoogle} disabled={busy} showDivider />{!signup && <p><Link to="/forgot-password">Forgot password?</Link></p>}<p className="auth-switch">{signup ? 'Already part of the community?' : 'New around here?'} <Link to={(signup ? '/login' : '/signup') + '?returnTo=' + encodeURIComponent(destination)}>{signup ? 'Sign in' : 'Create an account'}</Link></p></section></div>;
 }
 export function Ask({ edit = false }) {
   const { subjects: catalogue } = useAuth(); const subjects = catalogue.map(item => item.name);
@@ -293,7 +294,7 @@ export function Detail() {
     </section>}
 
     <section className="qd__others" aria-labelledby="others-heading">
-      <div className={total ? 'qd__section-head' : 'visually-hidden'}><h2 id="others-heading">{accepted ? `${others.length} other ${others.length === 1 ? 'answer' : 'answers'}` : `${total} ${total === 1 ? 'answer' : 'answers'}`}</h2>{others.length > 1 && <span className="muted">Highest voted first</span>}</div>
+      <div className={total ? 'qd__section-head' : 'visually-hidden'}><h2 id="others-heading">{accepted ? `${others.length} other ${others.length === 1 ? 'answer' : 'answers'}` : `${total} ${total === 1 ? 'answer' : 'answers'}`}</h2>{others.length > 1 && <span className="muted">{others.some(item => item.author?.role === 'teacher') ? 'Teacher answers first, then highest voted' : 'Highest voted first'}</span>}</div>
       {others.length ? others.map(item => <AnswerCard key={item._id} answer={item} owner={owner} refresh={refresh} />)
         : !accepted ? <Empty title="Be the first to answer">Know something that could help? Explain it below.</Empty>
         : <p className="muted qd__none">No other answers yet.</p>}
@@ -317,7 +318,8 @@ function AnswerCard({ answer, owner, refresh }) {
   const { user, token, notify } = useAuth(); const [editing, setEditing] = useState(false); const [body, setBody] = useState(answer.body); const [comment, setComment] = useState(''); const [showComment, setShowComment] = useState(false); const [busy, setBusy] = useState(false);
   async function action(route, method, payload, success) { setBusy(true); try { await api(route, { method, token, body: payload }); notify(success); refresh(); setEditing(false); setComment(''); setShowComment(false); } catch (error) { notify(error.message); } finally { setBusy(false); } }
   const canEdit = user && (user._id === answer.author?._id || user.role === 'admin');
-  return <article className={`panel answer ${answer.isAccepted ? 'answer--accepted' : ''}`}>{answer.isAccepted && <div className="accepted-label">✓ Accepted by question author</div>}<Author user={answer.author} createdAt={answer.createdAt} /><div className="post-body"><VoteButtons item={answer} type="answer" refresh={refresh} /><div className="post-body__content">{editing ? <form onSubmit={e => { e.preventDefault(); action(`/answers/${answer._id}`, 'PUT', { body }, 'Answer updated.'); }}><label>Edit answer<MarkdownEditor id={`edit-answer-${answer._id}`} value={body} onChange={setBody} rows={6} required minLength={10} maxLength={12000} /></label><button className="button button--small" disabled={busy}>Save</button><button className="text-button" type="button" onClick={() => setEditing(false)}>Cancel</button></form> : <Markdown source={answer.body} />}<div className="content-actions">{owner && <button className="accept-button" disabled={busy} onClick={() => action(`/answers/${answer._id}/accept`, 'PATCH', {}, answer.isAccepted ? 'Acceptance removed.' : 'Answer accepted.')}>{answer.isAccepted ? 'Remove acceptance' : '✓ Accept answer'}</button>}{canEdit && <><button disabled={busy} onClick={() => { setBody(answer.body); setEditing(!editing); }}>Edit</button><button disabled={busy} onClick={() => { if (window.confirm('Delete this answer and its comments?')) action(`/answers/${answer._id}`, 'DELETE', null, 'Answer deleted.'); }}>Delete</button></>}<ReportButton type="answer" id={answer._id} /></div><div className="comments">{answer.comments.map(item => <div className="comment" key={item._id}><p>{item.body}</p><Link to={`/users/${item.author?._id}`}>{item.author?.name || 'Deleted user'}</Link><span className="muted"> · {date(item.createdAt)}</span></div>)}</div>{user && (showComment ? <form className="inline-form" onSubmit={e => { e.preventDefault(); action(`/answers/${answer._id}/comments`, 'POST', { body: comment }, 'Comment added.'); }}><label>Add a comment<textarea rows={2} required minLength={2} maxLength={1000} value={comment} onChange={e => setComment(e.target.value)} /></label><button className="button button--small" disabled={busy}>Add comment</button><button type="button" className="text-button" onClick={() => setShowComment(false)}>Cancel</button></form> : <button className="text-button add-comment" onClick={() => setShowComment(true)}>+ Add a comment</button>)}</div></div></article>;
+  const fromTeacher = answer.author?.role === 'teacher';
+  return <article className={`panel answer ${answer.isAccepted ? 'answer--accepted' : ''} ${fromTeacher && !answer.isAccepted ? 'answer--teacher' : ''}`}>{answer.isAccepted && <div className="accepted-label">✓ Accepted by question author</div>}{fromTeacher && !answer.isAccepted && <div className="teacher-label">✓ Answered by a verified teacher</div>}<Author user={answer.author} createdAt={answer.createdAt} /><div className="post-body"><VoteButtons item={answer} type="answer" refresh={refresh} /><div className="post-body__content">{editing ? <form onSubmit={e => { e.preventDefault(); action(`/answers/${answer._id}`, 'PUT', { body }, 'Answer updated.'); }}><label>Edit answer<MarkdownEditor id={`edit-answer-${answer._id}`} value={body} onChange={setBody} rows={6} required minLength={10} maxLength={12000} /></label><button className="button button--small" disabled={busy}>Save</button><button className="text-button" type="button" onClick={() => setEditing(false)}>Cancel</button></form> : <Markdown source={answer.body} />}<div className="content-actions">{owner && <button className="accept-button" disabled={busy} onClick={() => action(`/answers/${answer._id}/accept`, 'PATCH', {}, answer.isAccepted ? 'Acceptance removed.' : 'Answer accepted.')}>{answer.isAccepted ? 'Remove acceptance' : '✓ Accept answer'}</button>}{canEdit && <><button disabled={busy} onClick={() => { setBody(answer.body); setEditing(!editing); }}>Edit</button><button disabled={busy} onClick={() => { if (window.confirm('Delete this answer and its comments?')) action(`/answers/${answer._id}`, 'DELETE', null, 'Answer deleted.'); }}>Delete</button></>}<ReportButton type="answer" id={answer._id} /></div><div className="comments">{answer.comments.map(item => <div className="comment" key={item._id}><p>{item.body}</p><Link to={`/users/${item.author?._id}`}>{item.author?.name || 'Deleted user'}</Link><span className="muted"> · {date(item.createdAt)}</span></div>)}</div>{user && (showComment ? <form className="inline-form" onSubmit={e => { e.preventDefault(); action(`/answers/${answer._id}/comments`, 'POST', { body: comment }, 'Comment added.'); }}><label>Add a comment<textarea rows={2} required minLength={2} maxLength={1000} value={comment} onChange={e => setComment(e.target.value)} /></label><button className="button button--small" disabled={busy}>Add comment</button><button type="button" className="text-button" onClick={() => setShowComment(false)}>Cancel</button></form> : <button className="text-button add-comment" onClick={() => setShowComment(true)}>+ Add a comment</button>)}</div></div></article>;
 }
 export function Profile() {
   const { id } = useParams(); const { data, loading, error, refresh } = useResource(`/users/${id}`); const { user, token, setUser, notify, logout } = useAuth(); const [tab, setTab] = useState('doubts'); const [editing, setEditing] = useState(false); const [busy, setBusy] = useState(false);
@@ -356,14 +358,17 @@ export function Admin() {
       <p className="muted">Admins manage users and catalogues. Moderators review reports and remove reported content.</p>
       <p className="muted">Your own role and the primary admin are protected. Users can refresh after a role change to see their updated access.</p>
       <TabList id="admin-tabs" label="Moderation sections"
-        items={[{ value: 'users', label: 'Users' }, { value: 'reports', label: 'Reports' }]}
+        items={[{ value: 'users', label: 'Users' }, { value: 'reports', label: 'Reports' }, { value: 'teacher-requests', label: 'Teacher requests' }]}
         value={section} onChange={value => { setTab(value); setPage(1); }} />
     </>}
     {!managesUsers && <p className="muted">Review reports and remove reported content that breaks the community rules.</p>}
     <div id="admin-tabs-panel" role={managesUsers ? 'tabpanel' : undefined}
       aria-labelledby={managesUsers ? `admin-tabs-${section}` : undefined} tabIndex={0}>
       <ErrorBox message={error} retry={refresh} />
-      {loading ? <Loading /> : error ? null : section === 'users'
+      {loading ? <Loading /> : error ? null : section === 'teacher-requests'
+        ? data?.items.length ? data.items.map(request => <TeacherRequestCard key={request._id} request={request} busy={busy} onAction={action} />)
+          : <Empty title="No pending teacher requests">When someone asks for the ✓ Teacher badge, the request appears here for review.</Empty>
+        : section === 'users'
         ? <div className="table-wrap panel"><table>
             <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>{data?.items.map(account => <UserAccessRow key={account._id} account={account}
@@ -388,6 +393,31 @@ export function Admin() {
       {data && !loading && !error && <Pager page={page} pages={data.pages} onChange={setPage} />}
     </div>
   </section>;
+}
+
+function TeacherRequestCard({ request, busy, onAction }) {
+  const [declining, setDeclining] = useState(false);
+  const [reason, setReason] = useState('');
+  return <article className="panel report teacher-request">
+    <span className="badge">Teacher request</span>
+    <h3>{request.user ? <Link to={`/users/${request.user._id}`}>{request.user.name}</Link> : 'Deleted user'}</h3>
+    {request.user && <p className="muted">{request.user.email} · member since {date(request.user.createdAt)}</p>}
+    <p className="prose">{request.note}</p>
+    <p className="muted">Subjects: {(request.subjects || []).join(', ')}{request.institution ? ` · ${request.institution.name}` : ''} · Requested {date(request.createdAt)}</p>
+    <div className="form-actions">
+      <button className="button" disabled={busy} onClick={() => {
+        if (window.confirm(`Grant the ✓ Teacher badge to ${request.user?.name || 'this user'}? Their answers will be highlighted and they get the teacher dashboard.`)) {
+          onAction(`/admin/teacher-requests/${request._id}`, { status: 'approved' });
+        }
+      }}>Approve · grant badge</button>
+      <button className="button button--secondary" disabled={busy} onClick={() => setDeclining(open => !open)}>Decline…</button>
+    </div>
+    {declining && <form className="inline-form" onSubmit={event => { event.preventDefault(); onAction(`/admin/teacher-requests/${request._id}`, { status: 'declined', reason }); }}>
+      <label>Tell them why (they see this reason)<textarea value={reason} onChange={event => setReason(event.target.value)} required minLength={2} maxLength={200} rows={2} /></label>
+      <button className="button button--danger button--small" disabled={busy}>Decline request</button>
+      <button type="button" className="text-button" onClick={() => setDeclining(false)}>Cancel</button>
+    </form>}
+  </article>;
 }
 
 function UserAccessRow({ account, currentUserId, busy, onAction }) {
