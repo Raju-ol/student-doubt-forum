@@ -474,3 +474,7 @@
 .author-context h4{margin:10px 0 4px;font-size:14px}
 .author-context ul{margin:0;padding-left:18px}
 .author-context li{overflow-wrap:anywhere}
+
+/* ---- Teacher recommended shelf (role slice 5) ---- */
+.rcard__teacher{margin-left:8px;font-size:11px}
+.dx-chip--teacher{border-style:dashed}

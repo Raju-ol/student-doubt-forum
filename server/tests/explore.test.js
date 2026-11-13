@@ -15,12 +15,12 @@ await mkdir(cache, { recursive: true });
 const directory = await mkdtemp(join(cache, 'forum-explore-'));
 const outfile = join(directory, 'pages.mjs');
 await build({
-  stdin: { contents: "export { Feed, Detail } from './pages.jsx'; export { Provider } from './context.jsx'; export { SimilarWhileAsking } from './similar.jsx'; export { GrowthPanel } from './growth.jsx'; export { SiteBanner, DISMISSED_KEY } from './banner.jsx';", resolveDir: dirname(entry), sourcefile: 'qa-explore.jsx', loader: 'jsx' }, outfile, bundle: true, format: 'esm', platform: 'browser',
+  stdin: { contents: "export { Feed, Detail } from './pages.jsx'; export { Provider } from './context.jsx'; export { SimilarWhileAsking } from './similar.jsx'; export { GrowthPanel } from './growth.jsx'; export { SiteBanner, DISMISSED_KEY } from './banner.jsx'; export { LibraryPage } from './library-page.jsx';", resolveDir: dirname(entry), sourcefile: 'qa-explore.jsx', loader: 'jsx' }, outfile, bundle: true, format: 'esm', platform: 'browser',
   jsx: 'automatic', loader: { '.jsx': 'jsx', '.css': 'empty' },
   external: ['react', 'react-dom', 'react-dom/*', 'react/*', 'react-router-dom'],
   define: { 'import.meta.env.VITE_API_URL': '""' }, logLevel: 'silent'
 });
-const { Feed, Detail, Provider, SimilarWhileAsking, GrowthPanel, SiteBanner, DISMISSED_KEY } = await import(pathToFileURL(outfile).href);
+const { Feed, Detail, Provider, SimilarWhileAsking, GrowthPanel, SiteBanner, DISMISSED_KEY, LibraryPage } = await import(pathToFileURL(outfile).href);
 const { createRoot } = await import('react-dom/client');
 const { MemoryRouter, Routes, Route, useSearchParams } = await import('react-router-dom');
 test.after(() => rm(directory, { recursive: true, force: true }));
@@ -29,6 +29,8 @@ const doubt = (id, status, answerCount, extra = {}) => ({ _id: id, title: `Title
 const FEED = [doubt('d1', 'open', 2), doubt('d2', 'open', 0), doubt('d3', 'solved', 1)];
 
 const SIMILAR = [{ _id: 's1', title: 'Garbage collection basics in Java', subject: 'Java', answerCount: 2, status: 'solved' }, { _id: 's2', title: 'Why finalizers are discouraged', subject: 'Java', answerCount: 1, status: 'open' }];
+const resource = (id, title, fromTeacher) => ({ _id: id, title, description: '', category: 'notes', kind: 'link', size: 0, downloads: 0, createdAt: '2026-11-01T00:00:00Z', uploader: { _id: 'u1', name: 'Meera' }, fromTeacher });
+const RESOURCES = [resource('r1', 'Normalisation notes', true), resource('r2', 'Student thread notes', false)];
 const GROWTH = {
   stats: { questions: 2, answers: 3, accepted: 1, answerUpvotes: 2, sameDoubt: 1, endorsed: 0 },
   milestones: [
@@ -61,6 +63,8 @@ async function mount(path, { storage = 'memory', detail, similar = SIMILAR, feed
   globalThis.fetch = async url => {
     requests.push(String(url));
     const body = String(url).startsWith('/api/v1/catalog') ? { subjects: [{ name: 'DBMS' }, { name: 'Java' }], institutions: [] }
+      : String(url).startsWith('/api/v1/resources/popular') ? []
+      : String(url).startsWith('/api/v1/resources?') ? { items: RESOURCES, total: RESOURCES.length, page: 1, pages: 1 }
       : String(url).startsWith('/api/v1/banner') ? banner
       : String(url).startsWith('/api/v1/doubts/similar') || String(url).endsWith('/related') ? similar
       : String(url).startsWith('/api/v1/doubts/') ? detail
@@ -76,6 +80,7 @@ async function mount(path, { storage = 'memory', detail, similar = SIMILAR, feed
       React.createElement(Route, { path: '/similar', element: React.createElement(SimilarHarness) }),
       React.createElement(Route, { path: '/growth', element: React.createElement(GrowthPanel, { growth: GROWTH }) }),
       React.createElement(Route, { path: '/banner', element: React.createElement(SiteBanner) }),
+      React.createElement(Route, { path: '/library', element: React.createElement(LibraryPage) }),
       React.createElement(Route, { path: '/doubts/:id', element: React.createElement(Detail) }))))));
   await React.act(async () => new Promise(resolve => setTimeout(resolve, 20)));
   return {
@@ -299,6 +304,25 @@ test('the announcement banner shows its text as plain text and stays dismissed u
     await blocked.click(blocked.host.querySelector('.site-banner button'));
     assert.equal(blocked.host.querySelector('.site-banner'), null);
   } finally { await blocked.cleanup(); }
+});
+
+test('the Library labels teacher uploads and filters to the Teacher recommended shelf', async () => {
+  const view = await mount('/library?category=notes&page=3');
+  try {
+    const cards = [...view.host.querySelectorAll('.rcard')];
+    assert.deepEqual(cards.map(card => !!card.querySelector('.rcard__teacher')), [true, false]);
+    assert.equal(cards[0].querySelector('.rcard__teacher').textContent, '✓ Teacher');
+    const chip = () => [...view.host.querySelectorAll('.dx-chip')].find(button => /Teacher recommended/.test(button.textContent));
+    assert.equal(chip().getAttribute('aria-pressed'), 'false');
+    await view.click(chip());
+    const last = new URL(view.requests.filter(url => url.startsWith('/api/v1/resources?')).at(-1), 'http://x').searchParams;
+    assert.equal(last.get('shelf'), 'teacher'); assert.equal(last.get('category'), 'notes'); assert.equal(last.get('page'), '1');
+    assert.equal(chip().getAttribute('aria-pressed'), 'true');
+    await view.click(chip());
+    const cleared = new URL(view.requests.filter(url => url.startsWith('/api/v1/resources?')).at(-1), 'http://x').searchParams;
+    assert.equal(cleared.has('shelf'), false); assert.equal(cleared.get('category'), 'notes');
+    assert.equal(chip().getAttribute('aria-pressed'), 'false');
+  } finally { await view.cleanup(); }
 });
 
 test('Share uses the share sheet when there is one, otherwise copies the link, otherwise shows it', async () => {

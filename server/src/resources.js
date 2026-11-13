@@ -24,8 +24,11 @@ const publicFields = 'title description category kind size downloads createdAt u
 const present = resource => ({
   _id: resource._id, title: resource.title, description: resource.description, category: resource.category,
   kind: resource.kind, size: resource.size, downloads: resource.downloads, createdAt: resource.createdAt,
-  uploader: resource.uploader && resource.uploader.name ? { _id: resource.uploader._id, name: resource.uploader.name } : null
+  uploader: resource.uploader && resource.uploader.name ? { _id: resource.uploader._id, name: resource.uploader.name } : null,
+  // Shared by a verified teacher: labelled in the Library and listed on the Teacher recommended shelf.
+  fromTeacher: resource.uploader?.role === 'teacher'
 });
+const uploaderFields = 'name role';
 
 export function externalLink(value) {
   let url;
@@ -44,15 +47,19 @@ export function mountResourceRoutes(api, { wrap, ok, limiter, cloudinary }) {
     const filter = {};
     if (req.query.category) filter.category = category(req.query.category);
     if (req.query.search) filter.$text = { $search: text(req.query.search, 'Search', 1, 120) };
+    if (req.query.shelf !== undefined) {
+      if (req.query.shelf !== 'teacher') fail(400, 'Choose a valid shelf.');
+      filter.uploader = { $in: await User.find({ role: 'teacher', isDeleted: { $ne: true }, isBanned: { $ne: true } }).distinct('_id') };
+    }
     const [items, total] = await Promise.all([
-      Resource.find(filter).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).select(publicFields).populate('uploader', 'name'),
+      Resource.find(filter).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).select(publicFields).populate('uploader', uploaderFields),
       Resource.countDocuments(filter)
     ]);
     ok(res, { items: items.map(present), total, page, pages: Math.ceil(total / limit) });
   }));
 
   api.get('/resources/popular', wrap(async (req, res) => {
-    const items = await Resource.find().sort({ downloads: -1, createdAt: -1 }).limit(5).select(publicFields).populate('uploader', 'name');
+    const items = await Resource.find().sort({ downloads: -1, createdAt: -1 }).limit(5).select(publicFields).populate('uploader', uploaderFields);
     ok(res, items.map(present));
   }));
 
@@ -74,7 +81,7 @@ export function mountResourceRoutes(api, { wrap, ok, limiter, cloudinary }) {
         Object.assign(fields, { kind: 'link', url: externalLink(req.body.link) });
       }
       const resource = await Resource.create(fields);
-      await resource.populate('uploader', 'name');
+      await resource.populate('uploader', uploaderFields);
       ok(res, present(resource), 'Resource shared. Thank you!', 201);
     }));
 
