@@ -26,7 +26,7 @@ import { mountTeacherRoutes, mountTeacherAdminRoutes, teacherRequestFields, teac
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
 import { changeUserRole } from './admin-roles.js';
-import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
+import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields, seesAnonymousAuthor } from './forum.js';
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -192,7 +192,8 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     if (!Array.isArray(ids) || ids.length > 3 || ids.some(id => typeof id !== 'string') || new Set(ids).size !== ids.length) fail(400, 'Use up to 3 unique images.');
     const uploads = await Upload.find({ publicId: { $in: ids }, owner: req.user._id, doubt: null });
     if (uploads.length !== ids.length) fail(400, 'Some images are unavailable. Upload them again.');
-    const doubt = await Doubt.create({ ...fields, institution: req.body.institution === null ? null : req.user.institution || null, author: req.user._id, images: uploads.map(u => ({ url: u.url, publicId: u.publicId })) });
+    if (req.body.anonymous !== undefined && typeof req.body.anonymous !== 'boolean') fail(400, 'Anonymous must be true or false.');
+    const doubt = await Doubt.create({ ...fields, isAnonymous: req.body.anonymous === true, institution: req.body.institution === null ? null : req.user.institution || null, author: req.user._id, images: uploads.map(u => ({ url: u.url, publicId: u.publicId })) });
     await Upload.updateMany({ _id: { $in: uploads.map(u => u._id) } }, { doubt: doubt._id });
     ok(res, doubt, 'Your doubt has been posted.', 201);
   }));
@@ -248,7 +249,9 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   api.get('/users/:id', wrap(async (req, res) => {
     const user = await findDoc(User, req.params.id);
     if (user.isDeleted) fail(404, 'This account has been deleted.');
-    const [doubts, answers, score] = await Promise.all([Doubt.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id)]);
+    // Anonymous questions stay off a public profile; only the owner and staff see them there.
+    const showAnonymous = seesAnonymousAuthor(req.user, user._id);
+    const [doubts, answers, score] = await Promise.all([Doubt.find({ author: user._id, ...(showAnonymous ? {} : { isAnonymous: { $ne: true } }) }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id)]);
     ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, academicLevel: effectiveLevel(user), institution: user.institution || null, createdAt: user.createdAt, reputation: score }, doubts: await decorateMany(doubts, 'doubt', req.user), answers });
   }));
   api.put('/users/me', requireUser, wrap(async (req, res) => {

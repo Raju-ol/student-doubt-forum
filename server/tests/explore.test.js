@@ -34,7 +34,7 @@ function SimilarHarness() {
   return React.createElement(SimilarWhileAsking, { title: params.get('t') || '' });
 }
 
-async function mount(path, { storage = 'memory', detail, similar = SIMILAR } = {}) {
+async function mount(path, { storage = 'memory', detail, similar = SIMILAR, feed = FEED } = {}) {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost/' });
   const data = new Map();
   const store = storage === 'blocked'
@@ -55,7 +55,7 @@ async function mount(path, { storage = 'memory', detail, similar = SIMILAR } = {
     const body = String(url).startsWith('/api/v1/catalog') ? { subjects: [{ name: 'DBMS' }, { name: 'Java' }], institutions: [] }
       : String(url).startsWith('/api/v1/doubts/similar') || String(url).endsWith('/related') ? similar
       : String(url).startsWith('/api/v1/doubts/') ? detail
-      : { items: FEED, total: 23, page: 1, pages: 3 };
+      : { items: feed, total: 23, page: 1, pages: 3 };
     return { ok: true, json: async () => ({ success: true, data: body }) };
   };
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -208,6 +208,32 @@ test('a question page ends with Similar doubts, and shows nothing when there are
   } finally { await view.cleanup(); }
   const none = await mount('/doubts/d9', { detail, similar: [] });
   try { assert.equal(none.host.querySelector('.qd__related'), null); } finally { await none.cleanup(); }
+});
+
+test('an anonymous question shows Anonymous in the feed and on its page, never a name or profile link', async () => {
+  const anonymous = doubt('a1', 'open', 0, { isAnonymous: true, author: { name: 'Anonymous', role: 'student' } });
+  const feed = await mount('/', { feed: [anonymous] });
+  try {
+    const row = feed.host.querySelector('.qcard');
+    assert.match(row.querySelector('.qcard__by').textContent, /Asked by Anonymous/);
+    assert.equal(row.querySelector('.avatar').textContent, '?');
+    assert.doesNotMatch(row.textContent, /Asha/);
+  } finally { await feed.cleanup(); }
+  const page = await mount('/doubts/a1', { detail: { ...anonymous, answers: [] } });
+  try {
+    const byline = page.host.querySelector('.qd__byline .author');
+    assert.equal(byline.querySelector('.author__anon').textContent, 'Anonymous');
+    assert.equal(byline.querySelector('a'), null, 'no link to a profile');
+    assert.doesNotMatch(byline.textContent, /visible to staff|only you/);
+  } finally { await page.cleanup(); }
+  // Staff and the asker receive the real author from the server and are told they are looking at it.
+  const staff = await mount('/doubts/a1', { detail: { ...anonymous, author: { _id: 'u1', name: 'Asha', role: 'student' }, answers: [] } });
+  try {
+    const byline = staff.host.querySelector('.qd__byline .author');
+    assert.match(byline.textContent, /Anonymous/);
+    assert.match(byline.textContent, /Asha.*visible to staff/);
+    assert.equal(byline.querySelector('a').getAttribute('href'), '/users/u1');
+  } finally { await staff.cleanup(); }
 });
 
 test('Share uses the share sheet when there is one, otherwise copies the link, otherwise shows it', async () => {

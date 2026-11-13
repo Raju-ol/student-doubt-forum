@@ -127,12 +127,20 @@ export function Badge({ role }) {
   const labels = { teacher: '✓ Teacher', moderator: 'Moderator', admin: 'Admin' };
   return labels[role] ? <span className={`badge badge--${role}`}>{labels[role]}</span> : null;
 }
-export function Author({ user, createdAt }) { return <div className="author"><Avatar name={user?.name || 'Deleted user'} /><Link to={user ? `/users/${user._id}` : '/'}>{user?.name || 'Deleted user'}</Link><Badge role={user?.role} />{createdAt && <span className="muted">{date(createdAt)}</span>}</div>; }
+export function Author({ user, createdAt, anonymous = false }) {
+  const viewer = useAuth()?.user;
+  if (anonymous) {
+    // The server sends the real author only to the asker and to staff.
+    const revealed = Boolean(user?._id);
+    return <div className="author"><Avatar name="?" /><span className="author__anon">Anonymous</span>{revealed && <span className="muted">{viewer?._id === user._id ? '· only you can see this is you' : <>· <Link to={`/users/${user._id}`}>{user.name}</Link> (visible to staff)</>}</span>}{createdAt && <span className="muted">{date(createdAt)}</span>}</div>;
+  }
+  return <div className="author"><Avatar name={user?.name || 'Deleted user'} /><Link to={user ? `/users/${user._id}` : '/'}>{user?.name || 'Deleted user'}</Link><Badge role={user?.role} />{createdAt && <span className="muted">{date(createdAt)}</span>}</div>;
+}
 export function ErrorBox({ message, retry }) { return message ? <div className="error" role="alert">{message}{retry && <button className="text-button retry-button" onClick={retry}>Try again</button>}</div> : null; }
 export function Loading() { return <div className="state" role="status"><span className="spinner" /> Loading…</div>; }
 export function Empty({ title = 'No doubts here yet', children }) { return <div className="empty"><span className="empty__icon">?</span><h3>{title}</h3><p className="muted">{children || 'Start the conversation. Your question could help someone else, too.'}</p></div>; }
 export function Tags({ values = [] }) { return <div className="tags">{values.map(tag => <Link key={tag} className="tag" to={`/?tag=${encodeURIComponent(tag)}`}>{tag}</Link>)}</div>; }
-export function DoubtCard({ doubt }) { const location = useLocation(); return <article className="doubt-card"><div className="doubt-card__stats"><span><strong>{doubt.votes}</strong> same doubt</span><span className={doubt.status === 'solved' ? 'doubt-card__solved' : ''}><strong>{doubt.answerCount}</strong> {doubt.answerCount === 1 ? 'answer' : 'answers'}</span></div><div className="doubt-card__main"><div className="eyebrow"><span>{doubt.subject}</span><span>{levelLabel(doubt)}</span>{doubt.status === 'solved' && <span className="badge badge--solved">✓ Accepted answer</span>}</div><h2><Link to={`/doubts/${doubt._id}`} state={{ from: location.pathname + location.search }}>{doubt.title}</Link></h2><p className="doubt-card__preview">{markdownToText(doubt.body)}</p><Tags values={doubt.tags} /><Author user={doubt.author} createdAt={doubt.createdAt} /></div></article>; }
+export function DoubtCard({ doubt }) { const location = useLocation(); return <article className="doubt-card"><div className="doubt-card__stats"><span><strong>{doubt.votes}</strong> same doubt</span><span className={doubt.status === 'solved' ? 'doubt-card__solved' : ''}><strong>{doubt.answerCount}</strong> {doubt.answerCount === 1 ? 'answer' : 'answers'}</span></div><div className="doubt-card__main"><div className="eyebrow"><span>{doubt.subject}</span><span>{levelLabel(doubt)}</span>{doubt.status === 'solved' && <span className="badge badge--solved">✓ Accepted answer</span>}</div><h2><Link to={`/doubts/${doubt._id}`} state={{ from: location.pathname + location.search }}>{doubt.title}</Link></h2><p className="doubt-card__preview">{markdownToText(doubt.body)}</p><Tags values={doubt.tags} /><Author user={doubt.author} createdAt={doubt.createdAt} anonymous={doubt.isAnonymous} /></div></article>; }
 // Explore card. "Resolved" means an answer was accepted; every other state is
 // "Unresolved", and a question with no replies at all is "Unanswered".
 export function questionStatus(doubt) {
@@ -142,9 +150,9 @@ export function questionStatus(doubt) {
 export function QuestionRow({ doubt }) {
   const location = useLocation(); const status = questionStatus(doubt); const count = doubt.answerCount ?? 0;
   const from = { from: location.pathname + location.search }; const views = doubt.views ?? 0;
-  const author = doubt.author?.name || 'Deleted user';
+  const author = doubt.isAnonymous ? 'Anonymous' : doubt.author?.name || 'Deleted user';
   return <li className="qcard">
-    <Avatar name={author} large />
+    <Avatar name={doubt.isAnonymous ? '?' : author} large />
     <div className="qcard__body">
       <div className="qcard__top">
         <span className={`qcard__subject qcard__subject--tone${toneOf(doubt.subject)}`}>{doubt.subject}</span>

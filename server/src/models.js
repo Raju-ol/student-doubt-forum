@@ -39,6 +39,8 @@ const doubtSchema = new Schema({
   images: [image],
   author: ref('User'),
   acceptedAnswer: ref('Answer', false),
+  // "Post without my name": the author is stored but shown as Anonymous to everyone except the author and staff.
+  isAnonymous: { type: Boolean, default: false },
   views: { type: Number, default: 0, min: 0 }
 }, options);
 // Unfiltered feed sort.

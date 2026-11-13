@@ -419,3 +419,9 @@
 
 /* ---- Share button (role slice 2) ---- */
 .qd__byline-actions{display:inline-flex;align-items:center;gap:6px}
+
+/* ---- Anonymous asking (role slice 3) ---- */
+.anon-toggle{display:flex;align-items:flex-start;gap:10px;margin:4px 0 12px;padding:12px 14px;border:var(--edge) dashed var(--border);border-radius:14px;cursor:pointer}
+.anon-toggle input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--primary)}
+.anon-toggle small{display:block;margin-top:2px;color:var(--muted)}
+.author__anon{font-weight:700}

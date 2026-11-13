@@ -4,6 +4,8 @@ import { fail } from './validation.js';
 import { ensureReputation, addReputation, voteCredit } from './reputation.js';
 
 export const authorFields = 'name role semester academicLevel createdAt';
+// Who may see the real author of an anonymous question: the author, admins and moderators.
+export const seesAnonymousAuthor = (viewer, authorId) => Boolean(viewer) && (['admin', 'moderator'].includes(viewer.role) || String(viewer._id) === String(authorId));
 export async function findDoc(Model, id) {
   if (typeof id !== 'string' || !mongoose.isObjectIdOrHexString(id)) fail(400, 'Invalid record ID.');
   const doc = await Model.findById(id);
@@ -36,6 +38,7 @@ export async function decorateMany(docs, type, user) {
     result.votes = row?.votes || 0;
     result.myVote = row?.mine || 0;
     if (type === 'doubt') {
+      if (doc.isAnonymous && !seesAnonymousAuthor(user, doc.author?._id ?? doc.author)) result.author = { name: 'Anonymous', role: 'student' };
       result.answerCount = answerMap.get(String(doc._id)) || 0;
       result.status = doc.acceptedAnswer ? 'solved' : 'open';
     }
