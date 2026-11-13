@@ -6,6 +6,7 @@ import { createLimiterFactory } from './rate-limits.js';
 import { issueEmail, mountEmailRoutes, requireVerified, sendTransactionalEmail } from './email.js';
 import { mountAccountRoutes } from './account.js';
 import { mountStudyLibraryRoutes } from './study-library.js';
+import { mountResourceRoutes } from './resources.js';
 import { mountGoogleRoutes, verifyGoogleIdentity } from './google-auth.js';
 import { notifyUser, mountNotificationRoutes } from './notifications.js';
 import { academicFields, effectiveLevel } from './academics.js';
@@ -107,6 +108,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   mountNotificationRoutes(api, { wrap, ok });
   mountSubjectRoutes(api, { wrap, ok });
   mountInstitutionRoutes(api, { wrap, ok });
+  mountResourceRoutes(api, { wrap, ok, limiter, cloudinary });
   api.get('/catalog', wrap(async (req, res) => {
     const [subjects, institutions] = await Promise.all([listSubjects(), listInstitutions()]);
     ok(res, { subjects, institutions });
@@ -160,6 +162,9 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   }));
   api.get('/doubts/:id', wrap(async (req, res) => {
     const doubt = await findDoc(Doubt, req.params.id);
+    // Counted before the response is built so the viewer sees their own view included.
+    doubt.views = (doubt.views || 0) + 1;
+    await Doubt.updateOne({ _id: doubt._id }, { $inc: { views: 1 } }, { timestamps: false });
     await doubt.populate('author', authorFields);
     const answers = await Answer.find({ doubt: doubt._id }).sort({ createdAt: 1 }).populate('author', authorFields);
     // One comment query for the whole page instead of one per answer.

@@ -36,7 +36,8 @@ const doubtSchema = new Schema({
   tags: [{ type: String, maxlength: 24 }],
   images: [image],
   author: ref('User'),
-  acceptedAnswer: ref('Answer', false)
+  acceptedAnswer: ref('Answer', false),
+  views: { type: Number, default: 0, min: 0 }
 }, options);
 // Unfiltered feed sort.
 doubtSchema.index({ createdAt: -1 });
@@ -72,6 +73,21 @@ export const Vote = mongoose.model('Vote', voteSchema);
 export const Comment = mongoose.model('Comment', commentSchema);
 export const Report = mongoose.model('Report', reportSchema);
 export const Upload = mongoose.model('Upload', uploadSchema);
+const resourceSchema = new Schema({
+  title: { type: String, required: true, maxlength: 120 },
+  description: { type: String, maxlength: 300, default: '' },
+  category: { type: String, enum: ['notes', 'papers', 'cheatsheets', 'books', 'others'], required: true },
+  kind: { type: String, enum: ['pdf', 'doc', 'ppt', 'link'], required: true },
+  url: { type: String, required: true, maxlength: 500 },
+  publicId: { type: String, default: null },
+  size: { type: Number, default: 0, min: 0 },
+  downloads: { type: Number, default: 0, min: 0 },
+  uploader: ref('User')
+}, options);
+resourceSchema.index({ category: 1, createdAt: -1 });
+resourceSchema.index({ downloads: -1, createdAt: -1 });
+resourceSchema.index({ title: 'text', description: 'text' }, { name: 'resource_search' });
+export const Resource = mongoose.model('Resource', resourceSchema);
 const notificationSchema = new Schema({ user: ref('User'), actor: ref('User'), type: { type: String, enum: ['question_answered', 'answer_accepted', 'answer_commented'], required: true }, target: ref('Doubt'), readAt: { type: Date, default: null }, eventKey: { type: String, required: true, unique: true } }, options);
 notificationSchema.index({ user: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, readAt: 1, createdAt: -1 });

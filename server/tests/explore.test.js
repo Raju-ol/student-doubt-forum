@@ -66,17 +66,19 @@ async function mount(path, { storage = 'memory', detail } = {}) {
   };
 }
 
-test('status wording follows the API: open with replies is never called unanswered', async () => {
+test('status wording follows the API: open with replies is Unresolved, no replies is Unanswered', async () => {
   const view = await mount('/?status=open');
   try {
-    const rows = [...view.host.querySelectorAll('.qrow')];
+    const rows = [...view.host.querySelectorAll('.qcard')];
     assert.equal(rows.length, 3);
-    assert.match(rows[0].querySelector('.qrow__status').textContent, /^No accepted answer$/);
-    assert.match(rows[1].querySelector('.qrow__status').textContent, /^No answers yet$/);
-    assert.match(rows[2].querySelector('.qrow__status').textContent, /Accepted answer/);
-    assert.doesNotMatch(view.host.textContent, /unanswered/i);
-    assert.equal(view.host.querySelector('#explore-results').textContent, 'No accepted answer');
-    assert.match(view.host.textContent, /23 questions without an accepted answer/);
+    assert.match(rows[0].querySelector('.qcard__status').textContent, /^Unresolved$/);
+    assert.match(rows[1].querySelector('.qcard__status').textContent, /^Unanswered$/);
+    assert.match(rows[2].querySelector('.qcard__status').textContent, /^Resolved/);
+    assert.equal(view.host.querySelector('#explore-results').textContent, 'Unresolved questions');
+    assert.match(view.host.textContent, /23 questions unresolved/);
+    // Cards carry the answer count, the view count and the asker.
+    assert.match(rows[0].querySelector('.qcard__meta').textContent, /2 answers/);
+    assert.match(rows[0].querySelector('.qcard__meta').textContent, /Asked by Asha/);
     // Pagination still comes from the server's status filter; the client never filters a page.
     assert.match(view.host.querySelector('.pager').textContent, /Page 1 of 3/);
     const feed = view.requests.find(url => url.startsWith('/api/v1/doubts?'));
@@ -84,15 +86,19 @@ test('status wording follows the API: open with replies is never called unanswer
   } finally { await view.cleanup(); }
 });
 
-test('discovery links keep compatible URLs and toggle off when active', async () => {
-  const view = await mount('/?search=normal&status=open&page=2');
+test('subject chips keep the search, drop the page and toggle off when active', async () => {
+  const view = await mount('/?search=normal&subject=Java&page=2');
   try {
-    const link = name => [...view.host.querySelectorAll('.explore__chip')].find(a => a.textContent.includes(name));
-    assert.equal(link('Study Library').getAttribute('href'), '/?scope=all&tag=study-library');
-    assert.equal(link('Accepted answers').getAttribute('href'), '/?search=normal&status=solved');
-    assert.equal(link('No accepted answer').getAttribute('aria-current'), 'page');
-    assert.equal(link('No accepted answer').getAttribute('href'), '/?search=normal');
-    assert.equal(link('Saved').getAttribute('href'), '/?view=saved');
+    const chip = name => [...view.host.querySelectorAll('.dx-chip')].find(button => button.textContent === name);
+    assert.deepEqual([...view.host.querySelectorAll('.dx-chip')].map(button => button.textContent), ['All', 'DBMS', 'Java']);
+    assert.equal(chip('Java').getAttribute('aria-pressed'), 'true');
+    assert.equal(chip('DBMS').getAttribute('aria-pressed'), 'false');
+    await view.click(chip('DBMS'));
+    const last = new URL(view.requests.filter(url => url.startsWith('/api/v1/doubts?')).at(-1), 'http://x').searchParams;
+    assert.equal(last.get('subject'), 'DBMS'); assert.equal(last.get('search'), 'normal'); assert.equal(last.has('page'), false);
+    await view.click(chip('DBMS'));
+    const cleared = new URL(view.requests.filter(url => url.startsWith('/api/v1/doubts?')).at(-1), 'http://x').searchParams;
+    assert.equal(cleared.has('subject'), false); assert.equal(cleared.get('search'), 'normal');
   } finally { await view.cleanup(); }
 });
 
@@ -108,23 +114,22 @@ test('advanced filters sit behind a labelled toggle with an active count', async
     assert.equal(toggle.getAttribute('aria-expanded'), 'true');
     assert.equal(view.host.querySelector('#explore-filters').hidden, false);
     assert.ok(view.host.querySelector('label[for="explore-status"]'));
-    const chips = [...view.host.querySelectorAll('.explore__active-chip')].map(chip => chip.getAttribute('aria-label'));
-    assert.deepEqual(chips, ['Remove filter Accepted answers', 'Remove filter Semester 3']);
+    const chips = [...view.host.querySelectorAll('.dx-active__chip')].map(chip => chip.getAttribute('aria-label'));
+    assert.deepEqual(chips, ['Remove filter Resolved', 'Remove filter Semester 3']);
   } finally { await view.cleanup(); }
 });
 
 test('save is a keyboard-operable toggle and the Saved view needs no feed request', async () => {
   const view = await mount('/');
   try {
-    const button = view.host.querySelector('.qrow .save-button');
+    const button = view.host.querySelector('.qcard .save-button');
     assert.equal(button.tagName, 'BUTTON');
     assert.equal(button.getAttribute('type'), 'button');
     assert.equal(button.getAttribute('aria-pressed'), 'false');
     await view.click(button);
-    assert.equal(view.host.querySelector('.qrow .save-button').getAttribute('aria-pressed'), 'true');
+    assert.equal(view.host.querySelector('.qcard .save-button').getAttribute('aria-pressed'), 'true');
     assert.match(view.host.textContent, /Saved on this device/);
     assert.equal(JSON.parse(view.data.get('doubt-forum.saved.v1'))[0].id, 'd1');
-    assert.equal(view.host.querySelector('.explore__chip--saved .explore__chip-count').textContent, '1');
   } finally { await view.cleanup(); }
 
   const saved = await mount('/?view=saved');
@@ -140,8 +145,8 @@ test('blocked storage explains itself instead of failing silently', async () => 
   try { assert.match(view.host.textContent, /Saving is unavailable in this browser/); } finally { await view.cleanup(); }
   const feed = await mount('/', { storage: 'blocked' });
   try {
-    await feed.click(feed.host.querySelector('.qrow .save-button'));
-    assert.equal(feed.host.querySelector('.qrow .save-button').getAttribute('aria-pressed'), 'false');
+    await feed.click(feed.host.querySelector('.qcard .save-button'));
+    assert.equal(feed.host.querySelector('.qcard .save-button').getAttribute('aria-pressed'), 'false');
     assert.match(feed.host.textContent, /blocking site storage/);
   } finally { await feed.cleanup(); }
 });

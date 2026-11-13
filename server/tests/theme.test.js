@@ -8,10 +8,11 @@ test('theme preference follows system and tolerates invalid or blocked storage',
   assert.equal(themePreference('invalid'), 'system');
   assert.equal(resolvedTheme('system', true), 'dark');
   assert.equal(resolvedTheme('light', true), 'light');
-  assert.equal(nextTheme('system'), 'light'); assert.equal(nextTheme('light'), 'dark'); assert.equal(nextTheme('dark'), 'bento'); assert.equal(nextTheme('bento'), 'system');
-  assert.equal(resolvedTheme('bento', true), 'bento');
+  assert.equal(nextTheme('system'), 'light'); assert.equal(nextTheme('light'), 'dark'); assert.equal(nextTheme('dark'), 'system');
+  // The retired Bento look falls back to following the device.
+  assert.equal(themePreference('bento'), 'system'); assert.equal(resolvedTheme('bento', true), 'dark');
   const script = await readFile(new URL('../../client/public/theme-init.js', import.meta.url), 'utf8');
-  for (const [stored, systemDark, expected] of [['dark', false, 'dark'], ['light', true, 'light'], ['bento', true, 'bento'], ['invalid', true, 'dark'], [null, false, 'light']]) {
+  for (const [stored, systemDark, expected] of [['dark', false, 'dark'], ['light', true, 'light'], ['bento', true, 'dark'], ['invalid', true, 'dark'], [null, false, 'light']]) {
     const document = { documentElement: { dataset: {} } };
     vm.runInNewContext(script, { document, localStorage: { getItem: () => stored }, matchMedia: () => ({ matches: systemDark }) });
     assert.equal(document.documentElement.dataset.theme, expected);
