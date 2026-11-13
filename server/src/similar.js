@@ -4,6 +4,7 @@ import { findDoc } from './forum.js';
 // Title or tag matches score about 11 or more; a match only in the body scores
 // about 0.5, which is noise for "similar question" suggestions.
 export const MIN_SCORE = 5;
+export const RELATIVE_SCORE = 0.5;
 const SHORTEST_QUERY = 8;
 
 // $text treats quotes as phrases and a leading minus as exclusion; people type
@@ -17,7 +18,12 @@ export async function similarDoubts(query, { exclude, limit = 5 } = {}) {
     { $text: { $search: search }, ...(exclude ? { _id: { $ne: exclude } } : {}) },
     { score: { $meta: 'textScore' } }
   ).sort({ score: { $meta: 'textScore' } }).limit(limit * 2).select('title subject acceptedAnswer createdAt');
-  const picked = rows.filter(row => row.get('score') >= MIN_SCORE).slice(0, limit);
+  // A real match scores well above a lone shared word such as "Java" (measured:
+  // about 12 against 6), so also require half of the best score; when there is
+  // no real match, the weak ones stay. Scores depend on title length, so both
+  // numbers are empirical.
+  const best = rows.length ? rows[0].get('score') : 0;
+  const picked = rows.filter(row => row.get('score') >= Math.max(MIN_SCORE, best * RELATIVE_SCORE)).slice(0, limit);
   if (!picked.length) return [];
   const counts = new Map((await Answer.aggregate([
     { $match: { doubt: { $in: picked.map(row => row._id) } } },

@@ -84,6 +84,10 @@ test('feed sorting, related questions and the duplicate check', async t => {
     const found = keys(related);
     assert.ok(found.includes(String(gcTwin._id)));
     assert.ok(!found.includes(String(quiet._id)) && !found.includes(String(physics._id)));
+    // Questions that only share the word "Java" with this one are not "similar" once a real match exists.
+    const generic = await call(`/doubts/${gcTwin._id}/related`);
+    assert.ok(keys(generic).includes(String(quiet._id)), 'a real topic match is kept');
+    assert.ok([busy, liked, fresh].every(doubt => !keys(generic).includes(String(doubt._id))), 'lone shared words are dropped');
     const twin = related.find(item => String(item._id) === String(gcTwin._id));
     assert.deepEqual(Object.keys(twin).sort(), ['_id', 'answerCount', 'createdAt', 'status', 'subject', 'title']);
     assert.equal(twin.answerCount, 2); assert.equal(twin.status, 'open');
