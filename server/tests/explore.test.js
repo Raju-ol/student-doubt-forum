@@ -236,6 +236,17 @@ test('an anonymous question shows Anonymous in the feed and on its page, never a
   } finally { await staff.cleanup(); }
 });
 
+test('an endorsed answer is labelled with the teacher who endorsed it, and nobody else gets a button when signed out', async () => {
+  const answer = (id, endorsedBy) => ({ _id: id, body: `Answer ${id}`, author: { _id: 'u2', name: 'Ravi', role: 'student' }, createdAt: '2026-11-02T00:00:00Z', votes: 0, myVote: 0, isAccepted: false, comments: [], endorsedBy });
+  const view = await mount('/doubts/d9', { detail: { ...doubt('d9', 'open', 2), answers: [answer('e1', { _id: 't1', name: 'Prof. Meera' }), answer('e2', null)] } });
+  try {
+    const labels = [...view.host.querySelectorAll('.endorsed-label')];
+    assert.equal(labels.length, 1);
+    assert.equal(labels[0].textContent, '✓ Teacher endorsed · Prof. Meera');
+    assert.doesNotMatch(view.host.textContent, /Endorse(?!d)/);
+  } finally { await view.cleanup(); }
+});
+
 test('Share uses the share sheet when there is one, otherwise copies the link, otherwise shows it', async () => {
   const detail = { ...doubt('d9', 'open', 0), answers: [] };
   const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');

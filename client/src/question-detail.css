@@ -41,6 +41,7 @@
 .qd .answer--teacher{border-color:var(--hot-ink);box-shadow:4px 4px 0 var(--hot-bg)}
 .teacher-label{display:inline-block;margin-bottom:10px;padding:3px 10px;border-radius:999px;background:var(--hot-bg);color:var(--hot-ink);font-size:12px;font-weight:800}
 .qd__accepted .teacher-label{display:none}
+.endorsed-label{display:inline-block;margin:0 8px 10px 0;padding:3px 10px;border-radius:999px;background:var(--solved-bg);color:var(--solved-ink);font-size:12px;font-weight:800}
 .qd__none{font-size:15px;padding:4px 0 8px}
 
 .qd__compose{margin-top:30px;padding:24px 26px;border:var(--edge) dashed var(--border);border-radius:var(--radius-card);background:var(--card);scroll-margin-top:16px}

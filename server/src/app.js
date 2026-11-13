@@ -201,14 +201,14 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   api.get('/doubts/:id', wrap(async (req, res) => {
     const doubt = await findDoc(Doubt, req.params.id);
     await doubt.populate('author', authorFields);
-    const answers = await Answer.find({ doubt: doubt._id }).sort({ createdAt: 1 }).populate('author', authorFields);
+    const answers = await Answer.find({ doubt: doubt._id }).sort({ createdAt: 1 }).populate('author', authorFields).populate('endorsedBy', 'name');
     // One comment query for the whole page instead of one per answer.
     const [decorated, comments] = await Promise.all([decorateMany(answers, 'answer', req.user), Comment.find({ answer: { $in: answers.map(a => a._id) } }).sort({ createdAt: 1 }).populate('author', authorFields)]);
     const byAnswer = new Map();
     for (const comment of comments) { const key = String(comment.answer); if (!byAnswer.has(key)) byAnswer.set(key, []); byAnswer.get(key).push(comment); }
     const result = decorated.map(answer => ({ ...answer, isAccepted: String(doubt.acceptedAnswer) === String(answer._id), comments: byAnswer.get(String(answer._id)) || [] }));
-    // Accepted first, then teacher answers, then everything else by votes.
-    const rank = answer => answer.isAccepted ? 2 : answer.author?.role === 'teacher' ? 1 : 0;
+    // Accepted first, then teacher-endorsed, then teacher-written, then everything else by votes.
+    const rank = answer => answer.isAccepted ? 3 : answer.endorsedBy ? 2 : answer.author?.role === 'teacher' ? 1 : 0;
     result.sort((a, b) => rank(b) - rank(a) || b.votes - a.votes);
     ok(res, { ...await decorate(doubt, 'doubt', req.user), answers: result });
   }));
@@ -239,6 +239,18 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const accepted = await toggleAcceptance(answer, doubt);
     if (accepted) await notifyUser({ user: answer.author, actor: req.user._id, type: 'answer_accepted', target: doubt._id, eventKey: `accepted:${answer._id}` });
     ok(res, { accepted }, accepted ? 'Answer accepted.' : 'Answer acceptance removed.');
+  }));
+  api.patch('/answers/:id/endorse', requireUser, wrap(async (req, res) => {
+    if (!['teacher', 'admin'].includes(req.user.role)) fail(403, 'Only verified teachers can endorse an answer.');
+    const answer = await findDoc(Answer, req.params.id);
+    if (String(answer.author) === String(req.user._id)) fail(403, 'You cannot endorse your own answer.');
+    const endorsed = !answer.endorsedBy;
+    if (!endorsed && String(answer.endorsedBy) !== String(req.user._id) && req.user.role !== 'admin') fail(409, 'Another teacher endorsed this answer, so only they can remove it.');
+    // Compare-and-set, so two teachers pressing at once cannot both win.
+    const result = await Answer.updateOne({ _id: answer._id, endorsedBy: answer.endorsedBy || null }, endorsed ? { $set: { endorsedBy: req.user._id, endorsedAt: new Date() } } : { $set: { endorsedBy: null, endorsedAt: null } });
+    if (!result.modifiedCount) fail(409, 'This answer changed in another request. Please refresh and retry.');
+    if (endorsed) await notifyUser({ user: answer.author, actor: req.user._id, type: 'answer_endorsed', target: answer.doubt, eventKey: `endorsed:${answer._id}` });
+    ok(res, { endorsed }, endorsed ? 'Answer endorsed.' : 'Endorsement removed.');
   }));
   api.post('/answers/:id/comments', requireUser, requireVerified, wrap(async (req, res) => {
     const answer = await findDoc(Answer, req.params.id);

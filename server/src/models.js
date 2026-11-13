@@ -55,7 +55,8 @@ doubtSchema.index({ tags: 1, createdAt: -1 });
 doubtSchema.index({ acceptedAnswer: 1, createdAt: -1 });
 doubtSchema.index({ author: 1, createdAt: -1 });
 doubtSchema.index({ title: 'text', body: 'text', tags: 'text' }, { name: 'doubt_search', weights: { title: 10, tags: 5, body: 1 }, default_language: 'english' });
-const answerSchema = new Schema({ doubt: ref('Doubt'), body: { type: String, required: true, maxlength: 12000 }, author: ref('User') }, options);
+// endorsedBy: a teacher's lighter-than-acceptance "this is right" mark; acceptance stays the asker's right.
+const answerSchema = new Schema({ doubt: ref('Doubt'), body: { type: String, required: true, maxlength: 12000 }, author: ref('User'), endorsedBy: ref('User', false), endorsedAt: { type: Date, default: null } }, options);
 answerSchema.index({ doubt: 1, createdAt: 1 });
 // Profile page lists a user's latest answers.
 answerSchema.index({ author: 1, createdAt: -1 });
@@ -92,7 +93,7 @@ resourceSchema.index({ category: 1, createdAt: -1 });
 resourceSchema.index({ downloads: -1, createdAt: -1 });
 resourceSchema.index({ title: 'text', description: 'text' }, { name: 'resource_search' });
 export const Resource = mongoose.model('Resource', resourceSchema);
-const notificationSchema = new Schema({ user: ref('User'), actor: ref('User'), type: { type: String, enum: ['question_answered', 'answer_accepted', 'answer_commented', 'teacher_approved', 'teacher_declined'], required: true }, target: ref('Doubt', false), readAt: { type: Date, default: null }, eventKey: { type: String, required: true, unique: true } }, options);
+const notificationSchema = new Schema({ user: ref('User'), actor: ref('User'), type: { type: String, enum: ['question_answered', 'answer_accepted', 'answer_commented', 'answer_endorsed', 'teacher_approved', 'teacher_declined'], required: true }, target: ref('Doubt', false), readAt: { type: Date, default: null }, eventKey: { type: String, required: true, unique: true } }, options);
 notificationSchema.index({ user: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, readAt: 1, createdAt: -1 });
 export const Notification = mongoose.model('Notification', notificationSchema);
