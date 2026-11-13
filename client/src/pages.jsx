@@ -21,7 +21,8 @@ export function useResource(route) {
   return { data, error, loading, refresh };
 }
 const STATUS_LABELS = { solved: 'Resolved', open: 'Unresolved' };
-const SCOPE_LABELS = { college: 'My college', subject: 'Subject worldwide', all: 'Everything' };
+const SORTS = [['newest', 'Newest'], ['votes', 'Most same-doubt'], ['answers', 'Most answered'], ['unanswered', 'Unanswered first']];
+const SCOPE_LABELS ={ college: 'My college', subject: 'Subject worldwide', all: 'Everything' };
 // Parameters that only shape the page, never the API request.
 const VIEW_PARAMS = ['view'];
 // Subjects shown as chips before the rest move into the "Others" menu.
@@ -48,7 +49,8 @@ export function Feed() {
   const isLibrary = tag === 'study-library';
   const level = params.get('academicSystem') || (params.get('semester') ? 'semester' : '');
   const advancedCount = [params.get('scope') && params.get('scope') !== defaultScope, status, level].filter(Boolean).length;
-  const filtered = [...apiParams.keys()].some(key => key !== 'page');
+  const filtered = [...apiParams.keys()].some(key => key !== 'page' && key !== 'sort');
+  const sort = SORTS.some(([value]) => value === params.get('sort')) ? params.get('sort') : 'newest';
   const heading = savedView ? 'Saved Questions' : query ? `Results for “${query}”` : isLibrary ? 'Worked Q&A' : 'Explore Questions';
   const subheading = savedView ? 'Questions you saved on this device.'
     : isLibrary ? 'Exam-style questions with worked explanations, for the night before the test.'
@@ -143,7 +145,14 @@ export function Feed() {
       <section className="dx-results" aria-labelledby="explore-results">
         <h2 id="explore-results" className="visually-hidden">{savedView ? 'Saved questions' : STATUS_LABELS[status] ? `${STATUS_LABELS[status]} questions` : subject || 'Latest questions'}</h2>
         {savedView ? <p className="dx-count">Stored on this device only · {query ? `${savedMatches.length} of ${saved.length}` : saved.length} {saved.length === 1 ? 'question' : 'questions'}{query ? ` matching “${query}”` : ''}</p>
-          : data && !loading && !error && <p className="dx-count" aria-live="polite">{data.total} {data.total === 1 ? 'question' : 'questions'}{status === 'open' ? ' unresolved' : status === 'solved' ? ' resolved' : ''}{subject ? ` in ${subject}` : ''}</p>}
+          : <div className="dx-resultbar">
+            {data && !loading && !error ? <p className="dx-count" aria-live="polite">{data.total} {data.total === 1 ? 'question' : 'questions'}{status === 'open' ? ' unresolved' : status === 'solved' ? ' resolved' : ''}{subject ? ` in ${subject}` : ''}</p> : <span />}
+            <label className="dx-sort"><span>Sort by</span>
+              <select value={sort} onChange={event => update({ sort: event.target.value === 'newest' ? '' : event.target.value })}>
+                {SORTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+          </div>}
         {savedView ? <SavedList items={savedMatches} query={query} total={saved.length} />
           : <>
             <ErrorBox message={error} retry={refresh} />

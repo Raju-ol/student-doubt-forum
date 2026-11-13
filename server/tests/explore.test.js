@@ -61,6 +61,7 @@ async function mount(path, { storage = 'memory', detail } = {}) {
   await React.act(async () => new Promise(resolve => setTimeout(resolve, 20)));
   return {
     dom, host, data, requests,
+    act: callback => React.act(callback),
     click: async element => React.act(async () => { element.click(); await new Promise(resolve => setTimeout(resolve, 10)); }),
     cleanup: async () => { await React.act(async () => root.unmount()); for (const [key, value] of Object.entries(saved)) { if (value === undefined) delete globalThis[key]; else globalThis[key] = value; } }
   };
@@ -100,6 +101,28 @@ test('subject chips keep the search, drop the page and toggle off when active', 
     const cleared = new URL(view.requests.filter(url => url.startsWith('/api/v1/doubts?')).at(-1), 'http://x').searchParams;
     assert.equal(cleared.has('subject'), false); assert.equal(cleared.get('search'), 'normal');
   } finally { await view.cleanup(); }
+});
+
+test('the sort dropdown sets the sort, drops the page and does not count as a filter', async () => {
+  const view = await mount('/?subject=Java&page=2&sort=answers');
+  try {
+    const select = view.host.querySelector('.dx-sort select');
+    assert.equal(select.value, 'answers');
+    assert.deepEqual([...select.options].map(option => option.value), ['newest', 'votes', 'answers', 'unanswered']);
+    const choose = async value => {
+      const setter = Object.getOwnPropertyDescriptor(view.dom.window.HTMLSelectElement.prototype, 'value').set;
+      await view.act(async () => { setter.call(select, value); select.dispatchEvent(new view.dom.window.Event('change', { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 10)); });
+      return new URL(view.requests.filter(url => url.startsWith('/api/v1/doubts?')).at(-1), 'http://x').searchParams;
+    };
+    const votes = await choose('votes');
+    assert.equal(votes.get('sort'), 'votes'); assert.equal(votes.get('subject'), 'Java'); assert.equal(votes.has('page'), false);
+    const newest = await choose('newest');
+    assert.equal(newest.has('sort'), false); assert.equal(newest.get('subject'), 'Java');
+    // Sorting alone is not a filter: no filter chip and no "Clear all".
+    assert.equal(view.host.querySelectorAll('.dx-active__chip').length, 0);
+  } finally { await view.cleanup(); }
+  const only = await mount('/?sort=votes');
+  try { assert.equal(only.host.querySelector('.dx-active'), null); } finally { await only.cleanup(); }
 });
 
 test('advanced filters sit behind a labelled toggle with an active count', async () => {

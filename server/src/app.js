@@ -19,7 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import mongoose from 'mongoose';
-import { User, Doubt, Answer, Comment, Report, Upload, TeacherRequest } from './models.js';
+import { User, Doubt, Answer, Comment, Report, Upload, TeacherRequest, Vote } from './models.js';
 import { mountTeacherRoutes, mountTeacherAdminRoutes, teacherRequestFields, teacherSubjectList } from './teachers.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
@@ -154,8 +154,29 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     else if (!req.query.search && !req.query.subject) filter.tags = { $ne: 'study-library' };
     if (req.query.status === 'solved') filter.acceptedAnswer = { $ne: null };
     if (req.query.status === 'open') filter.acceptedAnswer = null;
-    const query = filter.$text ? Doubt.find(filter, { searchScore: { $meta: 'textScore' } }).sort({ searchScore: { $meta: 'textScore' }, createdAt: -1, _id: -1 }) : Doubt.find(filter).sort({ createdAt: -1, _id: -1 });
-    const [docs, total] = await Promise.all([query.skip((page - 1) * limit).limit(limit).populate('author', authorFields), Doubt.countDocuments(filter)]);
+    const sort = req.query.sort ?? 'newest';
+    if (!['newest', 'votes', 'answers', 'unanswered'].includes(sort)) fail(400, 'Choose a valid sort order.');
+    let docs, total;
+    if (sort === 'newest') {
+      const query = filter.$text ? Doubt.find(filter, { searchScore: { $meta: 'textScore' } }).sort({ searchScore: { $meta: 'textScore' }, createdAt: -1, _id: -1 }) : Doubt.find(filter).sort({ createdAt: -1, _id: -1 });
+      [docs, total] = await Promise.all([query.skip((page - 1) * limit).limit(limit).populate('author', authorFields), Doubt.countDocuments(filter)]);
+    } else {
+      // Counts live in other collections, so order the ids with an aggregation and load the page afterwards.
+      const order = { votes: { sameDoubt: -1, createdAt: -1, _id: -1 }, answers: { answerTotal: -1, createdAt: -1, _id: -1 }, unanswered: { answerTotal: 1, createdAt: -1, _id: -1 } }[sort];
+      const [ranked, count] = await Promise.all([
+        Doubt.aggregate([
+          { $match: filter },
+          ...(sort === 'votes'
+            ? [{ $lookup: { from: Vote.collection.name, let: { id: '$_id' }, pipeline: [{ $match: { $expr: { $and: [{ $eq: ['$targetType', 'doubt'] }, { $eq: ['$value', 1] }, { $eq: ['$target', '$$id'] }] } } }, { $count: 'n' }], as: 'v' } }, { $addFields: { sameDoubt: { $ifNull: [{ $arrayElemAt: ['$v.n', 0] }, 0] } } }]
+            : [{ $lookup: { from: Answer.collection.name, let: { id: '$_id' }, pipeline: [{ $match: { $expr: { $eq: ['$doubt', '$$id'] } } }, { $count: 'n' }], as: 'a' } }, { $addFields: { answerTotal: { $ifNull: [{ $arrayElemAt: ['$a.n', 0] }, 0] } } }]),
+          { $sort: order }, { $skip: (page - 1) * limit }, { $limit: limit }, { $project: { _id: 1 } }
+        ]),
+        Doubt.countDocuments(filter)
+      ]);
+      const byId = new Map((await Doubt.find({ _id: { $in: ranked.map(row => row._id) } }).populate('author', authorFields)).map(doc => [String(doc._id), doc]));
+      docs = ranked.map(row => byId.get(String(row._id))).filter(Boolean);
+      total = count;
+    }
     const items = await decorateMany(docs, 'doubt', req.user);
     res.append('Server-Timing', `feed-db;dur=${Math.round(performance.now() - started)}`);
     ok(res, { items, total, page, pages: Math.ceil(total / limit) });
