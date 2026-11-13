@@ -390,3 +390,12 @@
 .teach h1{display:inline-flex;align-items:center;gap:10px}
 .teach__subjects{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 18px;color:var(--muted);font-size:14px}
 .teacher-request .form-actions{margin-top:12px}
+
+/* ---- "Same doubt": the small upvote-only pill on questions (role slice 2) ---- */
+.same-doubt{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 14px;border:var(--edge) var(--edge-style) var(--border);border-radius:999px;background:var(--card);color:var(--text);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.same-doubt strong{font-family:var(--font-display)}
+.same-doubt:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+.same-doubt[aria-pressed=true]{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.same-doubt:disabled{cursor:default;opacity:.75}
+.same-doubt--compact{min-height:28px;padding:0 10px;gap:5px;font-size:13px}
+.qd__same{margin-top:16px}

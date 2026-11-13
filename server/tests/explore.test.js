@@ -119,6 +119,17 @@ test('advanced filters sit behind a labelled toggle with an active count', async
   } finally { await view.cleanup(); }
 });
 
+test('Explore cards show a Same doubt pill instead of a plain vote count', async () => {
+  const view = await mount('/', {});
+  try {
+    const pills = [...view.host.querySelectorAll('.qcard .same-doubt')];
+    assert.equal(pills.length, 3);
+    assert.equal(pills[0].getAttribute('aria-pressed'), 'false');
+    assert.match(pills[0].textContent, /Same doubt/);
+    assert.equal(view.host.querySelector('.qcard .qcard__meta .vote'), null);
+  } finally { await view.cleanup(); }
+});
+
 test('save is a keyboard-operable toggle and the Saved view needs no feed request', async () => {
   const view = await mount('/');
   try {
@@ -160,7 +171,10 @@ test('question detail separates question, accepted answer, other answers and com
     assert.match(view.host.querySelector('.qd__accepted').textContent, /Answer acc/);
     assert.doesNotMatch(view.host.querySelector('.qd__others').textContent, /Answer acc/);
     assert.equal(view.host.querySelector('#others-heading').textContent, '2 other answers');
-    assert.equal(view.host.querySelectorAll('.vote').length, 4);
+    // Answers keep their up/down arrows; the question has only the small "Same doubt" pill.
+    assert.equal(view.host.querySelectorAll('.vote').length, 3);
+    assert.equal(view.host.querySelector('.qd__question .vote'), null);
+    assert.match(view.host.querySelector('.qd__question .same-doubt').textContent, /Same doubt/);
     assert.ok(view.host.querySelector('.qd__question .save-button'));
     // Signed out: the composer offers sign-in and no reply form.
     assert.equal(view.host.querySelector('.qd__compose form'), null);

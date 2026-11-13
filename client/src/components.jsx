@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Search as SearchIcon, Home, BookOpen, Bookmark, User, ArrowRight, ArrowUp, MessageCircle, Eye, Trophy, Heart, Menu as MenuIcon, X as CloseIcon, GraduationCap } from 'lucide-react';
+import { Plus, Search as SearchIcon, Home, BookOpen, Bookmark, User, ArrowRight, MessageCircle, Eye, Trophy, Heart, Menu as MenuIcon, X as CloseIcon, GraduationCap, ThumbsUp } from 'lucide-react';
 import { useAuth } from './context';
 import { api } from './api';
 import { markdownToText } from './excerpt';
@@ -132,7 +132,7 @@ export function ErrorBox({ message, retry }) { return message ? <div className="
 export function Loading() { return <div className="state" role="status"><span className="spinner" /> Loading…</div>; }
 export function Empty({ title = 'No doubts here yet', children }) { return <div className="empty"><span className="empty__icon">?</span><h3>{title}</h3><p className="muted">{children || 'Start the conversation. Your question could help someone else, too.'}</p></div>; }
 export function Tags({ values = [] }) { return <div className="tags">{values.map(tag => <Link key={tag} className="tag" to={`/?tag=${encodeURIComponent(tag)}`}>{tag}</Link>)}</div>; }
-export function DoubtCard({ doubt }) { const location = useLocation(); return <article className="doubt-card"><div className="doubt-card__stats"><span><strong>{doubt.votes}</strong> votes</span><span className={doubt.status === 'solved' ? 'doubt-card__solved' : ''}><strong>{doubt.answerCount}</strong> {doubt.answerCount === 1 ? 'answer' : 'answers'}</span></div><div className="doubt-card__main"><div className="eyebrow"><span>{doubt.subject}</span><span>{levelLabel(doubt)}</span>{doubt.status === 'solved' && <span className="badge badge--solved">✓ Accepted answer</span>}</div><h2><Link to={`/doubts/${doubt._id}`} state={{ from: location.pathname + location.search }}>{doubt.title}</Link></h2><p className="doubt-card__preview">{markdownToText(doubt.body)}</p><Tags values={doubt.tags} /><Author user={doubt.author} createdAt={doubt.createdAt} /></div></article>; }
+export function DoubtCard({ doubt }) { const location = useLocation(); return <article className="doubt-card"><div className="doubt-card__stats"><span><strong>{doubt.votes}</strong> same doubt</span><span className={doubt.status === 'solved' ? 'doubt-card__solved' : ''}><strong>{doubt.answerCount}</strong> {doubt.answerCount === 1 ? 'answer' : 'answers'}</span></div><div className="doubt-card__main"><div className="eyebrow"><span>{doubt.subject}</span><span>{levelLabel(doubt)}</span>{doubt.status === 'solved' && <span className="badge badge--solved">✓ Accepted answer</span>}</div><h2><Link to={`/doubts/${doubt._id}`} state={{ from: location.pathname + location.search }}>{doubt.title}</Link></h2><p className="doubt-card__preview">{markdownToText(doubt.body)}</p><Tags values={doubt.tags} /><Author user={doubt.author} createdAt={doubt.createdAt} /></div></article>; }
 // Explore card. "Resolved" means an answer was accepted; every other state is
 // "Unresolved", and a question with no replies at all is "Unanswered".
 export function questionStatus(doubt) {
@@ -155,7 +155,7 @@ export function QuestionRow({ doubt }) {
       <h3 className="qcard__title"><Link to={`/doubts/${doubt._id}`} state={from}>{doubt.title}</Link></h3>
       <p className="qcard__excerpt">{markdownToText(doubt.body)}</p>
       <div className="qcard__meta">
-        <span title="Votes"><ArrowUp aria-hidden="true" size={15} />{doubt.votes}<span className="visually-hidden"> {Math.abs(doubt.votes) === 1 ? 'vote' : 'votes'}</span></span>
+        <SameDoubtButton doubt={doubt} compact />
         <span title="Answers"><MessageCircle aria-hidden="true" size={15} />{count} {count === 1 ? 'answer' : 'answers'}</span>
         <span title="Views"><Eye aria-hidden="true" size={15} />{views} {views === 1 ? 'view' : 'views'}</span>
         <span className="qcard__by">Asked by <strong>{author}</strong> · {timeAgo(doubt.createdAt)}</span>
@@ -183,6 +183,25 @@ export function VoteButtons({ item, type, refresh }) {
   const { token, user, notify } = useAuth(); const navigate = useNavigate(); const location = useLocation(); const [busy, setBusy] = useState(false);
   async function vote(value) { if (!user) { navigate(signInPath(location)); return; } setBusy(true); try { await api(`/${type}s/${item._id}/vote`, { method: 'POST', token, body: { value } }); await refresh(); } catch (error) { notify(error.message); } finally { setBusy(false); } }
   return <div className="vote" aria-label="Voting"><button aria-label="Upvote" aria-pressed={item.myVote === 1} disabled={busy || item.author?._id === user?._id} onClick={() => vote(1)}>▲</button><strong>{item.votes}</strong><button aria-label="Downvote" aria-pressed={item.myVote === -1} disabled={busy || item.author?._id === user?._id} onClick={() => vote(-1)}>▼</button></div>;
+}
+// Questions take one small "Same doubt" press instead of up/down arrows, so
+// pressing means "I have this doubt too", never a judgement of the asker.
+export function SameDoubtButton({ doubt, compact = false }) {
+  const { token, user, notify } = useAuth(); const navigate = useNavigate(); const location = useLocation();
+  const [state, setState] = useState({ votes: doubt.votes ?? 0, mine: doubt.myVote === 1 }); const [busy, setBusy] = useState(false);
+  useEffect(() => setState({ votes: doubt.votes ?? 0, mine: doubt.myVote === 1 }), [doubt._id, doubt.votes, doubt.myVote]);
+  const own = Boolean(user) && doubt.author?._id === user._id;
+  async function press() {
+    if (!user) { navigate(signInPath(location)); return; }
+    setBusy(true);
+    try { const next = await api(`/doubts/${doubt._id}/vote`, { method: 'POST', token, body: { value: 1 } }); setState({ votes: next.votes, mine: next.myVote === 1 }); }
+    catch (error) { notify(error.message); } finally { setBusy(false); }
+  }
+  return <button type="button" className={`same-doubt${compact ? ' same-doubt--compact' : ''}`} aria-pressed={state.mine} disabled={busy || own} onClick={press}
+    title={own ? 'You asked this question' : state.mine ? 'Remove your Same doubt' : 'I have this doubt too'}>
+    <ThumbsUp aria-hidden="true" size={compact ? 14 : 16} /><span>Same doubt</span><strong>{state.votes}</strong>
+    <span className="visually-hidden">{state.votes === 1 ? ' student has' : ' students have'} this doubt{state.mine ? ', including you' : ''}</span>
+  </button>;
 }
 export function Protected({ children, admin = false, moderation = false, teacher = false }) {
   const { user, loading } = useAuth();

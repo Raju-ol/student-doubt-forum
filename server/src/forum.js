@@ -20,7 +20,8 @@ export async function decorateMany(docs, type, user) {
   const mine = user?._id ? { $sum: { $cond: [{ $eq: ['$user', user._id] }, '$value', 0] } } : { $sum: 0 };
   const [voteRows, answerRows] = await Promise.all([
     Vote.aggregate([
-      { $match: { targetType: type, target: { $in: ids } } },
+      // Questions are upvote-only ("Same doubt"); older stored downvotes are ignored.
+      { $match: { targetType: type, target: { $in: ids }, ...(type === 'doubt' ? { value: 1 } : {}) } },
       { $group: { _id: '$target', votes: { $sum: '$value' }, mine } }
     ]),
     type === 'doubt'
@@ -47,7 +48,7 @@ export async function decorate(doc, type, user) {
 export async function toggleVote(req, Model, type) {
   const doc = await findDoc(Model, req.params.id);
   if (String(doc.author) === String(req.user._id)) fail(403, 'You cannot vote on your own content.');
-  if (![1, -1].includes(req.body.value)) fail(400, 'Vote must be 1 or -1.');
+  if (type === 'doubt' ? req.body.value !== 1 : ![1, -1].includes(req.body.value)) fail(400, type === 'doubt' ? 'Questions only take a "Same doubt" vote.' : 'Vote must be 1 or -1.');
   const filter = { targetType: type, target: doc._id, user: req.user._id };
   if (type === 'answer') await ensureReputation(doc.author);
   const previous = await Vote.findOne(filter);

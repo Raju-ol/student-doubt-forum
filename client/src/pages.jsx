@@ -12,7 +12,7 @@ import { parseAcademicForm, levelOf, levelLabel } from './academics';
 import { InstitutionSelect } from './institution-select';
 import { useAuth } from './context';
 import { useSavedQuestions, savedStorageAvailable } from './saved-questions';
-import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SemesterSelect, date, Markdown, MarkdownEditor, TeacherRequestFields } from './components';
+import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SameDoubtButton, SemesterSelect, date, Markdown, MarkdownEditor, TeacherRequestFields } from './components';
 
 export function useResource(route) {
   const { token } = useAuth(); const [data, setData] = useState(null); const [error, setError] = useState(''); const [loading, setLoading] = useState(true); const [version, setVersion] = useState(0);
@@ -273,11 +273,11 @@ export function Detail() {
       <h1 id="question-title">{doubt.title}</h1>
       <div className="qd__byline"><Author user={doubt.author} createdAt={doubt.createdAt} /><SaveButton doubt={{ ...doubt, answerCount: total }} /></div>
       <div className="post-body">
-        <VoteButtons type="doubt" item={doubt} refresh={refresh} />
         <div className="post-body__content">
           <Markdown source={doubt.body} />
           {doubt.images.length > 0 && <div className="attachments">{doubt.images.map(image => <a key={image.publicId} href={image.url} target="_blank" rel="noreferrer"><img src={image.url} alt="Screenshot attached to the question" /></a>)}</div>}
           <Tags values={doubt.tags} />
+          <div className="qd__same"><SameDoubtButton doubt={doubt} /></div>
           <div className="content-actions">{canEdit && <><Link to={`/doubts/${id}/edit`}>Edit question</Link><button disabled={busy} onClick={deleteDoubt}>Delete</button></>}<ReportButton type="doubt" id={id} /></div>
         </div>
       </div>
