@@ -1,6 +1,6 @@
 # Design consistency review
 
-13 November 2026. Baseline `a0a45eb`; working branch `fix/design-consistency`. Local review only. No production changes or deployment.
+13 November 2026. Baseline `a0a45eb`; working branch `fix/design-consistency`. The initial review used local fixtures. The owner subsequently authorized publication; see the deployment record below.
 
 ## Scope and findings
 
@@ -36,4 +36,18 @@ Reproduce locally with locked dependencies, optional Playwright tooling (`npm in
 
 ## Remaining release checks
 
-Real-phone/browser-device coverage, screen-reader review, long production content and live provider operations remain separate checks. The institution/curriculum/approval Library design remains planned. A release still needs a reviewed diff, build/tests, preview approval and explicit production publication.
+Real-phone/browser-device coverage, screen-reader review, long production content and live provider operations remain separate checks. The institution/curriculum/approval Library design remains planned.
+
+## Production publication — 13 November 2026
+
+The owner authorized normal GitHub publication and production deployment. Runtime fixes and documentation were committed as `8bbfc9d13daf363cd952257c735d05ae4efedb71`. GitHub CI passed both Node 22/24 test jobs and the dependency audit. Vercel preview passed before the commit was published to `main` by a normal, non-force Git push using the owner's existing Git authentication.
+
+- [GitHub CI evidence](https://github.com/Raju-ol/student-doubt-forum/actions/runs/43395738749)
+- [Successful runtime production deployment](https://vercel.com/int-0f9c/student-doubt-forum/6f5KyXTJNhR3QN4beg7Qy6mHXRoL)
+- [Live site](https://student-doubt-forum-theta.vercel.app/)
+
+Read-only live checks passed for home, login, API health and the public question feed, including security/cache headers. Health reported MongoDB connected and the Redis limiter active. The deployed JavaScript/CSS contain the new theme labels, resource-description markup and responsive phone grid. One health probe during deployment returned HTTP 500; the following direct health/catalogue requests and complete check-production rerun passed. The transient response was not treated as a provider diagnosis or concealed as an all-pass first run.
+
+No production content cleanup, role changes, credential changes, provider configuration changes, test signup, email or upload was performed. The PR connector lacked write permission; publication used the explicitly authorized normal Git path. The credential-extraction API fallback was rejected by automatic review and was not executed.
+
+This documentation follow-up records the verified runtime release. Later documentation-only deployment commits do not change the tested application assets. Check current GitHub/Vercel status rather than assuming a historical commit is still the newest release.
