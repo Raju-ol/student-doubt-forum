@@ -115,5 +115,19 @@ teacherRequestSchema.index({ user: 1 }, { unique: true, partialFilterExpression:
 teacherRequestSchema.index({ status: 1, createdAt: 1 });
 teacherRequestSchema.index({ user: 1, createdAt: -1 });
 export const TeacherRequest = mongoose.model('TeacherRequest', teacherRequestSchema);
+// Who did what, when: written by recordAudit() for admin and moderator actions.
+const auditLogSchema = new Schema({
+  actor: ref('User'),
+  action: { type: String, required: true, maxlength: 40 },
+  summary: { type: String, required: true, maxlength: 300 },
+  targetType: { type: String, maxlength: 20 },
+  target: { type: Schema.Types.ObjectId }
+}, options);
+auditLogSchema.index({ createdAt: -1 });
+auditLogSchema.index({ action: 1, createdAt: -1 });
+export const AuditLog = mongoose.model('AuditLog', auditLogSchema);
+// Site-wide settings, one document per key (currently the announcement banner).
+const settingSchema = new Schema({ key: { type: String, required: true, unique: true }, text: { type: String, maxlength: 140, default: '' }, updatedBy: ref('User', false) }, options);
+export const Setting = mongoose.model('Setting', settingSchema);
 const institutionSchema = new Schema({ name: { type: String, required: true, maxlength: 140 }, slug: { type: String, required: true, unique: true }, country: { type: String, maxlength: 2 }, isVerified: { type: Boolean, default: false } }, options);
 export const Institution = mongoose.model('Institution', institutionSchema);

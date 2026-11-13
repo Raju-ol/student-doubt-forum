@@ -438,3 +438,10 @@
 .growth__milestones small{display:block;color:var(--muted)}
 .growth__check{display:grid;place-items:center;flex:none;width:22px;height:22px;margin-top:1px;border:2px solid var(--border);border-radius:50%}
 .growth__milestones .is-earned .growth__check{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+
+/* ---- Admin: audit log (role slice 4) ---- */
+.audit{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.audit__row{display:grid;grid-template-columns:120px 1fr auto;gap:4px 14px;align-items:center;padding:12px 16px;border:var(--edge) var(--edge-style) var(--border);border-radius:14px;background:var(--card)}
+.audit__when{color:var(--muted);font-size:13px}
+.audit__what{overflow-wrap:anywhere}
+@media (max-width:639px){.audit__row{grid-template-columns:1fr}}

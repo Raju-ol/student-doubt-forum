@@ -23,6 +23,7 @@ import { User, Doubt, Answer, Comment, Report, Upload, TeacherRequest, Vote } fr
 import { mountSimilarRoutes } from './similar.js';
 import { mountSharePage } from './share.js';
 import { growthFor } from './growth.js';
+import { recordAudit, mountAuditRoutes } from './audit.js';
 import { mountTeacherRoutes, mountTeacherAdminRoutes, teacherRequestFields, teacherSubjectList } from './teachers.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
@@ -223,7 +224,13 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const doubt = await findDoc(Doubt, req.params.id); owns(req.user, doubt.author);
     Object.assign(doubt, await doubtFields(req.body)); await doubt.save(); ok(res, doubt, 'Doubt updated.');
   }));
-  api.delete('/doubts/:id', requireUser, wrap(async (req, res) => { const doubt = await findDoc(Doubt, req.params.id); owns(req.user, doubt.author); await removeDoubt(doubt, cloudinary); ok(res, null, 'Doubt deleted.'); }));
+  api.delete('/doubts/:id', requireUser, wrap(async (req, res) => {
+    const doubt = await findDoc(Doubt, req.params.id); owns(req.user, doubt.author);
+    const title = doubt.title; const byAdmin = String(doubt.author) !== String(req.user._id);
+    await removeDoubt(doubt, cloudinary);
+    if (byAdmin) await recordAudit(req.user, 'doubt.delete', `Deleted question “${title}”`, { targetType: 'doubt', target: doubt._id });
+    ok(res, null, 'Doubt deleted.');
+  }));
   api.post('/doubts/:id/vote', requireUser, wrap(async (req, res) => ok(res, await toggleVote(req, Doubt, 'doubt'))));
   api.post('/doubts/:id/answers', requireUser, requireVerified, wrap(async (req, res) => {
     const doubt = await findDoc(Doubt, req.params.id);
@@ -232,7 +239,13 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     ok(res, answer, 'Answer posted. Thank you for helping!', 201);
   }));
   api.put('/answers/:id', requireUser, wrap(async (req, res) => { const answer = await findDoc(Answer, req.params.id); owns(req.user, answer.author); answer.body = text(req.body.body, 'Answer', 10, 12000); await answer.save(); ok(res, answer, 'Answer updated.'); }));
-  api.delete('/answers/:id', requireUser, wrap(async (req, res) => { const answer = await findDoc(Answer, req.params.id); owns(req.user, answer.author); await removeAnswer(answer); ok(res, null, 'Answer deleted.'); }));
+  api.delete('/answers/:id', requireUser, wrap(async (req, res) => {
+    const answer = await findDoc(Answer, req.params.id); owns(req.user, answer.author);
+    const byAdmin = String(answer.author) !== String(req.user._id);
+    await removeAnswer(answer);
+    if (byAdmin) await recordAudit(req.user, 'answer.delete', `Deleted an answer on “${(await Doubt.findById(answer.doubt).select('title'))?.title ?? 'a question'}”`, { targetType: 'answer', target: answer._id });
+    ok(res, null, 'Answer deleted.');
+  }));
   api.post('/answers/:id/vote', requireUser, wrap(async (req, res) => ok(res, await toggleVote(req, Answer, 'answer'))));
   api.patch('/answers/:id/accept', requireUser, wrap(async (req, res) => {
     const answer = await findDoc(Answer, req.params.id); const doubt = await findDoc(Doubt, String(answer.doubt));
@@ -304,6 +317,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   admin.use('/study-library', requireAdmin);
   mountStudyLibraryRoutes(admin, { wrap, ok, limiter });
   mountTeacherAdminRoutes(admin, { wrap, ok });
+  mountAuditRoutes(admin, { wrap, ok });
   admin.get('/users', requireAdmin, wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const [items, total] = await Promise.all([User.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25), User.countDocuments({ isDeleted: { $ne: true } })]);
@@ -318,11 +332,13 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
       _id: user._id, role: user.role, isDeleted: { $ne: true }
     }, { $set: { isBanned: req.body.isBanned } }, { new: true });
     if (!updated) fail(409, 'This account changed. Refresh the user list and try again.');
+    if (user.isBanned !== updated.isBanned) await recordAudit(req.user, updated.isBanned ? 'user.suspend' : 'user.restore', `${updated.isBanned ? 'Suspended' : 'Restored'} ${updated.name} (${updated.role})`, { targetType: 'user', target: updated._id });
     ok(res, safeUser(updated), 'Account status updated.');
   }));
   admin.patch('/users/:id/role', requireAdmin, wrap(async (req, res) => {
     const user = await changeUserRole(req.user, req.params.id, req.body.role);
-    ok(res, safeUser(user), 'Role updated. The user can refresh to see their updated access.');
+    if (user.$locals.previousRole) await recordAudit(req.user, 'user.role', `Changed ${user.name} from ${user.$locals.previousRole} to ${user.role}`, { targetType: 'user', target: user._id });
+    ok(res, safeUser(user),'Role updated. The user can refresh to see their updated access.');
   }));
   admin.get('/reports', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
@@ -335,8 +351,13 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const report = await findDoc(Report, req.params.id);
     if (!['dismissed', 'removed'].includes(req.body.status)) fail(400, 'Choose dismiss or remove.');
     if (report.status !== 'pending') fail(409, 'This report has already been resolved.');
-    if (req.body.status === 'removed') { const Model = report.targetType === 'doubt' ? Doubt : Answer; const target = await Model.findById(report.target); if (target) { if (report.targetType === 'doubt') await removeDoubt(target, cloudinary); else await removeAnswer(target); } }
-    report.status = req.body.status; await report.save(); ok(res, report, 'Report resolved.');
+    const Model = report.targetType === 'doubt' ? Doubt : Answer;
+    const target = await Model.findById(report.target);
+    const label = `${report.targetType} ${report.targetType === 'doubt' ? `“${target?.title ?? 'already removed'}”` : `on “${(await Doubt.findById(target?.doubt).select('title'))?.title ?? 'a question'}”`}`;
+    if (req.body.status === 'removed' && target) { if (report.targetType === 'doubt') await removeDoubt(target, cloudinary); else await removeAnswer(target); }
+    report.status = req.body.status; await report.save();
+    await recordAudit(req.user, req.body.status === 'removed' ? 'report.remove' : 'report.dismiss', `${req.body.status === 'removed' ? 'Removed' : 'Dismissed a report on'} ${label}`, { targetType: report.targetType, target: report.target });
+    ok(res, report, 'Report resolved.');
   }));
   mountSharePage(app);
   app.use('/api', (req, res) => res.status(404).json({ success: false, message: 'API route not found.' }));

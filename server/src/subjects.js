@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { Subject, Doubt } from './models.js';
 import { fail, text, escapeRegex } from './validation.js';
 import { requireUser, requireAdmin } from './auth.js';
+import { recordAudit } from './audit.js';
 export const subjectKey = value => value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
 const seeds = [
   ['Data Structures', ['DSA', 'Data Structures and Algorithms'], '{}'], ['DBMS', ['Database Management Systems', 'Databases'], '▤'], ['Java', [], 'J'], ['Operating Systems', ['OS'], '⌘'], ['Computer Networks', ['Networking'], '◎'], ['Mathematics', ['Math', 'Maths'], '∑'], ['Web Development', [], '⌨'], ['Python', [], 'Py'], ['C and C++', ['C', 'C++', 'C Programming'], 'C'], ['Other', [], '◈'],
@@ -43,7 +44,7 @@ export function mountSubjectRoutes(api, { wrap, ok }) {
   api.get('/subjects', wrap(async (req, res) => { ok(res, await listSubjects()); }));
   api.post('/admin/subjects', requireUser, requireAdmin, wrap(async (req, res) => {
     await ensureSubjects();
-    try { ok(res, await Subject.create(subjectFields(req.body)), 'Subject added.', 201); }
+    try { const subject = await Subject.create(subjectFields(req.body)); await recordAudit(req.user, 'catalog.subject', `Added the subject ${subject.name}`, { targetType: 'subject', target: subject._id }); ok(res, subject, 'Subject added.', 201); }
     catch (error) { if (error.code === 11000) fail(409, 'That subject name, slug or alias already belongs to the catalogue.'); throw error; }
   }));
 }

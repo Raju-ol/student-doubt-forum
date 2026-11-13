@@ -5,6 +5,7 @@ import { requireUser } from './auth.js';
 import { requireVerified } from './email.js';
 import { findDoc } from './forum.js';
 import { fail, positiveInt, text } from './validation.js';
+import { recordAudit } from './audit.js';
 
 export const RESOURCE_CATEGORIES = ['notes', 'papers', 'cheatsheets', 'books', 'others'];
 const MAX_BYTES = 4 * 1024 * 1024; // Vercel functions reject request bodies above ~4.5 MB.
@@ -91,6 +92,7 @@ export function mountResourceRoutes(api, { wrap, ok, limiter, cloudinary }) {
     if (String(resource.uploader) !== String(req.user._id) && !isStaff) fail(403, 'Only the person who shared this, or a moderator, can remove it.');
     if (resource.publicId) { try { await cloudinary.uploader.destroy(resource.publicId, { resource_type: 'raw' }); } catch { console.error('Resource file cleanup failed'); } }
     await resource.deleteOne();
+    if (isStaff && String(resource.uploader) !== String(req.user._id)) await recordAudit(req.user, 'resource.remove', `Removed the Library resource “${resource.title}”`, { targetType: 'resource', target: resource._id });
     ok(res, null, 'Resource removed.');
   }));
 

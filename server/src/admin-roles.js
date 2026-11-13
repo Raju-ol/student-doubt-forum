@@ -43,5 +43,6 @@ export async function changeUserRole(actor, id, role) {
     _id: user._id, role: user.role, isBanned: user.isBanned ? true : { $ne: true }, isDeleted: { $ne: true }
   }, { $set: { role } }, { new: true });
   if (!updated) fail(409, 'This account changed. Refresh the user list and try again.');
+  updated.$locals.previousRole = user.role;
   return updated;
 }
