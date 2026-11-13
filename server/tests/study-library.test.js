@@ -60,6 +60,14 @@ test('only an administrator can publish the study library, with no duplicate or 
   assert.equal((await Doubt.findById(original._id)).body, original.body);
   const feed = await request('/doubts?scope=all&tag=study-library&limit=1');
   assert.equal(feed.total, 200);
+  // Library questions stay out of the unfiltered feed and the open-questions list,
+  // but remain reachable through search and subject browsing.
+  const community = await request('/doubts?scope=all');
+  assert.equal(community.total, 1);
+  assert.equal(community.items[0]._id, String(original._id));
+  assert.equal((await request('/doubts?scope=all&status=open')).total, 1);
+  assert.ok((await request('/doubts?scope=all&search=deadlock')).total > 0);
+  assert.ok((await request('/doubts?scope=all&subject=Physics')).total >= 20);
   const sample = await request(`/doubts/${feed.items[0]._id}`);
   assert.match(sample.body, /sample question/i);
   assert.equal(sample.answers.length, 1);

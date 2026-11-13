@@ -135,6 +135,8 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
       filter.$or = [levelFilter, ...(system === 'semester' ? [{ academicLevel: null, semester: index || { $exists: true } }] : [])];
     }
     if (req.query.tag) filter.tags = text(req.query.tag, 'Tag', 1, 24).toLowerCase();
+    // The 200 sample questions live under their own tab; keep them out of the unfiltered community feed.
+    else if (!req.query.search && !req.query.subject) filter.tags = { $ne: 'study-library' };
     if (req.query.status === 'solved') filter.acceptedAnswer = { $ne: null };
     if (req.query.status === 'open') filter.acceptedAnswer = null;
     const query = filter.$text ? Doubt.find(filter, { searchScore: { $meta: 'textScore' } }).sort({ searchScore: { $meta: 'textScore' }, createdAt: -1, _id: -1 }) : Doubt.find(filter).sort({ createdAt: -1, _id: -1 });
