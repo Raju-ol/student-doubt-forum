@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import mongoose from 'mongoose';
 import { createApp } from '../src/app.js';
-import { User } from '../src/models.js';
+import { User, Vote } from '../src/models.js';
 import { createServer } from 'node:http';
 import { calculateReputation, ensureReputation } from '../src/reputation.js';
 import jwt from 'jsonwebtoken';
@@ -68,12 +68,18 @@ test('Student Doubt Forum integration flow', async t => {
   });
   await t.test('invalid IDs and missing records return safe errors', async () => { await request('/doubts/nope', 'GET', null, null, 400); await request('/doubts/000000000000000000000000', 'GET', null, null, 404); });
   await t.test('non-owner edits/deletes and self-votes blocked', async () => { await request(`/doubts/${doubt._id}`, 'PUT', {}, b.token, 403); await request(`/doubts/${doubt._id}`, 'DELETE', null, b.token, 403); await request(`/doubts/${doubt._id}/vote`, 'POST', { value: 1 }, a.token, 403); });
-  await t.test('doubt vote add, remove and switch', async () => {
+  await t.test('questions take only a "Same doubt" upvote, which toggles; legacy downvotes are ignored', async () => {
     const route = `/doubts/${doubt._id}/vote`;
     assert.equal((await request(route, 'POST', { value: 1 }, b.token)).votes, 1);
     assert.equal((await request(route, 'POST', { value: 1 }, b.token)).votes, 0);
     assert.equal((await request(route, 'POST', { value: 1 }, b.token)).votes, 1);
-    assert.equal((await request(route, 'POST', { value: -1 }, b.token)).votes, -1);
+    await request(route, 'POST', { value: -1 }, b.token, 400);
+    // A downvote stored before this change is neither counted nor shown as the viewer's vote.
+    await Vote.updateOne({ targetType: 'doubt', target: doubt._id, user: b.user._id }, { value: -1 });
+    const legacy = await request(`/doubts/${doubt._id}`, 'GET', null, b.token);
+    assert.equal(legacy.votes, 0); assert.equal(legacy.myVote, 0);
+    // Pressing "Same doubt" again replaces the legacy downvote with an upvote.
+    assert.equal((await request(route, 'POST', { value: 1 }, b.token)).votes, 1);
   });
   await t.test('second student posts answer and comment', async () => {
     answer = await request(`/doubts/${doubt._id}/answers`, 'POST', { body: 'Normalization splits related data into tables to reduce redundancy and prevent update anomalies.', author: a.user._id }, b.token, 201);
@@ -82,8 +88,8 @@ test('Student Doubt Forum integration flow', async t => {
     const guestItem = (await request('/doubts')).items.find(item => item._id === doubt._id);
     const voterItem = (await request('/doubts', 'GET', null, b.token)).items.find(item => item._id === doubt._id);
     assert.equal(voterItem.answerCount, 1);
-    assert.equal(voterItem.votes, -1);
-    assert.equal(voterItem.myVote, -1);
+    assert.equal(voterItem.votes, 1);
+    assert.equal(voterItem.myVote, 1);
     assert.equal(guestItem.myVote, 0);
     assert.equal(guestItem.author._id, a.user._id);
     assert.equal(guestItem.author.email, undefined);

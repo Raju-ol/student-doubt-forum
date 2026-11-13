@@ -4,6 +4,8 @@ import { fail } from './validation.js';
 import { ensureReputation, addReputation, voteCredit } from './reputation.js';
 
 export const authorFields = 'name role semester academicLevel createdAt';
+// Who may see the real author of an anonymous question: the author, admins and moderators.
+export const seesAnonymousAuthor = (viewer, authorId) => Boolean(viewer) && (['admin', 'moderator'].includes(viewer.role) || String(viewer._id) === String(authorId));
 export async function findDoc(Model, id) {
   if (typeof id !== 'string' || !mongoose.isObjectIdOrHexString(id)) fail(400, 'Invalid record ID.');
   const doc = await Model.findById(id);
@@ -20,7 +22,8 @@ export async function decorateMany(docs, type, user) {
   const mine = user?._id ? { $sum: { $cond: [{ $eq: ['$user', user._id] }, '$value', 0] } } : { $sum: 0 };
   const [voteRows, answerRows] = await Promise.all([
     Vote.aggregate([
-      { $match: { targetType: type, target: { $in: ids } } },
+      // Questions are upvote-only ("Same doubt"); older stored downvotes are ignored.
+      { $match: { targetType: type, target: { $in: ids }, ...(type === 'doubt' ? { value: 1 } : {}) } },
       { $group: { _id: '$target', votes: { $sum: '$value' }, mine } }
     ]),
     type === 'doubt'
@@ -35,6 +38,7 @@ export async function decorateMany(docs, type, user) {
     result.votes = row?.votes || 0;
     result.myVote = row?.mine || 0;
     if (type === 'doubt') {
+      if (doc.isAnonymous && !seesAnonymousAuthor(user, doc.author?._id ?? doc.author)) result.author = { name: 'Anonymous', role: 'student' };
       result.answerCount = answerMap.get(String(doc._id)) || 0;
       result.status = doc.acceptedAnswer ? 'solved' : 'open';
     }
@@ -47,7 +51,7 @@ export async function decorate(doc, type, user) {
 export async function toggleVote(req, Model, type) {
   const doc = await findDoc(Model, req.params.id);
   if (String(doc.author) === String(req.user._id)) fail(403, 'You cannot vote on your own content.');
-  if (![1, -1].includes(req.body.value)) fail(400, 'Vote must be 1 or -1.');
+  if (type === 'doubt' ? req.body.value !== 1 : ![1, -1].includes(req.body.value)) fail(400, type === 'doubt' ? 'Questions only take a "Same doubt" vote.' : 'Vote must be 1 or -1.');
   const filter = { targetType: type, target: doc._id, user: req.user._id };
   if (type === 'answer') await ensureReputation(doc.author);
   const previous = await Vote.findOne(filter);

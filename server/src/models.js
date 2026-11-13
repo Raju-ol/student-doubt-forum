@@ -39,6 +39,8 @@ const doubtSchema = new Schema({
   images: [image],
   author: ref('User'),
   acceptedAnswer: ref('Answer', false),
+  // "Post without my name": the author is stored but shown as Anonymous to everyone except the author and staff.
+  isAnonymous: { type: Boolean, default: false },
   views: { type: Number, default: 0, min: 0 }
 }, options);
 // Unfiltered feed sort.
@@ -53,7 +55,8 @@ doubtSchema.index({ tags: 1, createdAt: -1 });
 doubtSchema.index({ acceptedAnswer: 1, createdAt: -1 });
 doubtSchema.index({ author: 1, createdAt: -1 });
 doubtSchema.index({ title: 'text', body: 'text', tags: 'text' }, { name: 'doubt_search', weights: { title: 10, tags: 5, body: 1 }, default_language: 'english' });
-const answerSchema = new Schema({ doubt: ref('Doubt'), body: { type: String, required: true, maxlength: 12000 }, author: ref('User') }, options);
+// endorsedBy: a teacher's lighter-than-acceptance "this is right" mark; acceptance stays the asker's right.
+const answerSchema = new Schema({ doubt: ref('Doubt'), body: { type: String, required: true, maxlength: 12000 }, author: ref('User'), endorsedBy: ref('User', false), endorsedAt: { type: Date, default: null } }, options);
 answerSchema.index({ doubt: 1, createdAt: 1 });
 // Profile page lists a user's latest answers.
 answerSchema.index({ author: 1, createdAt: -1 });
@@ -90,7 +93,7 @@ resourceSchema.index({ category: 1, createdAt: -1 });
 resourceSchema.index({ downloads: -1, createdAt: -1 });
 resourceSchema.index({ title: 'text', description: 'text' }, { name: 'resource_search' });
 export const Resource = mongoose.model('Resource', resourceSchema);
-const notificationSchema = new Schema({ user: ref('User'), actor: ref('User'), type: { type: String, enum: ['question_answered', 'answer_accepted', 'answer_commented', 'teacher_approved', 'teacher_declined'], required: true }, target: ref('Doubt', false), readAt: { type: Date, default: null }, eventKey: { type: String, required: true, unique: true } }, options);
+const notificationSchema = new Schema({ user: ref('User'), actor: ref('User'), type: { type: String, enum: ['question_answered', 'answer_accepted', 'answer_commented', 'answer_endorsed', 'teacher_approved', 'teacher_declined'], required: true }, target: ref('Doubt', false), readAt: { type: Date, default: null }, eventKey: { type: String, required: true, unique: true } }, options);
 notificationSchema.index({ user: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, readAt: 1, createdAt: -1 });
 export const Notification = mongoose.model('Notification', notificationSchema);
@@ -112,5 +115,19 @@ teacherRequestSchema.index({ user: 1 }, { unique: true, partialFilterExpression:
 teacherRequestSchema.index({ status: 1, createdAt: 1 });
 teacherRequestSchema.index({ user: 1, createdAt: -1 });
 export const TeacherRequest = mongoose.model('TeacherRequest', teacherRequestSchema);
+// Who did what, when: written by recordAudit() for admin and moderator actions.
+const auditLogSchema = new Schema({
+  actor: ref('User'),
+  action: { type: String, required: true, maxlength: 40 },
+  summary: { type: String, required: true, maxlength: 300 },
+  targetType: { type: String, maxlength: 20 },
+  target: { type: Schema.Types.ObjectId }
+}, options);
+auditLogSchema.index({ createdAt: -1 });
+auditLogSchema.index({ action: 1, createdAt: -1 });
+export const AuditLog = mongoose.model('AuditLog', auditLogSchema);
+// Site-wide settings, one document per key (currently the announcement banner).
+const settingSchema = new Schema({ key: { type: String, required: true, unique: true }, text: { type: String, maxlength: 140, default: '' }, updatedBy: ref('User', false) }, options);
+export const Setting = mongoose.model('Setting', settingSchema);
 const institutionSchema = new Schema({ name: { type: String, required: true, maxlength: 140 }, slug: { type: String, required: true, unique: true }, country: { type: String, maxlength: 2 }, isVerified: { type: Boolean, default: false } }, options);
 export const Institution = mongoose.model('Institution', institutionSchema);

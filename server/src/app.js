@@ -19,12 +19,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import mongoose from 'mongoose';
-import { User, Doubt, Answer, Comment, Report, Upload, TeacherRequest } from './models.js';
+import { User, Doubt, Answer, Comment, Report, Upload, TeacherRequest, Vote } from './models.js';
+import { mountSimilarRoutes } from './similar.js';
+import { mountSharePage } from './share.js';
+import { growthFor } from './growth.js';
+import { recordAudit, mountAuditRoutes } from './audit.js';
+import { mountOverviewRoutes } from './overview.js';
+import { mountBannerRoutes } from './banner.js';
+import { mountModerationContextRoutes } from './moderation.js';
 import { mountTeacherRoutes, mountTeacherAdminRoutes, teacherRequestFields, teacherSubjectList } from './teachers.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
 import { changeUserRole } from './admin-roles.js';
-import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields } from './forum.js';
+import { findDoc, decorate, decorateMany, toggleVote, toggleAcceptance, removeAnswer, removeDoubt, reputation, authorFields, seesAnonymousAuthor } from './forum.js';
 
 const ok = (res, data, message = '', status = 200) => res.status(status).json({ success: true, data, message });
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -154,8 +161,29 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     else if (!req.query.search && !req.query.subject) filter.tags = { $ne: 'study-library' };
     if (req.query.status === 'solved') filter.acceptedAnswer = { $ne: null };
     if (req.query.status === 'open') filter.acceptedAnswer = null;
-    const query = filter.$text ? Doubt.find(filter, { searchScore: { $meta: 'textScore' } }).sort({ searchScore: { $meta: 'textScore' }, createdAt: -1, _id: -1 }) : Doubt.find(filter).sort({ createdAt: -1, _id: -1 });
-    const [docs, total] = await Promise.all([query.skip((page - 1) * limit).limit(limit).populate('author', authorFields), Doubt.countDocuments(filter)]);
+    const sort = req.query.sort ?? 'newest';
+    if (!['newest', 'votes', 'answers', 'unanswered'].includes(sort)) fail(400, 'Choose a valid sort order.');
+    let docs, total;
+    if (sort === 'newest') {
+      const query = filter.$text ? Doubt.find(filter, { searchScore: { $meta: 'textScore' } }).sort({ searchScore: { $meta: 'textScore' }, createdAt: -1, _id: -1 }) : Doubt.find(filter).sort({ createdAt: -1, _id: -1 });
+      [docs, total] = await Promise.all([query.skip((page - 1) * limit).limit(limit).populate('author', authorFields), Doubt.countDocuments(filter)]);
+    } else {
+      // Counts live in other collections, so order the ids with an aggregation and load the page afterwards.
+      const order = { votes: { sameDoubt: -1, createdAt: -1, _id: -1 }, answers: { answerTotal: -1, createdAt: -1, _id: -1 }, unanswered: { answerTotal: 1, createdAt: -1, _id: -1 } }[sort];
+      const [ranked, count] = await Promise.all([
+        Doubt.aggregate([
+          { $match: filter },
+          ...(sort === 'votes'
+            ? [{ $lookup: { from: Vote.collection.name, let: { id: '$_id' }, pipeline: [{ $match: { $expr: { $and: [{ $eq: ['$targetType', 'doubt'] }, { $eq: ['$value', 1] }, { $eq: ['$target', '$$id'] }] } } }, { $count: 'n' }], as: 'v' } }, { $addFields: { sameDoubt: { $ifNull: [{ $arrayElemAt: ['$v.n', 0] }, 0] } } }]
+            : [{ $lookup: { from: Answer.collection.name, let: { id: '$_id' }, pipeline: [{ $match: { $expr: { $eq: ['$doubt', '$$id'] } } }, { $count: 'n' }], as: 'a' } }, { $addFields: { answerTotal: { $ifNull: [{ $arrayElemAt: ['$a.n', 0] }, 0] } } }]),
+          { $sort: order }, { $skip: (page - 1) * limit }, { $limit: limit }, { $project: { _id: 1 } }
+        ]),
+        Doubt.countDocuments(filter)
+      ]);
+      const byId = new Map((await Doubt.find({ _id: { $in: ranked.map(row => row._id) } }).populate('author', authorFields)).map(doc => [String(doc._id), doc]));
+      docs = ranked.map(row => byId.get(String(row._id))).filter(Boolean);
+      total = count;
+    }
     const items = await decorateMany(docs, 'doubt', req.user);
     res.append('Server-Timing', `feed-db;dur=${Math.round(performance.now() - started)}`);
     ok(res, { items, total, page, pages: Math.ceil(total / limit) });
@@ -169,21 +197,23 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     if (!Array.isArray(ids) || ids.length > 3 || ids.some(id => typeof id !== 'string') || new Set(ids).size !== ids.length) fail(400, 'Use up to 3 unique images.');
     const uploads = await Upload.find({ publicId: { $in: ids }, owner: req.user._id, doubt: null });
     if (uploads.length !== ids.length) fail(400, 'Some images are unavailable. Upload them again.');
-    const doubt = await Doubt.create({ ...fields, institution: req.body.institution === null ? null : req.user.institution || null, author: req.user._id, images: uploads.map(u => ({ url: u.url, publicId: u.publicId })) });
+    if (req.body.anonymous !== undefined && typeof req.body.anonymous !== 'boolean') fail(400, 'Anonymous must be true or false.');
+    const doubt = await Doubt.create({ ...fields, isAnonymous: req.body.anonymous === true, institution: req.body.institution === null ? null : req.user.institution || null, author: req.user._id, images: uploads.map(u => ({ url: u.url, publicId: u.publicId })) });
     await Upload.updateMany({ _id: { $in: uploads.map(u => u._id) } }, { doubt: doubt._id });
     ok(res, doubt, 'Your doubt has been posted.', 201);
   }));
+  mountSimilarRoutes(api, { wrap, ok });
   api.get('/doubts/:id', wrap(async (req, res) => {
     const doubt = await findDoc(Doubt, req.params.id);
     await doubt.populate('author', authorFields);
-    const answers = await Answer.find({ doubt: doubt._id }).sort({ createdAt: 1 }).populate('author', authorFields);
+    const answers = await Answer.find({ doubt: doubt._id }).sort({ createdAt: 1 }).populate('author', authorFields).populate('endorsedBy', 'name');
     // One comment query for the whole page instead of one per answer.
     const [decorated, comments] = await Promise.all([decorateMany(answers, 'answer', req.user), Comment.find({ answer: { $in: answers.map(a => a._id) } }).sort({ createdAt: 1 }).populate('author', authorFields)]);
     const byAnswer = new Map();
     for (const comment of comments) { const key = String(comment.answer); if (!byAnswer.has(key)) byAnswer.set(key, []); byAnswer.get(key).push(comment); }
     const result = decorated.map(answer => ({ ...answer, isAccepted: String(doubt.acceptedAnswer) === String(answer._id), comments: byAnswer.get(String(answer._id)) || [] }));
-    // Accepted first, then teacher answers, then everything else by votes.
-    const rank = answer => answer.isAccepted ? 2 : answer.author?.role === 'teacher' ? 1 : 0;
+    // Accepted first, then teacher-endorsed, then teacher-written, then everything else by votes.
+    const rank = answer => answer.isAccepted ? 3 : answer.endorsedBy ? 2 : answer.author?.role === 'teacher' ? 1 : 0;
     result.sort((a, b) => rank(b) - rank(a) || b.votes - a.votes);
     ok(res, { ...await decorate(doubt, 'doubt', req.user), answers: result });
   }));
@@ -197,7 +227,13 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const doubt = await findDoc(Doubt, req.params.id); owns(req.user, doubt.author);
     Object.assign(doubt, await doubtFields(req.body)); await doubt.save(); ok(res, doubt, 'Doubt updated.');
   }));
-  api.delete('/doubts/:id', requireUser, wrap(async (req, res) => { const doubt = await findDoc(Doubt, req.params.id); owns(req.user, doubt.author); await removeDoubt(doubt, cloudinary); ok(res, null, 'Doubt deleted.'); }));
+  api.delete('/doubts/:id', requireUser, wrap(async (req, res) => {
+    const doubt = await findDoc(Doubt, req.params.id); owns(req.user, doubt.author);
+    const title = doubt.title; const byAdmin = String(doubt.author) !== String(req.user._id);
+    await removeDoubt(doubt, cloudinary);
+    if (byAdmin) await recordAudit(req.user, 'doubt.delete', `Deleted question “${title}”`, { targetType: 'doubt', target: doubt._id });
+    ok(res, null, 'Doubt deleted.');
+  }));
   api.post('/doubts/:id/vote', requireUser, wrap(async (req, res) => ok(res, await toggleVote(req, Doubt, 'doubt'))));
   api.post('/doubts/:id/answers', requireUser, requireVerified, wrap(async (req, res) => {
     const doubt = await findDoc(Doubt, req.params.id);
@@ -206,7 +242,13 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     ok(res, answer, 'Answer posted. Thank you for helping!', 201);
   }));
   api.put('/answers/:id', requireUser, wrap(async (req, res) => { const answer = await findDoc(Answer, req.params.id); owns(req.user, answer.author); answer.body = text(req.body.body, 'Answer', 10, 12000); await answer.save(); ok(res, answer, 'Answer updated.'); }));
-  api.delete('/answers/:id', requireUser, wrap(async (req, res) => { const answer = await findDoc(Answer, req.params.id); owns(req.user, answer.author); await removeAnswer(answer); ok(res, null, 'Answer deleted.'); }));
+  api.delete('/answers/:id', requireUser, wrap(async (req, res) => {
+    const answer = await findDoc(Answer, req.params.id); owns(req.user, answer.author);
+    const byAdmin = String(answer.author) !== String(req.user._id);
+    await removeAnswer(answer);
+    if (byAdmin) await recordAudit(req.user, 'answer.delete', `Deleted an answer on “${(await Doubt.findById(answer.doubt).select('title'))?.title ?? 'a question'}”`, { targetType: 'answer', target: answer._id });
+    ok(res, null, 'Answer deleted.');
+  }));
   api.post('/answers/:id/vote', requireUser, wrap(async (req, res) => ok(res, await toggleVote(req, Answer, 'answer'))));
   api.patch('/answers/:id/accept', requireUser, wrap(async (req, res) => {
     const answer = await findDoc(Answer, req.params.id); const doubt = await findDoc(Doubt, String(answer.doubt));
@@ -214,6 +256,18 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const accepted = await toggleAcceptance(answer, doubt);
     if (accepted) await notifyUser({ user: answer.author, actor: req.user._id, type: 'answer_accepted', target: doubt._id, eventKey: `accepted:${answer._id}` });
     ok(res, { accepted }, accepted ? 'Answer accepted.' : 'Answer acceptance removed.');
+  }));
+  api.patch('/answers/:id/endorse', requireUser, wrap(async (req, res) => {
+    if (!['teacher', 'admin'].includes(req.user.role)) fail(403, 'Only verified teachers can endorse an answer.');
+    const answer = await findDoc(Answer, req.params.id);
+    if (String(answer.author) === String(req.user._id)) fail(403, 'You cannot endorse your own answer.');
+    const endorsed = !answer.endorsedBy;
+    if (!endorsed && String(answer.endorsedBy) !== String(req.user._id) && req.user.role !== 'admin') fail(409, 'Another teacher endorsed this answer, so only they can remove it.');
+    // Compare-and-set, so two teachers pressing at once cannot both win.
+    const result = await Answer.updateOne({ _id: answer._id, endorsedBy: answer.endorsedBy || null }, endorsed ? { $set: { endorsedBy: req.user._id, endorsedAt: new Date() } } : { $set: { endorsedBy: null, endorsedAt: null } });
+    if (!result.modifiedCount) fail(409, 'This answer changed in another request. Please refresh and retry.');
+    if (endorsed) await notifyUser({ user: answer.author, actor: req.user._id, type: 'answer_endorsed', target: answer.doubt, eventKey: `endorsed:${answer._id}` });
+    ok(res, { endorsed }, endorsed ? 'Answer endorsed.' : 'Endorsement removed.');
   }));
   api.post('/answers/:id/comments', requireUser, requireVerified, wrap(async (req, res) => {
     const answer = await findDoc(Answer, req.params.id);
@@ -224,8 +278,10 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   api.get('/users/:id', wrap(async (req, res) => {
     const user = await findDoc(User, req.params.id);
     if (user.isDeleted) fail(404, 'This account has been deleted.');
-    const [doubts, answers, score] = await Promise.all([Doubt.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id)]);
-    ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, academicLevel: effectiveLevel(user), institution: user.institution || null, createdAt: user.createdAt, reputation: score }, doubts: await decorateMany(doubts, 'doubt', req.user), answers });
+    // Anonymous questions stay off a public profile; only the owner and staff see them there.
+    const showAnonymous = seesAnonymousAuthor(req.user, user._id);
+    const [doubts, answers, score, growth] = await Promise.all([Doubt.find({ author: user._id, ...(showAnonymous ? {} : { isAnonymous: { $ne: true } }) }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id), growthFor(user._id, { includeAnonymous: showAnonymous })]);
+    ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, academicLevel: effectiveLevel(user), institution: user.institution || null, createdAt: user.createdAt, reputation: score }, doubts: await decorateMany(doubts, 'doubt', req.user), answers, growth });
   }));
   api.put('/users/me', requireUser, wrap(async (req, res) => {
     req.user.name = text(req.body.name, 'Name', 2, 60);
@@ -264,6 +320,10 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   admin.use('/study-library', requireAdmin);
   mountStudyLibraryRoutes(admin, { wrap, ok, limiter });
   mountTeacherAdminRoutes(admin, { wrap, ok });
+  mountAuditRoutes(admin, { wrap, ok });
+  mountOverviewRoutes(admin, { wrap, ok });
+  mountBannerRoutes(api, admin, { wrap, ok });
+  mountModerationContextRoutes(admin, { wrap, ok });
   admin.get('/users', requireAdmin, wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const [items, total] = await Promise.all([User.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25), User.countDocuments({ isDeleted: { $ne: true } })]);
@@ -278,26 +338,34 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
       _id: user._id, role: user.role, isDeleted: { $ne: true }
     }, { $set: { isBanned: req.body.isBanned } }, { new: true });
     if (!updated) fail(409, 'This account changed. Refresh the user list and try again.');
+    if (user.isBanned !== updated.isBanned) await recordAudit(req.user, updated.isBanned ? 'user.suspend' : 'user.restore', `${updated.isBanned ? 'Suspended' : 'Restored'} ${updated.name} (${updated.role})`, { targetType: 'user', target: updated._id });
     ok(res, safeUser(updated), 'Account status updated.');
   }));
   admin.patch('/users/:id/role', requireAdmin, wrap(async (req, res) => {
     const user = await changeUserRole(req.user, req.params.id, req.body.role);
-    ok(res, safeUser(user), 'Role updated. The user can refresh to see their updated access.');
+    if (user.$locals.previousRole) await recordAudit(req.user, 'user.role', `Changed ${user.name} from ${user.$locals.previousRole} to ${user.role}`, { targetType: 'user', target: user._id });
+    ok(res, safeUser(user),'Role updated. The user can refresh to see their updated access.');
   }));
   admin.get('/reports', wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const filter = { status: 'pending' };
     const [reports, total] = await Promise.all([Report.find(filter).sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25).populate('reporter', 'name'), Report.countDocuments(filter)]);
-    const items = await Promise.all(reports.map(async report => ({ ...report.toObject(), content: await (report.targetType === 'doubt' ? Doubt : Answer).findById(report.target).select('title body doubt') })));
+    const items = await Promise.all(reports.map(async report => ({ ...report.toObject(), content: await (report.targetType === 'doubt' ? Doubt : Answer).findById(report.target).select('title body doubt author') })));
     ok(res, { items, page, pages: Math.ceil(total / 25), total });
   }));
   admin.patch('/reports/:id', wrap(async (req, res) => {
     const report = await findDoc(Report, req.params.id);
     if (!['dismissed', 'removed'].includes(req.body.status)) fail(400, 'Choose dismiss or remove.');
     if (report.status !== 'pending') fail(409, 'This report has already been resolved.');
-    if (req.body.status === 'removed') { const Model = report.targetType === 'doubt' ? Doubt : Answer; const target = await Model.findById(report.target); if (target) { if (report.targetType === 'doubt') await removeDoubt(target, cloudinary); else await removeAnswer(target); } }
-    report.status = req.body.status; await report.save(); ok(res, report, 'Report resolved.');
+    const Model = report.targetType === 'doubt' ? Doubt : Answer;
+    const target = await Model.findById(report.target);
+    const label = `${report.targetType} ${report.targetType === 'doubt' ? `“${target?.title ?? 'already removed'}”` : `on “${(await Doubt.findById(target?.doubt).select('title'))?.title ?? 'a question'}”`}`;
+    if (req.body.status === 'removed' && target) { if (report.targetType === 'doubt') await removeDoubt(target, cloudinary); else await removeAnswer(target); }
+    report.status = req.body.status; await report.save();
+    await recordAudit(req.user, req.body.status === 'removed' ? 'report.remove' : 'report.dismiss', `${req.body.status === 'removed' ? 'Removed' : 'Dismissed a report on'} ${label}`, { targetType: report.targetType, target: report.target });
+    ok(res, report, 'Report resolved.');
   }));
+  mountSharePage(app);
   app.use('/api', (req, res) => res.status(404).json({ success: false, message: 'API route not found.' }));
   const clientDist = fileURLToPath(new URL('../../client/dist', import.meta.url));
   if (serveClient && existsSync(clientDist)) { app.use(express.static(clientDist)); app.get('/{*path}', (req, res) => res.sendFile(path.join(clientDist, 'index.html'))); }

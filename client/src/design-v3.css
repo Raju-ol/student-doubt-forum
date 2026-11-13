@@ -390,3 +390,91 @@
 .teach h1{display:inline-flex;align-items:center;gap:10px}
 .teach__subjects{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 18px;color:var(--muted);font-size:14px}
 .teacher-request .form-actions{margin-top:12px}
+
+/* ---- "Same doubt": the small upvote-only pill on questions (role slice 2) ---- */
+.same-doubt{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 14px;border:var(--edge) var(--edge-style) var(--border);border-radius:999px;background:var(--card);color:var(--text);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.same-doubt strong{font-family:var(--font-display)}
+.same-doubt:hover:not(:disabled):not([aria-pressed=true]){border-color:var(--primary);color:var(--primary)}
+.same-doubt[aria-pressed=true]{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.same-doubt:disabled{cursor:default;opacity:.75}
+.same-doubt--compact{min-height:28px;padding:0 10px;gap:5px;font-size:13px}
+.qd__same{margin-top:16px}
+
+/* ---- Feed sorting (role slice 2) ---- */
+.dx-resultbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-bottom:12px}
+.dx-resultbar .dx-count{margin:0}
+.dx-sort{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
+.dx-sort select{min-height:36px;padding:0 10px;border:var(--edge) var(--edge-style) var(--border);border-radius:10px;background:var(--card);color:var(--text);font:inherit;font-size:14px}
+
+/* ---- Related questions and the duplicate check (role slice 2) ---- */
+.similar,.qd__related{margin:14px 0;padding:14px 18px;border:var(--edge) dashed var(--border);border-radius:16px;background:var(--card)}
+.qd__related{margin-top:30px}
+.qd__related h2{margin:0 0 8px;font-size:20px}
+.similar>strong{display:block;margin-bottom:6px}
+.similar small{display:block;margin-top:8px;color:var(--muted)}
+.similar__list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.similar__list li{display:flex;flex-direction:column;gap:2px}
+.similar__list a{font-weight:700;overflow-wrap:anywhere}
+.similar__list .muted{font-size:13px}
+
+/* ---- Share button (role slice 2) ---- */
+.qd__byline-actions{display:inline-flex;align-items:center;gap:6px}
+
+/* ---- Anonymous asking (role slice 3) ---- */
+.anon-toggle{display:flex;align-items:flex-start;gap:10px;margin:4px 0 12px;padding:12px 14px;border:var(--edge) dashed var(--border);border-radius:14px;cursor:pointer}
+.anon-toggle input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--primary)}
+.anon-toggle small{display:block;margin-top:2px;color:var(--muted)}
+.author__anon{font-weight:700}
+
+/* ---- Profile growth (role slice 3) ---- */
+.growth h2{margin:0 0 12px}
+.growth__stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:0}
+.growth__stats>div{padding:12px 14px;border:var(--edge) var(--edge-style) var(--border);border-radius:14px;background:var(--card)}
+.growth__stats dt{color:var(--muted);font-size:13px;font-weight:600}
+.growth__stats dd{margin:2px 0 0;font-family:var(--font-display);font-size:26px;font-weight:800}
+.growth__sub{margin:18px 0 8px;font-size:16px}
+.growth__milestones{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 14px;margin:0;padding:0;list-style:none}
+.growth__milestones li{display:flex;align-items:flex-start;gap:10px}
+.growth__milestones small{display:block;color:var(--muted)}
+.growth__check{display:grid;place-items:center;flex:none;width:22px;height:22px;margin-top:1px;border:2px solid var(--border);border-radius:50%}
+.growth__milestones .is-earned .growth__check{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+
+/* ---- Admin: audit log (role slice 4) ---- */
+.audit{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.audit__row{display:grid;grid-template-columns:120px 1fr auto;gap:4px 14px;align-items:center;padding:12px 16px;border:var(--edge) var(--edge-style) var(--border);border-radius:14px;background:var(--card)}
+.audit__when{color:var(--muted);font-size:13px}
+.audit__what{overflow-wrap:anywhere}
+@media (max-width:639px){.audit__row{grid-template-columns:1fr}}
+
+/* ---- Admin: overview (role slice 4) ---- */
+.overview h2{margin:20px 0 10px;font-size:18px}
+.overview__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.overview__card{display:flex;flex-direction:column;gap:4px;padding:16px 18px;border:var(--edge) var(--edge-style) var(--border);border-radius:16px;background:var(--card)}
+.overview__label{color:var(--muted);font-size:13px;font-weight:600}
+.overview__card strong{font-family:var(--font-display);font-size:32px;line-height:1.1}
+.overview__trend{color:var(--muted);font-size:13px}
+.overview__trend.is-up{color:var(--solved-ink);font-weight:700}
+.overview__card .text-button{align-self:flex-start;padding-left:0}
+.overview__totals{display:flex;flex-wrap:wrap;gap:10px 28px;margin:0}
+.overview__totals dt{color:var(--muted);font-size:13px}
+.overview__totals dd{margin:0;font-family:var(--font-display);font-size:22px;font-weight:800}
+
+/* ---- Announcement banner (role slice 4) ---- */
+.site-banner{display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:10px 14px;border-radius:14px;background:var(--v3-warn-bg);color:var(--v3-warn);font-weight:600;font-size:14px}
+.site-banner span{flex:1;overflow-wrap:anywhere}
+.site-banner button{min-width:32px;min-height:32px;border:0;border-radius:8px;background:transparent;color:inherit;font-size:20px;cursor:pointer}
+.banner-editor{margin-top:20px}
+.banner-editor h2{margin:0 0 6px;font-size:18px}
+.banner-editor input{width:100%}
+
+/* ---- Moderator context on a report (role slice 4) ---- */
+.author-context-box{margin:8px 0}
+.author-context{margin-top:8px;padding:12px 16px;border:var(--edge) dashed var(--border);border-radius:14px}
+.author-context p{margin:0 0 6px}
+.author-context h4{margin:10px 0 4px;font-size:14px}
+.author-context ul{margin:0;padding-left:18px}
+.author-context li{overflow-wrap:anywhere}
+
+/* ---- Teacher recommended shelf (role slice 5) ---- */
+.rcard__teacher{margin-left:8px;font-size:11px}
+.dx-chip--teacher{border-style:dashed}

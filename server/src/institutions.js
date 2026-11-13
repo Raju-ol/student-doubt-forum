@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Institution, User, Doubt } from './models.js';
 import { requireUser, requireAdmin } from './auth.js';
+import { recordAudit } from './audit.js';
 import { fail, text } from './validation.js';
 export async function institutionFields(body) {
   if (!Object.hasOwn(body, 'institution')) return {};
@@ -20,7 +21,7 @@ export function mountInstitutionRoutes(api, { wrap, ok }) {
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) fail(400, 'Use a lowercase slug with letters, numbers and hyphens.');
     const country = req.body.country ? text(req.body.country, 'Country code', 2, 2).toUpperCase() : '';
     if (country && !/^[A-Z]{2}$/.test(country)) fail(400, 'Use a two-letter country code.');
-    try { ok(res, await Institution.create({ name, slug, country, isVerified: false }), 'College added.', 201); }
+    try { const college = await Institution.create({ name, slug, country, isVerified: false }); await recordAudit(req.user, 'catalog.college', `Added the college ${college.name}`, { targetType: 'institution', target: college._id }); ok(res, college, 'College added.', 201); }
     catch (error) { if (error.code === 11000) fail(409, 'That college slug already exists.'); throw error; }
   }));
 }

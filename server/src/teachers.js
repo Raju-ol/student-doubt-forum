@@ -5,6 +5,7 @@ import { resolveSubject, subjectFilter } from './subjects.js';
 import { institutionFields } from './institutions.js';
 import { changeUserRole } from './admin-roles.js';
 import { notifyUser } from './notifications.js';
+import { recordAudit } from './audit.js';
 import { findDoc, decorateMany, authorFields } from './forum.js';
 
 export async function teacherSubjectList(value) {
@@ -95,6 +96,8 @@ export function mountTeacherAdminRoutes(admin, { wrap, ok }) {
       }
     }
     await notifyUser({ user: request.user, actor: req.user._id, type: req.body.status === 'approved' ? 'teacher_approved' : 'teacher_declined', eventKey: `teacher:${request._id}:${req.body.status}` });
+    const requester = await User.findById(request.user).select('name');
+    await recordAudit(req.user, req.body.status === 'approved' ? 'teacher.approve' : 'teacher.decline', `${req.body.status === 'approved' ? 'Approved' : 'Declined'} the teacher request of ${requester?.name ?? 'a deleted user'}${reason ? `: ${reason}` : ''}`, { targetType: 'user', target: request.user });
     ok(res, updated, req.body.status === 'approved' ? 'Teacher badge granted. The teacher has been notified.' : 'Request declined. The requester has been notified.');
   }));
 }

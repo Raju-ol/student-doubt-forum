@@ -14,11 +14,18 @@ export function mountNotificationRoutes(api, { wrap, ok }) {
   api.get('/notifications', requireUser, wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000), user = req.user._id;
     const [items, total, unread] = await Promise.all([
-      Notification.find({ user }).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * 25).limit(25).populate('actor', 'name').populate('target', 'title'),
+      Notification.find({ user }).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * 25).limit(25).populate('actor', 'name').populate('target', 'title isAnonymous'),
       Notification.countDocuments({ user }), Notification.countDocuments({ user, readAt: null }),
     ]);
     res.setHeader('Cache-Control', 'no-store');
-    ok(res, { items, unread, page, pages: Math.ceil(total / 25), total });
+    // "X accepted your answer" must not name the asker of an anonymous question.
+    const shown = items.map(item => {
+      const row = item.toObject();
+      if (row.type === 'answer_accepted' && row.target?.isAnonymous) row.actor = { name: 'Anonymous' };
+      if (row.target) delete row.target.isAnonymous;
+      return row;
+    });
+    ok(res, { items: shown, unread, page, pages: Math.ceil(total / 25), total });
   }));
   api.post('/notifications/read', requireUser, wrap(async (req, res) => { await Notification.updateMany({ user: req.user._id, readAt: null }, { $set: { readAt: new Date() } }); ok(res, null, 'Notifications marked as read.'); }));
   api.patch('/notifications/:id/read', requireUser, wrap(async (req, res) => {

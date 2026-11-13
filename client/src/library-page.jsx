@@ -22,7 +22,7 @@ function ResourceCard({ resource, canRemove, onRemove }) {
       <div className="rcard__info">
         <h3 title={resource.title}>{resource.title}</h3>
         <p>{details}</p>
-        {resource.uploader && <p className="rcard__by">by {resource.uploader.name}</p>}
+        {resource.uploader && <p className="rcard__by">by {resource.uploader.name}{resource.fromTeacher && <span className="badge badge--teacher rcard__teacher">✓ Teacher</span>}</p>}
       </div>
     </div>
     <a className="rcard__download" href={downloadUrl(resource)} target="_blank" rel="noopener noreferrer">
@@ -39,8 +39,10 @@ export function LibraryPage() {
   const category = params.get('category') || '';
   const search = params.get('search') || '';
   const page = params.get('page') || '1';
+  const shelf = params.get('shelf') === 'teacher' ? 'teacher' : '';
   const query = new URLSearchParams({ page });
   if (category) query.set('category', category);
+  if (shelf) query.set('shelf', shelf);
   if (search) query.set('search', search);
   const list = useResource('/resources?' + query.toString());
   const popular = useResource('/resources/popular');
@@ -51,6 +53,12 @@ export function LibraryPage() {
     const next = new URLSearchParams(params);
     next.delete('page');
     if (value) next.set('category', value); else next.delete('category');
+    setParams(next);
+  }
+  function toggleShelf() {
+    const next = new URLSearchParams(params);
+    next.delete('page');
+    if (shelf) next.delete('shelf'); else next.set('shelf', 'teacher');
     setParams(next);
   }
   async function remove(resource) {
@@ -73,6 +81,7 @@ export function LibraryPage() {
       <div className="dx-controls">
         <div className="dx-chips" role="group" aria-label="Filter by type">
           {RESOURCE_CATEGORIES.map(([value, label]) => <button key={value || 'all'} type="button" className="dx-chip" aria-pressed={category === value} onClick={() => choose(value)}>{label}</button>)}
+          <button type="button" className="dx-chip dx-chip--teacher" aria-pressed={shelf === 'teacher'} onClick={toggleShelf}>✓ Teacher recommended</button>
         </div>
       </div>
 
@@ -83,8 +92,8 @@ export function LibraryPage() {
         {list.loading && <Loading />}
         {!list.loading && !list.error && (list.data?.items.length
           ? <ul className="dx-rgrid">{list.data.items.map(resource => <ResourceCard key={resource._id} resource={resource} canRemove={Boolean(user) && (isStaff || resource.uploader?._id === user._id)} onRemove={remove} />)}</ul>
-          : <Empty title={search || category ? 'No matching materials' : 'No materials shared yet'}>
-              {search || category ? 'Try another category or clear the search.' : 'Be the first to share notes, a previous year paper or a cheat sheet with your classmates.'}
+          : <Empty title={shelf && !search && !category ? 'No teacher recommendations yet' : search || category || shelf ? 'No matching materials' : 'No materials shared yet'}>
+              {shelf && !search && !category ? 'Verified teachers can share notes and papers here; they will be listed on this shelf.' : search || category || shelf ? 'Try another category or clear the search.' : 'Be the first to share notes, a previous year paper or a cheat sheet with your classmates.'}
             </Empty>)}
         {list.data && !list.loading && !list.error && <Pager page={list.data.page} pages={list.data.pages} onChange={value => {
           const next = new URLSearchParams(params); next.set('page', value); setParams(next); window.scrollTo?.({ top: 0 });
@@ -114,7 +123,7 @@ export function LibraryPage() {
 }
 
 export function ShareResource() {
-  const { token, notify } = useAuth();
+  const { user, token, notify } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState('file');
   const [form, setForm] = useState({ title: '', category: 'notes', description: '', link: '' });
@@ -150,6 +159,7 @@ export function ShareResource() {
     <Link className="back-link" to="/library">← Back to the library</Link>
     <h1>Share a study resource</h1>
     <p className="muted">Notes, previous year papers, cheat sheets or books that helped you. Only share material you are allowed to share.</p>
+    {user?.role === 'teacher' && <p className="dx-notice" role="note">As a verified teacher, what you share is labelled <strong>✓ Teacher</strong> and listed on the Teacher recommended shelf.</p>}
     <ErrorBox message={error} />
     <form className="dx-form" onSubmit={submit}>
       <label htmlFor="resource-title">Title</label>

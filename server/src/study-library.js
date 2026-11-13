@@ -5,6 +5,7 @@ import answers from './demo-answers.json' with { type: 'json' };
 import { Answer, Comment, Doubt, Subject, User, Vote } from './models.js';
 import { ensureSubjects, subjectKey } from './subjects.js';
 import { fail, text } from './validation.js';
+import { recordAudit } from './audit.js';
 
 const batch = 'study-library-v1';
 const demoTag = 'study-library';
@@ -116,11 +117,13 @@ export function mountStudyLibraryRoutes(admin, { wrap, ok, limiter }) {
   admin.delete('/study-library', limiter('study-library-import', 5, 15 * 60 * 1000, { account: true }), wrap(async (req, res) => {
     if (req.body.confirm !== batch) fail(400, 'Confirm the study library reset.');
     const result = await resetStudyLibrary();
+    await recordAudit(req.user, 'library.reset', `Reset the Worked Q&A set (${result.removedQuestions} questions removed)`);
     ok(res, result, 'Study library reset. Publish it again to restore the full set.');
   }));
   admin.post('/study-library', limiter('study-library-import', 5, 15 * 60 * 1000, { account: true }), wrap(async (req, res) => {
     if (req.body.confirm !== batch) fail(400, 'Confirm the study library import.');
     const result = await importStudyLibrary(req.user._id);
+    if (!result.alreadyImported) await recordAudit(req.user, 'library.publish', `Published the Worked Q&A set (${result.questionCount} questions)`);
     ok(res, result, result.alreadyImported ? 'Study library already published.' : 'Study library published.');
   }));
 }
