@@ -4,7 +4,7 @@ import { fail, text, escapeRegex } from './validation.js';
 import { requireUser, requireAdmin } from './auth.js';
 export const subjectKey = value => value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
 const seeds = [
-  ['Data Structures', ['DSA', 'Data Structures and Algorithms'], '{}'], ['DBMS', ['Database Management Systems', 'Databases'], '▤'], ['Java', [], 'J'], ['Operating Systems', ['OS'], '⌘'], ['Computer Networks', ['Networking'], '◎'], ['Mathematics', ['Math', 'Maths'], '∑'], ['Web Development', [], '⌨'], ['Other', [], '◈'],
+  ['Data Structures', ['DSA', 'Data Structures and Algorithms'], '{}'], ['DBMS', ['Database Management Systems', 'Databases'], '▤'], ['Java', [], 'J'], ['Operating Systems', ['OS'], '⌘'], ['Computer Networks', ['Networking'], '◎'], ['Mathematics', ['Math', 'Maths'], '∑'], ['Web Development', [], '⌨'], ['Python', [], 'Py'], ['C and C++', ['C', 'C++', 'C Programming'], 'C'], ['Other', [], '◈'],
   ['Physics', [], '⚛'], ['Chemistry', [], '⚗'], ['Biology', [], '♧'], ['Statistics', [], '∑'], ['Economics', [], '↗'], ['Accounting', ['Accountancy'], '▤'], ['Business Studies', [], '◈'], ['History', [], '◷'], ['Geography', [], '◎'], ['Political Science', [], '◈'], ['Sociology', [], '◈'], ['Psychology', [], '◈'], ['English Literature', [], 'Aa'], ['Law', ['Legal Studies'], '⚖'], ['Anatomy', [], '◈'], ['Physiology', [], '◈'], ['Pharmacology', [], '◈'], ['Mechanical Engineering', [], '⚙'], ['Electrical Engineering', [], 'ϟ'], ['Civil Engineering', [], '⌂'], ['Architecture', [], '⌂'], ['Art and Design', [], '✎'],
 ];
 const ready = new WeakMap();

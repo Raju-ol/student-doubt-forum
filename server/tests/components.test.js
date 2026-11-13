@@ -61,7 +61,7 @@ test('mobile menu Escape closes from trigger and links and restores focus', asyn
   } finally { await React.act(async () => root.unmount()); host.remove(); dom.window.matchMedia = previousMedia; for (const key of keys) { if (previous[key] === undefined) delete globalThis[key]; else globalThis[key] = previous[key]; } }
 });
 
-test('theme switcher offers four looks, saves the choice, follows system and restores after remount', async () => {
+test('theme switcher offers three looks, saves the choice, follows system and restores after remount', async () => {
   const { createRoot } = await import('react-dom/client');
   const previousWindow = globalThis.window, previousDocument = globalThis.document, previousStorage = globalThis.localStorage;
   const storage = new Map(); const listeners = new Set();
@@ -76,7 +76,7 @@ test('theme switcher offers four looks, saves the choice, follows system and res
     await React.act(async () => root.render(React.createElement(ThemeControl)));
     assert.equal(host.querySelector('select'), null);
     assert.equal(host.querySelector('.theme-control').getAttribute('role'), 'group');
-    assert.deepEqual([...host.querySelectorAll('button')].map(button => button.textContent), ['Auto', 'Sticker', 'Chalkboard', 'Bento']);
+    assert.deepEqual([...host.querySelectorAll('button')].map(button => button.textContent), ['Auto', 'Light', 'Dark']);
     for (const button of host.querySelectorAll('button')) assert.equal(button.getAttribute('type'), 'button');
     assert.equal(option('system').getAttribute('aria-pressed'), 'true');
     assert.equal(document.documentElement.dataset.theme, 'dark'); // System preference.
@@ -86,11 +86,11 @@ test('theme switcher offers four looks, saves the choice, follows system and res
       assert.equal(document.documentElement.dataset.theme, applied);
       assert.equal(host.querySelectorAll('[aria-pressed="true"]').length, 1);
     };
-    await pick('light', 'light'); await pick('dark', 'dark'); await pick('bento', 'bento'); await pick('system', 'dark');
-    await pick('bento', 'bento');
+    await pick('light', 'light'); await pick('dark', 'dark'); await pick('system', 'dark');
+    await pick('light', 'light');
     await React.act(async () => root.unmount()); assert.equal(listeners.size, 0);
     root = createRoot(host); await React.act(async () => root.render(React.createElement(ThemeControl)));
-    assert.equal(option('bento').getAttribute('aria-pressed'), 'true');
+    assert.equal(option('light').getAttribute('aria-pressed'), 'true');
   } finally { await React.act(async () => root.unmount()); host.remove(); globalThis.window = previousWindow; globalThis.document = previousDocument; globalThis.localStorage = previousStorage; delete globalThis.IS_REACT_ACT_ENVIRONMENT; }
 });
 

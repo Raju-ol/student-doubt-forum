@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
+import { ArrowRight, BookOpen, ChevronDown, CircleHelp, Flame, Heart, MessageCircle, Trophy } from 'lucide-react';
 import { api } from './api';
 import { GoogleButton } from './google-button';
 import { markdownToText } from './excerpt';
@@ -11,29 +12,33 @@ import { parseAcademicForm, levelOf, levelLabel } from './academics';
 import { InstitutionSelect } from './institution-select';
 import { useAuth } from './context';
 import { useSavedQuestions, savedStorageAvailable } from './saved-questions';
-import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, SaveButton, Icon, Pager, VoteButtons, SemesterSelect, date, Markdown, MarkdownEditor } from './components';
+import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SemesterSelect, date, Markdown, MarkdownEditor } from './components';
 
-function useResource(route) {
+export function useResource(route) {
   const { token } = useAuth(); const [data, setData] = useState(null); const [error, setError] = useState(''); const [loading, setLoading] = useState(true); const [version, setVersion] = useState(0);
   useEffect(() => { if (!route) { setLoading(false); return undefined; } const controller = new AbortController(); setLoading(true); setError(''); api(route, { token, signal: controller.signal }).then(result => { if (!controller.signal.aborted) setData(result); }).catch(err => { if (err.name !== 'AbortError') setError(err.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [route, token, version]);
   const refresh = () => setVersion(value => value + 1);
   return { data, error, loading, refresh };
 }
-const STATUS_LABELS = { solved: 'Accepted answers', open: 'No accepted answer' };
+const STATUS_LABELS = { solved: 'Resolved', open: 'Unresolved' };
 const SCOPE_LABELS = { college: 'My college', subject: 'Subject worldwide', all: 'Everything' };
 // Parameters that only shape the page, never the API request.
 const VIEW_PARAMS = ['view'];
+// Subjects shown as chips before the rest move into the "Others" menu.
+const CHIP_COUNT = 5;
+const FEATURED_SUBJECTS = ['DBMS', 'Python', 'Operating Systems', 'Java', 'Web Development'];
 
 export function Feed() {
   const { subjects: catalogue, user: viewer, loading: sessionLoading } = useAuth();
   const [params, setParams] = useSearchParams();
   const query = params.get('search') || '';
-  const [search, setSearch] = useState(query);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const savedView = params.get('view') === 'saved';
   const apiParams = new URLSearchParams(params);
   VIEW_PARAMS.forEach(key => apiParams.delete(key));
   const { data, error, loading, refresh } = useResource(savedView ? null : '/doubts?' + apiParams.toString());
+  const trending = useResource('/tags/trending');
+  const trendingTags = Array.isArray(trending.data) ? trending.data : [];
   const saved = useSavedQuestions();
   const subject = params.get('subject') || '';
   const status = params.get('status') || '';
@@ -44,10 +49,10 @@ export function Feed() {
   const level = params.get('academicSystem') || (params.get('semester') ? 'semester' : '');
   const advancedCount = [params.get('scope') && params.get('scope') !== defaultScope, status, level].filter(Boolean).length;
   const filtered = [...apiParams.keys()].some(key => key !== 'page');
-  const heading = savedView ? 'Saved questions' : query ? `Results for “${query}”` : isLibrary ? 'Study Library'
-    : STATUS_LABELS[status] || (subject ? subject : 'Latest questions');
-
-  useEffect(() => setSearch(query), [query]);
+  const heading = savedView ? 'Saved Questions' : query ? `Results for “${query}”` : isLibrary ? 'Worked Q&A' : 'Explore Questions';
+  const subheading = savedView ? 'Questions you saved on this device.'
+    : isLibrary ? 'Exam-style questions with worked explanations, for the night before the test.'
+    : 'Find answers, learn from others, and be a part of our student community!';
 
   function update(changes) {
     const next = new URLSearchParams(params);
@@ -58,149 +63,147 @@ export function Feed() {
     setParams(next);
   }
   const filter = (key, value) => update({ [key]: value });
-  // Discovery links keep the student's search and subject, and toggle off when active.
-  function discover(changes, active) {
-    const next = new URLSearchParams(params);
-    ['page', 'view'].forEach(key => next.delete(key));
-    for (const [key, value] of Object.entries(changes)) { if (active || !value) next.delete(key); else next.set(key, value); }
-    const text = next.toString();
-    return text ? `/?${text}` : '/';
-  }
   function filterAcademicLevel(system, index) {
     update({ semester: '', academicSystem: system, academicIndex: index });
   }
   const chips = [
-    query && { key: 'search', label: `“${query}”`, clear: () => { setSearch(''); filter('search', ''); } },
-    subject && { key: 'subject', label: subject, clear: () => filter('subject', '') },
-    tag && { key: 'tag', label: isLibrary ? 'Study Library' : `#${tag}`, clear: () => update(isLibrary ? { tag: '', scope: '' } : { tag: '' }) },
+    query && { key: 'search', label: `“${query}”`, clear: () => filter('search', '') },
+    tag && { key: 'tag', label: isLibrary ? 'Worked Q&A' : `#${tag}`, clear: () => update(isLibrary ? { tag: '', scope: '' } : { tag: '' }) },
     status && { key: 'status', label: STATUS_LABELS[status] || status, clear: () => filter('status', '') },
     params.get('scope') && params.get('scope') !== defaultScope && { key: 'scope', label: SCOPE_LABELS[scope] || scope, clear: () => filter('scope', '') },
     level && { key: 'level', label: params.get('academicIndex') || params.get('semester') ? `${level[0].toUpperCase() + level.slice(1)} ${params.get('academicIndex') || params.get('semester')}` : level[0].toUpperCase() + level.slice(1), clear: () => filterAcademicLevel('', '') }
   ].filter(Boolean);
+  // Popular course subjects first, in a fixed order, then the rest of the catalogue behind Others.
+  const featured = FEATURED_SUBJECTS.map(name => catalogue.find(item => item.name === name)).filter(Boolean);
+  const savedMatches = query ? saved.filter(item => `${item.title} ${item.subject}`.toLowerCase().includes(query.toLowerCase())) : saved;
+  const visibleSubjects = [...featured, ...catalogue.filter(item => !featured.includes(item))].slice(0, CHIP_COUNT);
+  const otherSubjects = catalogue.filter(item => !visibleSubjects.includes(item));
+  const otherActive = Boolean(subject) && !visibleSubjects.some(item => item.name === subject);
 
-  return <div className="explore">
-    <section className="explore__top" aria-labelledby="explore-heading">
-      <div className="banner">
-        <div className="banner__text">
-          <p className="banner__script">{isLibrary ? 'Study Smart Not Hard!' : 'Better Together <3'}<svg className="banner__doodle" aria-hidden="true" width="22" height="22" viewBox="0 0 24 24"><path d="M12 2c.6 5.4 3.6 8.4 9 9-5.4.6-8.4 3.6-9 9-.6-5.4-3.6-8.4-9-9 5.4-.6 8.4-3.6 9-9Z" /></svg></p>
-          {isLibrary
-            ? <h1 id="explore-heading" className="explore__title">Study Library</h1>
-            : <h1 id="explore-heading" className="explore__title">stuck on something? <mark className="explore__mark">someone’s been there.</mark></h1>}
-          <p className="banner__sub">{isLibrary ? 'Worked explanations for the night before the exam.' : 'Browse questions from students like you, or ask your own.'}</p>
+  return <div className="dx-page">
+    <div className="dx-main">
+      <section className="dx-hero" aria-labelledby="explore-heading">
+        <div className="dx-hero__text">
+          <h1 id="explore-heading">{heading === 'Explore Questions' ? <>Explore <span className="dx-accent">Questions</span></> : heading}</h1>
+          <p>{subheading}{!savedView && !isLibrary && <Heart className="dx-hero__heart" aria-hidden="true" size={15} />}</p>
         </div>
-        <img className="banner__art" src={isLibrary ? '/illustrations/hero-library.png' : '/illustrations/hero-explore.png'} alt="" width="480" height="320" />
-      </div>
-      <nav className="explore__discover" aria-label="Quick views">
-        <Link className="explore__chip explore__chip--library" to={isLibrary ? discover({ tag: '', scope: '' }, true) : '/?scope=all&tag=study-library'}
-          aria-current={isLibrary && !savedView ? 'page' : undefined}><Icon name="book" size={17} />Study Library</Link>
-        <div className="explore__views">
-        <Link className="explore__chip explore__chip--solved" to={discover({ status: 'solved' }, status === 'solved')}
-          aria-current={status === 'solved' && !savedView ? 'page' : undefined}><Icon name="check" size={17} />Accepted answers</Link>
-        <Link className="explore__chip explore__chip--open" to={discover({ status: 'open' }, status === 'open')}
-          aria-current={status === 'open' && !savedView ? 'page' : undefined} title="Questions without an accepted answer, including ones that already have replies">
-          <Icon name="hand" size={17} />No accepted answer</Link>
-        <Link className="explore__chip explore__chip--saved" to={savedView ? '/' : '/?view=saved'} aria-current={savedView ? 'page' : undefined}>
-          <Icon name="bookmark" size={17} />Saved{saved.length > 0 && <span className="explore__chip-count">{saved.length}</span>}</Link>
-        </div>
-      </nav>
-      {!savedView && catalogue.length > 0 && <div className="explore__subjects" role="group" aria-label="Browse by subject">
-        <button type="button" className="explore__subject" aria-pressed={!subject} onClick={() => filter('subject', '')}>All subjects</button>
-        {subject && !catalogue.some(item => item.name === subject) && <button type="button" className="explore__subject" aria-pressed="true" onClick={() => filter('subject', '')}>{subject}</button>}
-        {catalogue.map(item => <button type="button" key={item.name} className="explore__subject" aria-pressed={subject === item.name}
-          onClick={() => filter('subject', subject === item.name ? '' : item.name)}>{item.name}</button>)}
-      </div>}
-    </section>
+        <p className="dx-hero__script" aria-hidden="true">Better Together &lt;3</p>
+        <img className="dx-hero__art" src={isLibrary ? '/illustrations/hero-library.png' : '/illustrations/hero-explore.png'} alt="" width="480" height="320" />
+      </section>
 
-    <div className="explore__body">
-    <section className="explore__results" aria-labelledby="explore-results">
-      <div className="explore__toolbar">
-        <div className="explore__heading">
-          <h2 id="explore-results">{heading}</h2>
-          {savedView ? <span className="muted">Stored on this device only · {saved.length} {saved.length === 1 ? 'question' : 'questions'}</span>
-            : data && !loading && !error && <span className="muted" aria-live="polite">{data.total} {data.total === 1 ? 'question' : 'questions'}{status === 'open' ? ' without an accepted answer' : ''}</span>}
-        </div>
-        {!savedView && <button type="button" className="explore__filters-toggle" aria-expanded={filtersOpen} aria-controls="explore-filters"
-          onClick={() => setFiltersOpen(open => !open)}>
-          <Icon name="filter" size={17} />Filters{advancedCount > 0 && <span className="explore__chip-count" aria-label={`${advancedCount} active`}>{advancedCount}</span>}
-        </button>}
-      </div>
-
-      {!savedView && <div id="explore-filters" className="explore__filters" role="group" aria-label="More filters" hidden={!filtersOpen}>
-        <div className="explore__filter">
-          <label htmlFor="explore-scope">Scope</label>
-          <select id="explore-scope" value={scope} onChange={event => filter('scope', event.target.value)}>
-            <option value="college" disabled={!viewer?.institution}>My college{!viewer?.institution ? sessionLoading ? '' : ' (set in profile)' : ''}</option>
-            <option value="subject" disabled={!subject}>Selected subject worldwide</option>
-            <option value="all">Everything</option>
-          </select>
-        </div>
-        <div className="explore__filter">
-          <label htmlFor="explore-status">Answer status</label>
-          <select id="explore-status" value={status} onChange={event => filter('status', event.target.value)}>
-            <option value="">All questions</option>
-            <option value="open">No accepted answer</option>
-            <option value="solved">Accepted answer</option>
-          </select>
-        </div>
-        <div className="explore__filter explore__filter--level">
-          <span className="explore__filter-label" id="explore-level">Academic level</span>
-          <div className="explore__level" role="group" aria-labelledby="explore-level"><AcademicFilter params={params} onChange={filterAcademicLevel} /></div>
+      {!savedView && <div className="dx-controls">
+        {catalogue.length > 0 && <div className="dx-chips" role="group" aria-label="Browse by subject">
+          <button type="button" className="dx-chip" aria-pressed={!subject} onClick={() => filter('subject', '')}>All</button>
+          {visibleSubjects.map(item => <button type="button" key={item.name} className="dx-chip" aria-pressed={subject === item.name}
+            onClick={() => filter('subject', subject === item.name ? '' : item.name)}>{item.name}</button>)}
+          {otherSubjects.length > 0 && <label className="dx-chip dx-chip--select" data-active={otherActive}>
+            <span className="visually-hidden">More subjects</span>
+            <select value={otherActive ? subject : ''} onChange={event => filter('subject', event.target.value)}>
+              <option value="">Others</option>
+              {otherSubjects.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}
+            </select>
+          </label>}
+        </div>}
+        <div className="dx-filter">
+          <button type="button" className="dx-filter__toggle explore__filters-toggle" aria-expanded={filtersOpen} aria-controls="explore-filters"
+            onClick={() => setFiltersOpen(open => !open)}>
+            <Icon name="filter" size={16} />Filters{advancedCount > 0 && <span className="dx-count-badge explore__chip-count" aria-label={`${advancedCount} active`}>{advancedCount}</span>}<ChevronDown aria-hidden="true" size={16} />
+          </button>
+          <div id="explore-filters" className="dx-filter__panel" role="group" aria-label="More filters" hidden={!filtersOpen}>
+            <div className="dx-field">
+              <label htmlFor="explore-scope">Scope</label>
+              <select id="explore-scope" value={scope} onChange={event => filter('scope', event.target.value)}>
+                <option value="college" disabled={!viewer?.institution}>My college{!viewer?.institution ? sessionLoading ? '' : ' (set in profile)' : ''}</option>
+                <option value="subject" disabled={!subject}>Selected subject worldwide</option>
+                <option value="all">Everything</option>
+              </select>
+            </div>
+            <div className="dx-field">
+              <label htmlFor="explore-status">Answer status</label>
+              <select id="explore-status" value={status} onChange={event => filter('status', event.target.value)}>
+                <option value="">All questions</option>
+                <option value="open">Unresolved</option>
+                <option value="solved">Resolved</option>
+              </select>
+            </div>
+            <div className="dx-field">
+              <span className="dx-field__label" id="explore-level">Academic level</span>
+              <div className="dx-field__row" role="group" aria-labelledby="explore-level"><AcademicFilter params={params} onChange={filterAcademicLevel} /></div>
+            </div>
+          </div>
         </div>
       </div>}
 
-      {!savedView && chips.length > 0 && <div className="explore__active" aria-label="Active filters">
-        {chips.map(chip => <button type="button" key={chip.key} className="explore__active-chip" onClick={chip.clear}
+      {!savedView && chips.length > 0 && <div className="dx-active" aria-label="Active filters">
+        {chips.map(chip => <button type="button" key={chip.key} className="dx-active__chip" onClick={chip.clear}
           aria-label={`Remove filter ${chip.label}`}>{chip.label} <span aria-hidden="true">×</span></button>)}
-        {chips.length > 1 && <button className="text-button" type="button" onClick={() => { setSearch(''); setParams({}); }}>Clear all</button>}
+        {chips.length > 1 && <button className="text-button" type="button" onClick={() => setParams({})}>Clear all</button>}
       </div>}
 
-      {savedView ? <SavedList items={saved} />
-        : <>
-          <ErrorBox message={error} retry={refresh} />
-          {loading && <Loading />}
-          {!loading && !error && (data?.items.length
-            ? <ol className="qlist">{data.items.map(doubt => <QuestionRow key={doubt._id} doubt={doubt} />)}</ol>
-            : <Empty title={filtered ? 'No matching questions' : 'Be the first to ask'}>
-                {filtered ? 'Try another word, a different subject, or clear the filters.' : 'Share a question from your coursework.'}
-              </Empty>)}
-          {data && !loading && !error && <Pager page={data.page} pages={data.pages} onChange={page => {
-            const next = new URLSearchParams(params);
-            next.set('page', page);
-            setParams(next);
-            window.scrollTo?.({ top: 0 });
-          }} />}
-        </>}
-    </section>
-    {!savedView && <aside className="explore__aside" aria-label="Ways to help">
-      <section className="explore__card explore__card--hero">
-        <h2>be someone’s hero today</h2>
-        <p>These doubts are still waiting for an accepted answer. One clear explanation can make someone’s exam.</p>
-        <Link className="explore__card-link" to="/?status=open">Find one to answer →</Link>
+      <section className="dx-results" aria-labelledby="explore-results">
+        <h2 id="explore-results" className="visually-hidden">{savedView ? 'Saved questions' : STATUS_LABELS[status] ? `${STATUS_LABELS[status]} questions` : subject || 'Latest questions'}</h2>
+        {savedView ? <p className="dx-count">Stored on this device only · {query ? `${savedMatches.length} of ${saved.length}` : saved.length} {saved.length === 1 ? 'question' : 'questions'}{query ? ` matching “${query}”` : ''}</p>
+          : data && !loading && !error && <p className="dx-count" aria-live="polite">{data.total} {data.total === 1 ? 'question' : 'questions'}{status === 'open' ? ' unresolved' : status === 'solved' ? ' resolved' : ''}{subject ? ` in ${subject}` : ''}</p>}
+        {savedView ? <SavedList items={savedMatches} query={query} total={saved.length} />
+          : <>
+            <ErrorBox message={error} retry={refresh} />
+            {loading && <Loading />}
+            {!loading && !error && (data?.items.length
+              ? <ol className="dx-qlist">{data.items.map(doubt => <QuestionRow key={doubt._id} doubt={doubt} />)}</ol>
+              : <Empty title={filtered ? 'No matching questions' : 'Be the first to ask'}>
+                  {filtered ? 'Try another word, a different subject, or clear the filters.' : 'Share a question from your coursework.'}
+                </Empty>)}
+            {data && !loading && !error && <Pager page={data.page} pages={data.pages} onChange={page => {
+              const next = new URLSearchParams(params);
+              next.set('page', page);
+              setParams(next);
+              window.scrollTo?.({ top: 0 });
+            }} />}
+          </>}
       </section>
-      <section className="explore__card explore__card--library">
-        <p className="explore__card-kicker"><Icon name="book" size={16} />Study Library</p>
-        <h2>exam-ready explainers</h2>
-        <p>Curated questions with worked explanations, 20 per subject. Perfect for the night before.</p>
-        <Link className="button button--secondary" to="/?scope=all&tag=study-library">Open the library</Link>
-      </section>
-    </aside>}
     </div>
+
+    <aside className="dx-aside" aria-label="Discover">
+      <section className="dx-widget">
+        <h2>Trending Topics <Flame aria-hidden="true" size={18} /></h2>
+        {trendingTags.length > 0
+          ? <ul className="dx-trending">{trendingTags.map(item => <li key={item.tag}><Link to={`/?tag=${encodeURIComponent(item.tag)}`}>#{item.tag}</Link></li>)}</ul>
+          : <p className="dx-widget__empty">Popular topics appear here as students ask.</p>}
+      </section>
+      <section className="dx-widget">
+        <h2>Quick Links</h2>
+        <ul className="dx-links">
+          <li><Link to="/ask"><span className="dx-links__icon dx-links__icon--ask"><CircleHelp aria-hidden="true" size={16} /></span>Ask a Doubt<ArrowRight aria-hidden="true" size={15} /></Link></li>
+          <li><Link to="/library"><span className="dx-links__icon dx-links__icon--library"><BookOpen aria-hidden="true" size={16} /></span>Study Library<ArrowRight aria-hidden="true" size={15} /></Link></li>
+          <li><Link to="/contributors"><span className="dx-links__icon dx-links__icon--top"><Trophy aria-hidden="true" size={16} /></span>Top Contributors<ArrowRight aria-hidden="true" size={15} /></Link></li>
+        </ul>
+      </section>
+    </aside>
   </div>;
 }
 
-function SavedList({ items }) {
+function SavedList({ items, query = '', total = items.length }) {
   const available = savedStorageAvailable();
   const location = useLocation();
-  if (!available) return <div className="explore__notice" role="status"><strong>Saving is unavailable in this browser.</strong> Site storage is blocked (for example by private browsing or a privacy setting), so saved questions cannot be kept on this device.</div>;
+  if (!available) return <div className="dx-notice" role="status"><strong>Saving is unavailable in this browser.</strong> Site storage is blocked (for example by private browsing or a privacy setting), so saved questions cannot be kept on this device.</div>;
+  if (!items.length && query && total) return <Empty title="No saved questions match">Try another word, or clear the search to see all {total} saved questions.</Empty>;
   if (!items.length) return <Empty title="No saved questions yet">Use <strong>Save</strong> on any question to keep it here. Saves stay on this device and browser only.</Empty>;
-  return <ol className="qlist qlist--saved">{items.map(item => <li className="qrow" key={item.id}>
-    <div className={`qrow__count qrow__count--${item.status === 'solved' ? 'solved' : 'open'}`}>{item.status === 'solved' ? <><strong>✓</strong><span>accepted</span></> : <><strong>{item.answerCount ?? '–'}</strong><span>{item.answerCount === 1 ? 'answer' : 'answers'}</span></>}</div>
-    <div className="qrow__main">
-      <h3 className="qrow__title"><Link to={`/doubts/${item.id}`} state={{ from: location.pathname + location.search }}>{item.title}</Link></h3>
-      <div className="qrow__meta">{item.subject && <span className="qrow__subject">{item.subject}</span>}<span>Saved {date(item.savedAt)}</span><span>Status as of saving</span></div>
-    </div>
-    <SaveButton doubt={{ _id: item.id, title: item.title, subject: item.subject, status: item.status, answerCount: item.answerCount }} compact />
-  </li>)}</ol>;
+  return <ol className="dx-qlist">{items.map(item => {
+    const solved = item.status === 'solved';
+    return <li className="qcard" key={item.id}>
+      <Avatar name={item.subject || '?'} large />
+      <div className="qcard__body">
+        <div className="qcard__top">
+          {item.subject && <span className={`qcard__subject qcard__subject--tone${toneOf(item.subject)}`}>{item.subject}</span>}
+          <span className="qcard__spacer" />
+          <span className={`qcard__status qcard__status--${solved ? 'solved' : 'open'}`}>{solved ? 'Resolved' : 'Unresolved'}</span>
+          <SaveButton doubt={{ _id: item.id, title: item.title, subject: item.subject, status: item.status, answerCount: item.answerCount }} compact />
+        </div>
+        <h3 className="qcard__title"><Link to={`/doubts/${item.id}`} state={{ from: location.pathname + location.search }}>{item.title}</Link></h3>
+        <div className="qcard__meta"><span>Saved {date(item.savedAt)}</span><span>Status as of saving</span>{item.answerCount != null && <span><MessageCircle aria-hidden="true" size={15} />{item.answerCount} {item.answerCount === 1 ? 'answer' : 'answers'}</span>}</div>
+      </div>
+    </li>;
+  })}</ol>;
 }
 
 export function AuthPage({ signup = false }) {
@@ -237,10 +240,11 @@ export function Ask({ edit = false }) {
   async function upload(event) { const file = event.target.files[0]; event.target.value = ''; if (!file) return; if (images.length >= 3) { setError('Use up to 3 images.'); return; } if (file.size > 3 * 1024 * 1024) { setError('Each image must be 3 MB or smaller.'); return; } setUploading(true); setError(''); try { const body = new FormData(); body.append('image', file); const image = await api('/uploads', { method: 'POST', body, token }); setImages(current => [...current, image]); } catch (err) { setError(err.message); } finally { setUploading(false); } }
   async function removeImage(image) { setUploading(true); try { await api('/uploads', { method: 'DELETE', body: { publicId: image.publicId }, token }); setImages(current => current.filter(item => item.publicId !== image.publicId)); } catch (err) { setError(err.message); } finally { setUploading(false); } }
   async function submit(event) { event.preventDefault(); setBusy(true); setError(''); try { const body = { ...form, tags: form.tags.split(',').map(t => t.trim()).filter(Boolean), imageIds: images.map(i => i.publicId) }; const doubt = await api(edit ? `/doubts/${id}` : '/doubts', { method: edit ? 'PUT' : 'POST', body, token }); notify(edit ? 'Doubt updated.' : 'Your doubt is live in the community!'); navigate(`/doubts/${doubt._id}`); } catch (err) { setError(err.message); } finally { setBusy(false); } }
-  return <div className="form-layout"><section><Link className="back-link" to="/">← Back to questions</Link><h1>{edit ? 'Refine your question.' : 'Let’s clear that doubt.'}</h1><p className="muted">A clear question is the first step to a helpful answer.</p><ErrorBox message={error} />{ready && <form className="panel question-form" onSubmit={submit}><label>Give your doubt a title<input value={form.title} onChange={change('title')} required minLength={10} maxLength={160} placeholder="e.g. How is a process different from a thread?" /><small>Be specific. Think of it as a headline for your question.</small></label><label>What are you stuck on?<MarkdownEditor id="ask-body" rows={10} value={form.body} onChange={next => setForm({ ...form, body: next })} required minLength={20} maxLength={12000} placeholder="Describe the concept, what you tried, and where you got stuck…" /><small>Plain text and code are welcome. Minimum 20 characters.</small></label><div className="form-row"><label>Subject<select value={form.subject} onChange={change('subject')}>{!subjects.includes(form.subject) && <option>{form.subject}</option>}{subjects.map(subject => <option key={subject}>{subject}</option>)}</select></label><AcademicFields id="ask-level" value={form.academicLevel} onChange={value => setForm({ ...form, academicLevel: value })} /></div><label>Tags<input value={form.tags} onChange={change('tags')} placeholder="e.g. java, multithreading, concurrency" maxLength={150} /><small>Separate with commas. Up to 5 tags, 24 characters each.</small></label><div><span className="field-label">Screenshots <span className="muted">(optional)</span></span>{!edit && <label className="upload-zone">{uploading ? 'Uploading…' : '+ Add an image'}<small>JPG, PNG or WebP · up to 3 MB each · 3 images max</small><input aria-label="Upload a screenshot" type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={uploading || images.length >= 3} /></label>}<div className="image-previews">{images.map(image => <div key={image.publicId}><img src={image.url} alt="Question attachment preview" />{!edit && <button type="button" aria-label="Remove attachment" disabled={uploading} onClick={() => removeImage(image)}>×</button>}</div>)}</div>{edit && <small className="muted">Existing attachments are preserved when editing.</small>}</div><p className="muted">{edit ? "Editing keeps the original college scope." : user.institution ? "Your question will appear in your selected college and the public worldwide feed." : "Your question will appear in the public worldwide feed."}</p><div className="form-actions"><button className="button" disabled={busy || uploading}>{busy ? 'Saving…' : edit ? 'Save changes' : 'Post your doubt ↗'}</button><Link className="text-button" to={edit ? `/doubts/${id}` : '/'}>Cancel</Link></div></form>}</section><aside className="side-card writing-tips"><span className="side-card__symbol">✧</span><h3>Help others help you</h3><ol><li>Make the title specific.</li><li>Share what you have tried.</li><li>Add relevant details or a screenshot.</li><li>Choose the right subject and tags.</li></ol><p className="muted">Keep personal information out of screenshots. A thoughtful question helps everyone learn.</p></aside></div>;
+  return <div className="form-layout"><section><Link className="back-link" to="/">← Back to questions</Link><h1>{edit ? 'Refine your question.' : 'Let’s clear that doubt.'}</h1><p className="muted">A clear question is the first step to a helpful answer.</p><ErrorBox message={error} />{ready && <form className="panel question-form" onSubmit={submit}><label>Give your doubt a title<input value={form.title} onChange={change('title')} required minLength={10} maxLength={160} placeholder="e.g. How is a process different from a thread?" /><small>Be specific. Think of it as a headline for your question.</small></label><div className="labelled-field"><label htmlFor="ask-body-input">What are you stuck on?</label><MarkdownEditor id="ask-body" rows={10} value={form.body} onChange={next => setForm({ ...form, body: next })} required minLength={20} maxLength={12000} placeholder="Describe the concept, what you tried, and where you got stuck…" /><small>Plain text and code are welcome. Minimum 20 characters.</small></div><div className="form-row"><label>Subject<select value={form.subject} onChange={change('subject')}>{!subjects.includes(form.subject) && <option>{form.subject}</option>}{subjects.map(subject => <option key={subject}>{subject}</option>)}</select></label><AcademicFields id="ask-level" value={form.academicLevel} onChange={value => setForm({ ...form, academicLevel: value })} /></div><label>Tags<input value={form.tags} onChange={change('tags')} placeholder="e.g. java, multithreading, concurrency" maxLength={150} /><small>Separate with commas. Up to 5 tags, 24 characters each.</small></label><div><span className="field-label">Screenshots <span className="muted">(optional)</span></span>{!edit && <label className="upload-zone">{uploading ? 'Uploading…' : '+ Add an image'}<small>JPG, PNG or WebP · up to 3 MB each · 3 images max</small><input aria-label="Upload a screenshot" type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={uploading || images.length >= 3} /></label>}<div className="image-previews">{images.map(image => <div key={image.publicId}><img src={image.url} alt="Question attachment preview" />{!edit && <button type="button" aria-label="Remove attachment" disabled={uploading} onClick={() => removeImage(image)}>×</button>}</div>)}</div>{edit && <small className="muted">Existing attachments are preserved when editing.</small>}</div><p className="muted">{edit ? "Editing keeps the original college scope." : user.institution ? "Your question will appear in your selected college and the public worldwide feed." : "Your question will appear in the public worldwide feed."}</p><div className="form-actions"><button className="button" disabled={busy || uploading}>{busy ? 'Saving…' : edit ? 'Save changes' : 'Post your doubt ↗'}</button><Link className="text-button" to={edit ? `/doubts/${id}` : '/'}>Cancel</Link></div></form>}</section><aside className="side-card writing-tips"><span className="side-card__symbol">✧</span><h3>Help others help you</h3><ol><li>Make the title specific.</li><li>Share what you have tried.</li><li>Add relevant details or a screenshot.</li><li>Choose the right subject and tags.</li></ol><p className="muted">Keep personal information out of screenshots. A thoughtful question helps everyone learn.</p></aside></div>;
 }
 export function Detail() {
   const location = useLocation(); const { id } = useParams(); const { data: doubt, error, loading, refresh } = useResource(`/doubts/${id}`); const { user, token, notify } = useAuth(); const navigate = useNavigate(); const [body, setBody] = useState(''); const [busy, setBusy] = useState(false); const [formError, setFormError] = useState('');
+  useEffect(() => { api(`/doubts/${id}/view`, { method: 'POST' }).catch(() => {}); }, [id]);
   async function answer(event) { event.preventDefault(); setBusy(true); setFormError(''); try { await api(`/doubts/${id}/answers`, { method: 'POST', body: { body }, token }); setBody(''); refresh(); notify('Your answer has been posted.'); } catch (err) { setFormError(err.message); } finally { setBusy(false); } }
   async function deleteDoubt() { if (!window.confirm('Delete this doubt and all its answers? This cannot be undone.')) return; setBusy(true); try { await api(`/doubts/${id}`, { method: 'DELETE', token }); navigate('/'); notify('Doubt deleted.'); } catch (err) { notify(err.message); } finally { setBusy(false); } }
   if (loading && !doubt) return <Loading />;
