@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { THEMES, THEME_LABELS, themePreference, resolvedTheme } from './theme';
-const HINTS = { system: 'Follow your device (light by day, dark at night)', light: 'Light theme', dark: 'Dark theme' };
+const HINTS = { system: 'Follow your device theme', light: 'Light theme', dark: 'Dark theme' };
 const ICONS = {
   system: <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></svg>,
   light: <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></svg>,
@@ -18,7 +18,7 @@ export function ThemeControl() {
   }, [preference]);
   return <div className="theme-control" role="group" aria-label="Theme" data-mode={preference}>
     {THEMES.map(mode => <button key={mode} type="button" className="theme-control__option" data-option={mode} aria-pressed={preference === mode}
-      title={HINTS[mode]} onClick={() => setPreference(mode)}>
+      aria-label={THEME_LABELS[mode]} title={HINTS[mode]} onClick={() => setPreference(mode)}>
       <span className="theme-control__icon" aria-hidden="true">{ICONS[mode]}</span><span className="theme-control__name">{THEME_LABELS[mode]}</span>
     </button>)}
   </div>;

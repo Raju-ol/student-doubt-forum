@@ -1,3 +1,5 @@
+> Historical report or design milestone. For current implementation and verification limits, read [CURRENT_STATE](CURRENT_STATE.md) and [design review](DESIGN_CONSISTENCY_REVIEW.md). This record does not certify the latest release.
+
 # Bug fix report
 
 Branch `fix/review-bugs`, based on `feat/design-v3` (the redesign). Nothing is pushed, merged or deployed.

@@ -1,4 +1,8 @@
+> Historical report or design milestone. For current implementation and verification limits, read [CURRENT_STATE](CURRENT_STATE.md) and [design review](DESIGN_CONSISTENCY_REVIEW.md). This record does not certify the latest release.
+
 # Doubt Forum redesign plan
+
+> **Status update 13 November 2026.** Historical plan. The current direction is [Design v3](DESIGN_V3_CHANGE_RECORD.md).
 
 Prepared 10 November 2026 for review. Design reference is the supplied 16-screen Campus Desk image. This plan covers a visual and navigation proposal for the existing Doubt Forum.
 

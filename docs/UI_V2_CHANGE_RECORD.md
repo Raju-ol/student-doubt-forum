@@ -1,4 +1,8 @@
+> Historical report or design milestone. For current implementation and verification limits, read [CURRENT_STATE](CURRENT_STATE.md) and [design review](DESIGN_CONSISTENCY_REVIEW.md). This record does not certify the latest release.
+
 # UI V2 Change Record ("Soft Study" redesign)
+
+> **Status update 13 November 2026.** The "Soft Study" look is deployed on `main`. Branch `feat/design-v3` builds on it with a sidebar and the peach and purple themes; see [Design v3 change record](DESIGN_V3_CHANGE_RECORD.md).
 
 Plan: `docs/UI_POLISH_PLAN_V2.md`. Branch: `ui-v2`. One commit per step; find the hash with `git log --oneline`.
 

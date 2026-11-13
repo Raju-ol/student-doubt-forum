@@ -1,4 +1,8 @@
+> Historical report or design milestone. For current implementation and verification limits, read [CURRENT_STATE](CURRENT_STATE.md) and [design review](DESIGN_CONSISTENCY_REVIEW.md). This record does not certify the latest release.
+
 # System/light/dark theme — 9 November 2026
+
+> **Status update 13 November 2026.** Superseded: the Sticker, Chalkboard and Bento looks described here were replaced by Light (peach), Dark (purple) and Auto on branch `feat/design-v3`. See [Design v3 change record](DESIGN_V3_CHANGE_RECORD.md). The storage key and the pre-paint script still work as described.
 
 Added an accessible Color theme select, saved in localStorage. System follows
 prefers-color-scheme and reacts to operating system changes. Invalid/blocked
@@ -30,4 +34,3 @@ Replaced the dropdown with one native button cycling System -> Light -> Dark -> 
 
 
 Live verification completed for 6894467: click System -> Light, Enter -> Dark, Space -> System. Dark persisted across reload. At 390px viewport content/scroll width both 375px; indicator reached its 56px Dark position. Screenshot saved as theme-cycle-mobile.png in the parent workspace. Restored System and reset temporary viewport. No authenticated data changed.
-

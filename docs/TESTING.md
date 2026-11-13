@@ -1,4 +1,42 @@
+<!-- consistency-review-2026-11-13 -->
+> Current status, 13 November 2026 — See [current implementation and limits](CURRENT_STATE.md). The active design has Auto/Light/Dark themes and a separate community resource Library. Institution-scoped curriculum and publication review remain planned. Older counts, release IDs and provider checks below are dated evidence, not current certification.
+
 # Verification record
+
+## Current design review — 13 November 2026
+
+Baseline `a0a45eb` plus local `fix/design-consistency` changes. Baseline and initial post-fix complete automated suites each passed **162 tests, 0 failures** using isolated localhost MongoDB. Both production builds passed. The baseline browser review traversed 108 role/route/viewport/theme combinations without runtime errors or page-wide overflow; it still found visual/usability issues through screenshot inspection.
+
+Final browser checks add 320px width and assertions for header overlap, drawer focus containment and account-menu Escape. Read [design review](DESIGN_CONSISTENCY_REVIEW.md) for the final execution outcome and screenshots. These local fixture checks do not certify real-phone behavior or live Google/Gmail/Cloudinary/Redis/Atlas operations. No production write or deployment is performed. Older totals and release notes below remain dated records.
+
+## Review and redesign verification | 13 November 2026
+
+Branch `fix/review-bugs` at `deb4702` (contains `feat/design-v3`). Full detail: [Bug fix report](BUG_FIX_REPORT.md).
+
+- **Automated:** `npm test` passes 120 of 120 (112 before the review; eight tests were added for permissions, header search, contrast and resources). `vite build` passes. All writes used throwaway databases that were dropped afterwards.
+- **Browser (local copy with seeded test data):** header search keeps filters and searches saved questions; the closed mobile menu is not focusable; no horizontal scroll at 375 px; light and dark themes, drawer and signed-in menu rendered; an accessibility sweep of six pages found and fixed one unlabeled text box.
+- **Verified live, read-only:** the health endpoint reported the database connected and the Redis limiter in use; `/doubts` and `/catalog` returned data.
+- **NOT VERIFIED:** Cloudinary uploads, Gmail password recovery, Google sign-in and a direct Redis connection (variables absent locally; a live test would create production data). The live site was not opened in a browser, and the two branches are not deployed.
+- **Not run:** the full multi-account manual cross-role pass in the [tester playbook](TESTER_PLAYBOOK.md), which still describes the old Sticker, Chalkboard and Bento themes.
+
+## Production content reset | 11 November 2026
+
+Owner authorized permanent removal of all forum questions to begin team QA with their own content. An AES-256-GCM backup with a Windows-protected key was created, decrypted and verified before cleanup. It includes discussion records, reputation values and the original attached image and is stored privately outside the source repository.
+
+Cleanup removed 203 questions, 202 answers, 2 comments, 2 votes, 3 notifications and 1 attached upload plus its Cloudinary asset. Related discussion records were removed in a database transaction, and Cloudinary removal was verified. All 18 accounts, 30 subjects, one college and the library import completion record were preserved. Reputation was reset to zero because its source contributions were deleted.
+
+Read-only production checks returned HTTP 200 for health, global Explore, library and catalogue. Both feeds reported 0 questions, and MongoDB and Redis were ready. Chalkboard is the current deployed dark mode at c9f78df. Team manual cases remain NOT RUN for the fresh QA run. Use [the shared tester playbook](TESTER_PLAYBOOK.md) to create and test new QA content.
+
+## Current release evidence | 10 November 2026
+
+- Code reference 827e8df. [GitHub CI passed](https://github.com/Raju-ol/student-doubt-forum/actions/runs/42812978312). The full local suite recorded 90 passing tests before the final feed adjustment and the final focused run recorded 38 passing tests.
+- Read-only live endpoints confirmed a connected database, 30 subjects and one college in the combined catalogue, and 200 Study Library entries. A sample thread included a labeled demo answer.
+- Live browser computed styles showed dark dropdown options with a dark surface and light options with a white surface. Device-specific native popup rendering remains a manual check.
+- Owner reported Google sign-in, Gmail recovery and notifications working. The two new manual student accounts passed signup and login. The full multi-account browser run remains open.
+- Warm filtered feed/catalogue samples took about 1.1–1.3 seconds. A cold request spent about 6.7 seconds in database readiness and about 9.4 seconds wall time. The slower aggregate experiment was rolled back.
+- External QA Run 01 is a historical report with partial, blocked and unrun cases. See the [review](QA_REVIEW_RUN01.md) and current [test plan](TESTER_PLAYBOOK.md).
+
+The records below document earlier builds and their original results.
 
 ## Production hardening review — 10 November 2026
 
@@ -136,4 +174,3 @@ Owner-only email recovery: 76 tests/build pass; recipient/token restrictions and
 
 
 Theme cycle live check: all three modes, Enter/Space, reload persistence and mobile width passed on 6894467. See THEME_CHANGE_RECORD.md.
-

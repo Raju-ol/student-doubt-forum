@@ -1,7 +1,9 @@
+<!-- consistency-review-2026-11-13 -->
+> Current status, 13 November 2026 — See [current implementation and limits](CURRENT_STATE.md). The active design has Auto/Light/Dark themes and a separate community resource Library. Institution-scoped curriculum and publication review remain planned. Older counts, release IDs and provider checks below are dated evidence, not current certification.
+
 # Production readiness review and remaining work
 
-Reviewed 10 November 2026. This is a source review plus local automated
-verification and limited read-only live checks. It is not a certification that
+Reviewed 10 November 2026 against 827e8df, with an earlier hardening snapshot below. This combines source review, automated verification and limited live checks. It is not a certification that
 every browser flow, failure scenario or provider setting has been tested.
 
 ## Decision
@@ -27,14 +29,18 @@ this review.
 - Account settings, private data export and anonymized account deletion.
 - System/light/dark cycling, responsive navigation and keyboard-accessible tabs.
 - Shared Upstash rate limiting, safe connection diagnostics and automated CI.
-- Password reset and email verification implementation. Owner reported a real
-  owner-only reset/new-password/login cycle working. This is not proof that
-  recovery is enabled for every user's address.
+- Google sign-in and explicit matching-email linking. Owner confirmed live Google sign-in.
+- Gmail SMTP password recovery. The owner reported the wider rollout working. Email verification remains independently configured.
+- Study Library with 200 published sample questions and 200 labeled AI-generated explanations. Live catalogue and library totals were checked.
+- Combined catalogue request and dark-mode option styling. The slower feed aggregation experiment was rolled back.
 
-Architecture: React/Vite client -> same-origin Vercel `/api/v1` -> Express ->
-MongoDB Atlas. Cloudinary stores uploaded images, Upstash stores rate counters,
-and Resend delivers configured transactional email. A custom web domain is
-optional; a verified sending domain is needed to send recovery mail broadly.
+Architecture uses a React/Vite client, same-origin Express API on Vercel,
+MongoDB Atlas, Cloudinary images, Upstash shared rate limiting and Gmail SMTP
+for current recovery. See [deployment configuration](VERCEL_HINGLISH.md).
+
+Latest verification recorded 90 local tests before the final feed follow-up,
+38 targeted tests on the follow-up and passing final CI. Cold database readiness
+remains a measured bottleneck. See [verification record](TESTING.md).
 
 ## Fixed during this review
 
@@ -78,28 +84,13 @@ admin for application runtime. Verify the actual current role privately. Earlier
 screenshots included an admin role, so do not infer least privilege from a
 later successful connection.
 
-### 2. Password recovery for everyone — required before general public launch
+### 2. Recovery delivery QA
 
-The `resend.dev` sender is for account-owner testing. Current owner-only success
-does not cover friends' addresses. Configure a verified sending domain in Resend
-and its DNS records, then a sender on that domain. Website hosting can remain at
-the Vercel URL. Do not paste API keys, reset links or passwords in chat/docs.
-
-Suggested staged configuration, after delivery is verified:
-
-```dotenv
-EMAIL_ENABLED=0
-EMAIL_RECOVERY_ENABLED=1
-EMAIL_VERIFICATION_REQUIRED=0
-```
-
-Keep `APP_URL=https://student-doubt-forum-theta.vercel.app` and configure private
-`RESEND_API_KEY` and `EMAIL_FROM` in Vercel Production. Remove the test-recipient
-restriction when moving to the verified sender. Redeploy after env changes.
-Verify delivery/reset with an ordinary non-owner account before advertising it.
-Later set `EMAIL_VERIFICATION_REQUIRED=1` only after verification delivery and
-the existing-user rollout are ready. Legacy `EMAIL_ENABLED=1` still activates
-both functions. No live switches were enabled by this review.
+Gmail SMTP recovery has owner confirmation. Record an ordinary non-owner
+inbox-backed test, expiry and single-use behavior, and session revocation in
+the tester results before a broad rollout. Use EMAIL_PROVIDER=gmail and keep
+EMAIL_RECOVERY_ENABLED separate from mandatory verification. See the
+[recovery setup](VERCEL_HINGLISH.md#environment-variables).
 
 ### 3. Backups and restore — required before relying on real data
 

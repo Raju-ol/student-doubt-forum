@@ -1,8 +1,41 @@
+<!-- consistency-review-2026-11-13 -->
+> Current status, 13 November 2026 — See [current implementation and limits](CURRENT_STATE.md). The active design has Auto/Light/Dark themes and a separate community resource Library. Institution-scoped curriculum and publication review remain planned. Older counts, release IDs and provider checks below are dated evidence, not current certification.
+
 # Student Doubt Forum — Complete Manual Testing Playbook
 
-Version 2.4 · Updated 11 November 2026 · One shared checklist for a two-person QA team
+## Current release supplement — 13 November 2026
+
+Use [CURRENT_STATE](CURRENT_STATE.md) before the older v2.4 baseline below. The reviewed local base is `a0a45eb` plus consistency fixes; this is not a verified live deployment identifier. Themes now read Auto, Light and Dark. The resource Library lives at `/library`. Legacy worked questions live under the `study-library` tag. Record actual live content counts rather than expecting the November 11 zero-data baseline.
+
+Keep the original A/B/C/T role labels and NOT RUN/BLOCKED/PASS/FAIL evidence rules. Both team members use the same record. Tester A covers desktop and administration; Tester B covers phone, teacher/student and themes. Exchange roles for cross-user checks. Use only approved disposable accounts and no production content cleanup.
+
+| Case | Owner | Action and expected result | Manual status |
+| --- | --- | --- | --- |
+| DC-01 | B | Signed-in phone header keeps menu, brand and bell/avatar aligned; search sits below | NOT RUN |
+| DC-02 | A/B | Open/close drawer, Tab/Shift+Tab containment, Escape and focus restoration; no background scrolling while open | NOT RUN |
+| DC-03 | A/B | Account menu opens, Escape closes and returns focus; outside pointer closes | NOT RUN |
+| DC-04 | A/B | Theme buttons announce Auto/Light/Dark and preserve preference after reload | NOT RUN |
+| DC-05 | B | Dropdown choices, focus rings, selected chips and errors remain readable in both themes | NOT RUN |
+| DC-06 | A/B | Long resource titles and supplied descriptions are readable; Open/Download targets the correct material | NOT RUN |
+| DC-07 | A | Search keeps Library/category/shelf or Saved/subject context; pagination resets | NOT RUN |
+| DC-08 | A/B | Resource Library and worked Q&A remain separate; no claim of institute approval on public community resources | NOT RUN |
+| DC-09 | A/B | Student teacher-request → admin approval/decline → teacher dashboard and subject list; refresh role state | NOT RUN |
+| DC-10 | A/B | Teacher answer highlight/endorsement remains different from question-author acceptance | NOT RUN |
+| DC-11 | A | Resource sharing/removal and teacher shelf enforce ownership/role policy; test files only in approved test environment | NOT RUN |
+| DC-12 | A | Admin overview, teacher queue, audit and announcement functions work; ordinary users/moderators cannot use admin-only operations | NOT RUN |
+| DC-13 | A/B | Anonymous question hides public identity while permitted moderation context remains restricted | NOT RUN |
+| DC-14 | A/B | Empty/error/loading states have recovery actions; no fabricated counts or false provider-success claims | NOT RUN |
+| DC-15 | B | About, auth, Ask, detail, profile, account and notifications remain usable at 200% zoom and narrow width | NOT RUN |
+
+Automated local checks are recorded separately in [design review](DESIGN_CONSISTENCY_REVIEW.md). They do not mark these human/manual or live-provider cases PASS.
+
+> **Status update 13 November 2026.** Not yet rewritten. Cases that mention the Sticker, Chalkboard and Bento themes, the Study Library chip and "No accepted answer" wording describe the live site at `main`. On branch `feat/design-v3` the themes are Auto, Light and Dark, the library is a page of shared files, and statuses read Resolved, Unresolved and Unanswered. Update the theme cases (UX01 to UX05, section 19) after the branches are merged. Latest results: [Verification record](TESTING.md).
+
+Version 2.5 · Updated 11 November 2026 · One shared checklist for a two-person QA team
 
 ## Start here
+
+This Markdown file is the single shared QA source: record results here. Matching Word and PDF copies (read-only convenience) are in `output/team-handover/` with the rest of the team handover pack — see its START_HERE document.
 
 | What | Value |
 |---|---|
@@ -10,6 +43,7 @@ Version 2.4 · Updated 11 November 2026 · One shared checklist for a two-person
 | Verified live release | **735b517**, website Admin/Moderator role management on Chalkboard. Four theme choices are Auto, Sticker, Chalkboard and Bento. |
 | Cleanup state | Cleanup VERIFIED on 11 November 2026. Everything and Study Library both returned 0 questions. Removed 203 questions, 202 answers, 2 comments, 2 votes, 3 notifications and 1 attached image. 18 accounts, 30 subjects and 1 college were retained. Contribution-based reputation starts at 0. |
 | How to confirm the visual release | Reload and open the theme choices (phone: Menu first). Confirm Chalkboard is available. Record the release and actual starting question count. |
+| Latest read-only verification | 11 November 2026, about 10:55 IST: /api/v1/health returned database connected and rateLimitStore redis; the Everything feed returned 0 questions; 30 subjects and 1 college; the theme choices showed Auto, Sticker, Chalkboard and Bento. Logged-out check only; no content was created. |
 
 
 ### Test accounts by role (labels only)
@@ -67,13 +101,13 @@ The owner requested a clean site so the team can write its own questions and ans
 ### Results history
 
 - Version 2.0 and 2.1 of this playbook (release bc3b3d0) had no recorded results: every case was still NOT RUN when Chalkboard (c9f78df) went live on 11 November 2026. All cases below are for c9f78df unless a result says otherwise.
-- External QA Run 01 results stay in [QA_REVIEW_RUN01.md](QA_REVIEW_RUN01.md) as evidence for the builds they were recorded on.
-- Automated developer checks are listed in [TESTING.md](TESTING.md). They never count as manual PASS results here.
+- External QA Run 01 results stay in [QA_REVIEW_RUN01.md](https://github.com/Raju-ol/student-doubt-forum/blob/main/docs/QA_REVIEW_RUN01.md) as evidence for the builds they were recorded on.
+- Automated developer checks are listed in [TESTING.md](https://github.com/Raju-ol/student-doubt-forum/blob/main/docs/TESTING.md). They never count as manual PASS results here.
 - New and changed cases in this version start at NOT RUN. When a case is rerun on a later release, keep the old result in the same cell and add the new one after it, each with its release ID.
 
 **Goal:** Poora application test karna, reproducible bugs report karna, aur har test ka actual result record karna. Coding knowledge normal UI tests ke liye required nahi hai.
 
-This checklist is a test plan, **not a claim that these tests have passed**. Every case below starts as NOT RUN. See the [release verification record](TESTING.md) for the latest developer and live checks. Recheck the release deployed when testing begins.
+This checklist is a test plan, **not a claim that these tests have passed**. Every case below starts as NOT RUN. See the [release verification record](https://github.com/Raju-ol/student-doubt-forum/blob/main/docs/TESTING.md) for the latest developer and live checks. Recheck the release deployed when testing begins.
 
 ## 1. Read this first
 

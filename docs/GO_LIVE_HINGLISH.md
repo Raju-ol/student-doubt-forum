@@ -1,4 +1,9 @@
+<!-- consistency-review-2026-11-13 -->
+> Current status, 13 November 2026 — See [current implementation and limits](CURRENT_STATE.md). The active design has Auto/Light/Dark themes and a separate community resource Library. Institution-scoped curriculum and publication review remain planned. Older counts, release IDs and provider checks below are dated evidence, not current certification.
+
 # Live application setup
+
+**Historical setup notes.** The site is now live. Follow the [current Vercel guide](VERCEL_HINGLISH.md) and [owner checklist](OWNER_NEXT_STEPS_HINGLISH.md).
 
 Target: 12 November 2026, based on the user's reply. Deadline is a target, not a guarantee. Code is prepared locally; a public URL has not been deployed yet.
 

@@ -1,44 +1,21 @@
-# Raju ke liye: agli baar kya karna hai
+<!-- consistency-review-2026-11-13 -->
+> Current status, 13 November 2026 — See [current implementation and limits](CURRENT_STATE.md). The active design has Auto/Light/Dark themes and a separate community resource Library. Institution-scoped curriculum and publication review remain planned. Older counts, release IDs and provider checks below are dated evidence, not current certification.
 
-10 November 2026. Site abhi limited beta hai. Saare production kaam complete
-hone ka claim nahi hai. Technical review aur developer ke remaining tasks:
-[PRODUCTION_READINESS_REVIEW.md](PRODUCTION_READINESS_REVIEW.md).
+# Owner checklist | Demo aur wider launch
 
-## Abhi aapko coding ya manual testing karne ki zaroorat nahi
+Updated 10 November 2026. Live website is usable for a college demo and limited beta. Google login, Gmail recovery and in-app notifications have been confirmed by the owner. The Study Library is already published.
 
-Security/reliability fixes, automated checks aur GitHub push maintainer ne
-handle kiye. Provider ke secrets ya password is file/chat mein mat daalna.
+## College demo
 
-## Aapke decisions/access chahiye
+1. [Stable site](https://student-doubt-forum-theta.vercel.app/) kholo. Normal browser mein QA Student A aur Incognito mein QA Student B use karo. Credentials privately rakho.
+2. A se question post karo. B se reply karo. A ka notification aur unread count dikhao, phir answer accept karo.
+3. [Study Library](https://student-doubt-forum-theta.vercel.app/?scope=all&tag=study-library) se ek sample question aur labeled AI explanation dikhao. Search, subject filter aur dark-mode dropdown demo karo.
+4. Mentor ko [A–Z playbook](DOUBT_FORUM_A_TO_Z_PLAYBOOK.md), live URL and repo do. Admin walkthrough ke liye [role guide](ADMIN_HINGLISH.md) follow karo.
 
-1. **Sab users ka forgot-password:** abhi owner-only email test kaam kar chuka
-   hai. Friends ke email par reset bhejne ke liye Resend mein verified sending
-   domain chahiye. Decide karo domain abhi lena hai ya beta mein baad mein.
-   Website ka Vercel URL reh sakta hai. Domain lene se MongoDB access solve
-   nahi hoga. Koi paid purchase apne aap nahi ki gayi.
-2. **Atlas expiry:** `0.0.0.0/0` rule par one-week timer tha. Atlas mein actual
-   expiry dekhni hai aur long-term network arrangement/budget decide karna hai.
-   Rule expire ho gaya to site ka database connection ruk sakta hai. Temporary
-   broad rule ko permanent apne aap nahi banaya gaya.
-3. **Backup:** private backup kahan rakhna hai, kitne din rakhna hai aur kitna
-   data-loss tolerate kar sakte ho, decide karo. Restore alag database par prove
-   karna hai; live data par experiment nahi.
-4. **Owner account:** agar real password kisi AI/tester ko diya tha, privately
-   password badlo aur Account mein sign out everywhere karo. Provider accounts
-   par MFA enable karo. OTP/password mujhe mat bhejna.
-5. **Public launch:** support email/contact aur privacy/retention decisions do.
-   Launch se pehle separate staging aur CI-pass release process chahiye.
+## Wider launch se pehle
 
-## Developer ka kaam bhi abhi bacha hai
-
-Concurrent votes/reputation aur deletion ko failures ke baad recoverable banana,
-attachment claims/cleanup ko reliable banana, large threads/exports ko bound
-karna aur notification retry/monitoring improve karna. Ye sab aapko khud code
-nahi karna; detailed priority list technical review mein hai.
-
-Manual testing aapki request par postpone hai. Public launch se pehle tester ko
-[TESTER_PLAYBOOK.md](TESTER_PLAYBOOK.md) aur known QA gaps dene hain. Sirf Vercel
-Ready ya automated tests pass hone se saare user flows certified nahi hote.
-
-Agli session mein bolo: **“Owner next steps kholo, pehle email/domain decision
-aur production priority list se continue karo.”**
+1. Atlas mein actual IP rule expiration aur application database user ka role verify karo. Durable Vercel-to-Atlas connection choose karne ke baad real health check repeat karo.
+2. Separate staging database rakho. Encrypted backup ka isolated restore karke counts aur sample threads compare karo.
+3. [Tester checklist](TESTER_PLAYBOOK.md) ke cross-user flows finish karo. Recovery ke liye real inbox wala eligible password account use karo. QA sample addresses mail receive nahi karte.
+4. Vercel function, Atlas aur Upstash regions record karo. Cold/warm Server-Timing compare karo, phir measured bottleneck par decide karo.
+5. Review concurrent writes, interrupted cleanup and provider failure handling in [production readiness](PRODUCTION_READINESS_REVIEW.md). Google and email settings ke liye [deployment guide](VERCEL_HINGLISH.md) use karo.

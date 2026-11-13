@@ -34,6 +34,39 @@ export function Icon({ name, size = 20 }) { return <svg className="icon" aria-hi
 export function Navbar() {
   const { user, logout } = useAuth(); const navigate = useNavigate(); const location = useLocation();
   const [expanded, setExpanded] = useState(false); const menuButton = useRef(null);
+  const sidebar = useRef(null); const accountMenu = useRef(null);
+  function dismissMenu() { setExpanded(false); menuButton.current?.focus(); }
+  useEffect(() => {
+    const onPointer = event => {
+      if (accountMenu.current?.open && !accountMenu.current.contains(event.target)) accountMenu.current.open = false;
+    };
+    const onEscape = event => {
+      if (event.key === 'Escape' && accountMenu.current?.open) {
+        event.preventDefault(); accountMenu.current.open = false; accountMenu.current.querySelector('summary')?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('keydown', onEscape);
+    return () => { document.removeEventListener('pointerdown', onPointer); document.removeEventListener('keydown', onEscape); };
+  }, []);
+  useEffect(() => {
+    if (!expanded || !window.matchMedia('(max-width: 1023px)').matches) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const controls = () => [...sidebar.current.querySelectorAll('a, button')].filter(element => !element.disabled && element.getClientRects().length);
+    controls()[0]?.focus();
+    const onKey = event => {
+      if (event.key !== 'Tab') return;
+      const items = controls(), first = items[0], last = items.at(-1);
+      if (!items.length) return;
+      if (!sidebar.current.contains(document.activeElement) || (event.shiftKey && document.activeElement === first)) {
+        event.preventDefault(); (event.shiftKey ? last : first).focus();
+      } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    const onResize = () => { if (!window.matchMedia('(max-width: 1023px)').matches) setExpanded(false); };
+    document.addEventListener('keydown', onKey); window.addEventListener('resize', onResize);
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', onKey); window.removeEventListener('resize', onResize); };
+  }, [expanded]);
   const [headerSearch, setHeaderSearch] = useState(() => new URLSearchParams(location.search).get('search') || '');
   useEffect(() => setHeaderSearch(['/', '/library'].includes(location.pathname) ? new URLSearchParams(location.search).get('search') || '' : ''), [location.pathname, location.search]);
   function submitSearch(event) {
@@ -66,7 +99,7 @@ export function Navbar() {
       <div className="topbar__actions">
         <Link className="topbar__ask" to="/ask"><Plus aria-hidden="true" size={18} /><span>Ask a Doubt</span></Link>
         {user && <NotificationBell />}
-        {user ? <details className="account-menu" key={location.pathname + location.search}>
+        {user ? <details ref={accountMenu} className="account-menu" key={location.pathname + location.search}>
           <summary aria-label="Account menu"><Avatar name={user.name} /></summary>
           <div className="account-menu__panel">
             <p className="account-menu__name">{user.name}</p>
@@ -79,10 +112,10 @@ export function Navbar() {
         </details> : <Link className="topbar__signin" to="/login">Sign in</Link>}
       </div>
     </header>
-    <aside className={`sidebar${expanded ? ' sidebar--open' : ''}`}>
+    <aside ref={sidebar} className={`sidebar${expanded ? ' sidebar--open' : ''}`} role={expanded ? 'dialog' : undefined} aria-modal={expanded ? true : undefined} aria-label={expanded ? 'Navigation menu' : undefined}>
       <div className="sidebar__head">
         <Link className="sidebar__brand" to="/" aria-label="Doubt Forum home"><Mark /></Link>
-        <button type="button" className="sidebar__close" aria-label="Close menu" onClick={() => setExpanded(false)}><CloseIcon aria-hidden="true" size={20} /></button>
+        <button type="button" className="sidebar__close" aria-label="Close menu" onClick={dismissMenu}><CloseIcon aria-hidden="true" size={20} /></button>
       </div>
       <nav id="main-navigation" className="sidebar__nav" aria-label="Main navigation">
         {item('explore', '/', Home, 'Explore')}
@@ -99,7 +132,7 @@ export function Navbar() {
       </div>
       <ThemeControl />
     </aside>
-    {expanded && <button type="button" className="sidebar-scrim" tabIndex={-1} aria-label="Close menu" onClick={() => setExpanded(false)} />}
+    {expanded && <button type="button" className="sidebar-scrim" tabIndex={-1} aria-label="Close menu" onClick={dismissMenu} />}
   </div>;
 }
 // Phone-only bottom bar: the main places plus Ask in thumb reach.

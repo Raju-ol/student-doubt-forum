@@ -1,96 +1,54 @@
-# Student Doubt Forum
+# Doubt Forum
 
-## Current setup and handoff
+A student Q&A application with a separate public study-resource Library, built with React/Vite, Express and MongoDB.
 
-See [current handoff and owner checklist](docs/CONTINUE_HERE.md) for the latest
-features, verification, private environment variable names and pending setup.
-Email activation and production migrations remain deliberate separate steps.
+## Current version
 
+Reviewed 13 November 2026 against GitHub `a0a45eb`, with local corrections on `fix/design-consistency`. The app uses a sidebar dashboard, peach Light and purple Dark themes, plus Auto following the device.
 
-A college question-and-answer application built with React, Express and MongoDB. Students can ask doubts, answer, comment, vote, accept answers, search and filter. Teachers have a badge. Administrators manage users and reported content. Optional screenshot uploads use Cloudinary.
+- Students ask questions, optionally anonymously, answer/comment, vote, accept answers, save questions on-device and receive notifications.
+- The resource Library supports categories, search, HTTPS links, supported document uploads, a teacher shelf and download-request counts.
+- Teachers request admin verification, select subjects, use a teaching dashboard and endorse answers. Their status does not grant admin access.
+- Moderators review reported content. Admins manage users/roles, teacher requests, catalogue, overview, audit and the site announcement.
+- Google sign-in, Gmail recovery, Cloudinary storage and shared Redis limits depend on the intended deployment configuration.
 
-## Current status
+The institution/course/class/subject/chapter Library with scoped teacher permissions and publication review is planned. It is not implemented by the current community resource Library.
 
-Search now matches whole words and English word stems in title/body/tags using a weighted database text index. Partial-word substring matching is no longer guaranteed. Existing filters remain supported. See docs/SEARCH_CHANGE_RECORD.md.
+Live website: https://student-doubt-forum-theta.vercel.app/
 
-Own profiles now offer Sign out everywhere. This revokes existing bearer tokens server-side using a per-account token version; normal Sign out remains tab-local. Password recovery is still pending an email service.
+## Run locally
 
-Reputation is now a stored counter updated on votes, acceptance and deletion. Legacy accounts initialize lazily from historical data. For an explicit dry-run/reconciliation procedure and cross-collection consistency limits, read docs/REPUTATION_CHANGE_RECORD.md. No live backfill is required at startup or has been run by this change.
+Requirements: Node 22.12+ and MongoDB. Preserve existing private configuration.
 
-Working local implementation. Automated database/API integration checks and a production client build pass. A two-student browser flow has been verified. Cloudinary credentials and a hosted database/service are not configured yet; image upload and live deployment remain pending. See docs/TESTING.md for exact coverage and limitations.
+1. Run `npm ci`.
+2. For a new setup only, copy `server/.env.example` to `server/.env`. Set a local `MONGO_URI`, a cryptographically random private `JWT_SECRET` and the intended client URL. Never paste secrets into documentation.
+3. Run `npm run dev:server` and `npm run dev:client` in separate terminals. Vite proxies API calls to the local backend.
+4. Alternatively, run `npm run build` then `npm start` to serve the compiled app with Express.
 
-## Run on this laptop
+## Verification
 
-Requirements: Node 22.12+ (Node 24.19 was used), npm, MongoDB listening on 127.0.0.1:27017.
+`npm test` runs unit, component and API/database tests. Use an isolated localhost MongoDB; some existing tests assume port 27017. Tests create and remove disposable test databases. Never supply the production connection string.
 
-1. Open a terminal in this project folder.
-2. Run `npm ci` to install the locked dependencies.
-3. Copy `server/.env.example` to `server/.env`. Preserve an existing `.env`.
-4. Set `JWT_SECRET` to a cryptographically random value of at least 32 characters. Generate one locally with `node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"`. Keep it private.
-5. Confirm `MONGO_URI` points to your intended database.
-6. Run `npm run build`, then `npm start`.
-7. Open http://127.0.0.1:5000 in your browser.
+The baseline and initial post-fix suites each passed all 162 tests. Build and local browser results, their environment and remaining limits are recorded in [design review](docs/DESIGN_CONSISTENCY_REVIEW.md) and [testing](docs/TESTING.md). No local result alone verifies live provider delivery or production readiness.
 
-The private local configuration was already created on the original laptop; it is excluded from source control and the source package. Do not replace it unnecessarily.
+Optional local browser checks: install Playwright without changing dependency files, build the app, start isolated localhost MongoDB, then run `node scripts/design-review.mjs`. See the review for details and output paths. Playwright is optional test tooling, not an application dependency.
 
-## While developing
+## Documentation
 
-In two terminals, run `npm run dev:server` and `npm run dev:client`. Open http://127.0.0.1:5173. Vite forwards `/api` requests to the backend. For deployment, Express serves the compiled React app and APIs together, using one origin.
+Start with [current state](docs/CURRENT_STATE.md) and the [documentation index](docs/INDEX.md).
 
-## Make your own administrator
+| Need | Document |
+| --- | --- |
+| Architecture and feature boundaries | [Current state](docs/CURRENT_STATE.md), [project context](PROJECT_CONTEXT.md) |
+| API contract and newer endpoints | [API notes](docs/API.md) |
+| Shared two-person manual checklist | [Tester playbook](docs/TESTER_PLAYBOOK.md) |
+| Verification and design corrections | [Design review](docs/DESIGN_CONSISTENCY_REVIEW.md), [testing](docs/TESTING.md) |
+| Admin operations | [Admin guide](docs/ADMIN_HINGLISH.md) |
+| Institution-based Library blueprint | [Library plan](docs/STUDY_LIBRARY_AND_DASHBOARD_PLAN.md) |
+| Continue development | [Handoff](docs/CONTINUE_HERE.md) |
 
-Register the intended account using the application first. In the `server` directory run `node src/make-admin.js your-registered-email`. This changes only that existing account's role. Public signup cannot create administrators. Do not promote a stranger's account. There is no default production admin password.
+Historical change records preserve their dates and original evidence. Current code and executed checks take precedence over document dates. Keep implemented features, proposals, local tests and live checks distinct.
 
-## Formatting in questions and answers
+## Release and data rules
 
-Bodies are written in Markdown. The editor has buttons for bold, italic, inline code, fenced
-code blocks, mathematics, lists, links and quotes, plus a preview tab. Fenced code blocks are
-syntax highlighted for thirteen common languages; `$x^2$` and `$$...$$` render as mathematics
-through KaTeX. Stored bodies are plain text, so posts written before this existed are
-unaffected.
-
-Rendering happens in the browser and the result is sanitised with DOMPurify before it is
-inserted, with the server's `script-src 'self'` content security policy as a second layer.
-Images are not permitted inside bodies; screenshots go through the upload flow below.
-
-## Images
-
-Set the three `CLOUDINARY_` values in private server configuration. Restart the server. Each doubt supports up to 3 JPEG/PNG/WebP files, maximum 3 MB each. The server checks file signatures and ownership, then uploads to Cloudinary. Unattached images can be removed by their uploader. Attached images are removed when their doubt is deleted. Editing preserves attachments; replace them by reposting if necessary. Unused uploads are not automatically expired in this first implementation.
-
-## Tests
-
-Running the test suite needs Node 22.22.2+ or 24.15+, because jsdom (used by the client rendering tests) requires it. The application itself still runs on Node 22.12+.
-
-`npm test` creates a unique `forum_test_*` database on the local MongoDB server, runs integration checks and deletes that test database only. It never clears the application database. An optional `MONGO_TEST_URI` may point to an authorized test server. The test user needs permission to create/drop the uniquely named test database.
-
-GitHub Actions runs `npm ci`, `npm run build` and `npm test` against a MongoDB 7 service container on every push and pull request, plus `npm audit --audit-level=high`. See `.github/workflows/ci.yml`.
-
-`npm run build` verifies the frontend production build. Browser verification is separately documented; automated API tests do not prove every screen is correct.
-
-## Licence
-
-MIT. See `LICENSE`. Any college may use, modify and deploy this software, including
-commercially, as long as the copyright notice and licence text are kept.
-
-## Project files
-
-- `client/src`: React screens, shared components, session context, API client, plain responsive CSS.
-- `server/src`: Express API, Mongoose models, validation, authorization and forum operations.
-- `server/tests`: integration tests using Node's built-in test runner.
-- `docs`: setup guidance, API notes and test record.
-- `render.yaml`: deployment blueprint, requires user-owned account/configuration.
-
-## Authentication and limits
-
-JWTs last 7 days and are sent in the Authorization header. The browser stores the token in sessionStorage; refresh restores the session, closing the browser tab normally ends that tab's stored session. Sign out clears the local token, but does not revoke a copied token server-side. The server checks the current account and ban status on every authenticated request. Public profiles hide email addresses. Passwords are hashed with bcrypt.
-
-The current version is a college-project implementation, not a production service with email verification, password recovery, malware scanning, backups, monitoring, audit history or a token revocation system. Lists are bounded/paginated; profiles show the latest 50 questions and 50 answers. Database operations spanning multiple collections do not use transactions, so concurrent deletion/upload edge cases and failure recovery need additional hardening before broader public use.
-
-## Live application
-
-The selected host is now Vercel. Follow docs/VERCEL_HINGLISH.md for its import settings and private environment configuration. docs/GO_LIVE_HINGLISH.md retains the earlier Render alternative. Live readiness requires user-owned GitHub, database, Cloudinary and hosting accounts, private credentials, deployment and a fresh live acceptance run. A local URL is not a public website.
-
-Optional email recovery: configure APP_URL, RESEND_API_KEY and EMAIL_FROM privately, test a verified sender/domain, then EMAIL_ENABLED=1. Until activated, existing posting is unchanged. Setup and pending checks: docs/EMAIL_CHANGE_RECORD.md.
-
-
-Domain-free owner-only recovery trial: set EMAIL_TEST_RECIPIENT to the Resend-account email and keep EMAIL_ENABLED off, then redeploy. See docs/EMAIL_CHANGE_RECORD.md. This does not activate all-user email verification.
+Use a feature branch and reviewed preview before production publication. Verify the intended release after deployment and keep rollback instructions available. Do not reset production data, reimport sample questions, alter cloud configuration or disclose credentials as part of normal testing. Resource publication is currently public community sharing; use the institution Library plan before implementing restricted academic publishing.

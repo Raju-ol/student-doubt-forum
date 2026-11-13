@@ -16,7 +16,7 @@ const downloadUrl = resource => `${API_ROOT}/resources/${resource._id}/download`
 
 function ResourceCard({ resource, canRemove, onRemove }) {
   const details = [KIND_LABELS[resource.kind], formatSize(resource.size)].filter(Boolean).join(' · ');
-  return <li className="rcard">
+  return <li className={`rcard${canRemove ? ' rcard--removable' : ''}`}>
     <div className="rcard__head">
       <span className={`ftile ftile--${resource.kind}`}><KindIcon kind={resource.kind} /></span>
       <div className="rcard__info">
@@ -25,6 +25,7 @@ function ResourceCard({ resource, canRemove, onRemove }) {
         {resource.uploader && <p className="rcard__by">by {resource.uploader.name}{resource.fromTeacher && <span className="badge badge--teacher rcard__teacher">✓ Teacher</span>}</p>}
       </div>
     </div>
+    {resource.description && <p className="rcard__description">{resource.description}</p>}
     <a className="rcard__download" href={downloadUrl(resource)} target="_blank" rel="noopener noreferrer">
       {resource.kind === 'link' ? <ExternalLink aria-hidden="true" size={16} /> : <Download aria-hidden="true" size={16} />}
       {resource.kind === 'link' ? 'Open' : 'Download'}<span className="visually-hidden">: {resource.title}</span>

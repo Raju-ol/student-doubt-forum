@@ -1,4 +1,8 @@
+> Historical report or design milestone. For current implementation and verification limits, read [CURRENT_STATE](CURRENT_STATE.md) and [design review](DESIGN_CONSISTENCY_REVIEW.md). This record does not certify the latest release.
+
 # Student Doubt Forum UI and UX Improvement Plan
+
+> **Status update 13 November 2026.** Historical plan. Steps from it are deployed as the "Soft Study" look; the sidebar redesign that followed is in [Design v3 change record](DESIGN_V3_CHANGE_RECORD.md).
 
 Version 1.0 | Prepared 9 November 2026
 

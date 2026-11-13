@@ -1,44 +1,39 @@
-# Vercel deployment
+<!-- consistency-review-2026-11-13 -->
+> Current status, 13 November 2026 — See [current implementation and limits](CURRENT_STATE.md). The active design has Auto/Light/Dark themes and a separate community resource Library. Institution-scoped curriculum and publication review remain planned. Older counts, release IDs and provider checks below are dated evidence, not current certification.
 
-User chose Vercel for both frontend and backend. MongoDB remains on Atlas and images on Cloudinary. Public deployment and credentials are not verified yet.
+# Vercel deployment and service configuration
 
-## Import settings
+Reviewed 10 November 2026. [Stable production URL](https://student-doubt-forum-theta.vercel.app/) · [Verified deployment](https://vercel.com/int-0f9c/student-doubt-forum/81MPP4fVFjP6gTwYEaMyvAirC4uu)
 
-- Import GitHub repository `Raju-ol/student-doubt-forum`.
-- Root Directory: repository root (`./`), not `client` or `server`.
-- Framework Preset: Vite.
-- Build Command: `npm run build`.
-- Output Directory: `client/dist`.
-- Install Command: `npm ci`.
-- Node.js: 24.x, matching the local tested major release.
+Vercel hosts the frontend and Express function from one repository and one origin. Atlas stores forum data, Cloudinary stores screenshots, and Upstash coordinates rate limits across function instances. This setup was chosen for GitHub-linked deploys, HTTPS, one public URL and one dashboard for configuration and logs.
 
-`vercel.json` declares these build settings and routes `/api/*` to the Node function. Other routes fall back to the React application. `api/index.js` runs the Express API after obtaining a cached MongoDB connection. The frontend calls the same-origin `/api/v1` endpoint. Do not set `VITE_API_URL` to localhost in Vercel.
+## Import and build
 
-## Private environment variables
+Import Raju-ol/student-doubt-forum or your fork. Use the repository root, Vite, npm ci, npm run build, and client/dist. Match a supported Node version from package.json and CI. vercel.json handles API and SPA routing plus response headers. Point CLIENT_URL and APP_URL to the stable origin. Use an isolated Atlas database and provider configuration for Preview.
 
-Configure these in Vercel, not in GitHub or chat:
+## Environment variables
 
-| Name | Value |
-|---|---|
-| MONGO_URI | Atlas connection URI with real database password and database name `student_doubt_forum` |
-| JWT_SECRET | A newly generated cryptographic random value, minimum 32 characters |
-| NODE_ENV | production |
-| CLIENT_URL | Exact public HTTPS website origin; update after the domain is known |
-| CLOUDINARY_CLOUD_NAME | Cloudinary account cloud name |
-| CLOUDINARY_API_KEY | Cloudinary account API key |
-| CLOUDINARY_API_SECRET | Cloudinary account secret |
+| Variable | Production purpose |
+| --- | --- |
+| MONGO_URI | Private Atlas connection URI, including database name student_doubt_forum. Scope the database user to the app database. |
+| JWT_SECRET | Private random JWT signing secret of at least 32 characters. |
+| CLIENT_URL, APP_URL | Stable frontend origin and email link base. |
+| CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET | Matching Cloudinary configuration. Keep the API secret private. |
+| UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN | Matching Upstash REST settings. Store the token as a secret. |
+| GOOGLE_CLIENT_ID | Google Web client ID. Register the stable site origin under Authorized JavaScript origins. Use the popup from that origin. |
+| EMAIL_PROVIDER | gmail selects Gmail SMTP. Unset defaults to the Resend path. |
+| GMAIL_SMTP_USER, GMAIL_APP_PASSWORD | Sender Gmail address and its own Google-generated App Password. Save the password as Secret. |
+| EMAIL_RECOVERY_ENABLED | 1 allows recovery for eligible password accounts. |
+| EMAIL_ENABLED, EMAIL_VERIFICATION_REQUIRED | Leave unset or 0 for recovery-only rollout. |
+| EMAIL_TEST_RECIPIENT | Optional single-recipient test while general recovery is off. |
+| RESEND_API_KEY, EMAIL_FROM | Alternative Resend configuration when selected, with an eligible sender. |
 
-Keep Preview credentials in a separate database from Production if enabling preview deployments. Do not copy the local MongoDB URL into Vercel. URI passwords containing reserved characters must be percent-encoded, using a trusted local method rather than an online converter. Avoid pasting a raw password into a terminal command/history.
+Redeploy after updating Production variables. Keep all keys and passwords in Vercel rather than Git or shareable material. Full setup and troubleshooting are in [playbook section G](DOUBT_FORUM_A_TO_Z_PLAYBOOK.md#g-deploy-and-configure).
 
-## Network access and deployment check
+## Deployment checks
 
-Atlas must allow the deployed function's outbound connections. Use the available Vercel networking options and corresponding Atlas allowlist. No broad allowlist change is assumed authorized. Resolve network access before calling deployment complete.
-
-After deployment, verify `/api/v1/health`, signup/login, two-student question/answer/vote/accept/search flow, deep-link refresh, admin moderation and real image upload/deletion. A successful build alone does not prove database connectivity.
-
-Vercel function requests have payload/time limits. Current application uses a 3 MB image limit, below the documented 4.5 MB request payload limit, allowing for multipart overhead. Rate-limit counters currently live in each function instance's memory, so they are not globally shared across instances. Wider public usage needs a shared limiter.
-
-References checked 9 November 2026:
-- https://vercel.com/docs/frameworks/backend/express
-- https://vercel.com/docs/functions/runtimes/node-js
-- https://vercel.com/docs/rewrites
+1. Confirm the intended commit and check /api/v1/health for a connected database.
+2. Confirm /api/v1/catalog and /api/v1/doubts?scope=all&tag=study-library&limit=1 return expected data.
+3. From the stable URL, confirm login, deep-link refresh, the two-student walkthrough, Google popup, and reset delivery to an approved inbox.
+4. Check Vercel Runtime Logs for failures. The response Server-Timing header helps separate database readiness, rate limiting and feed queries.
+5. Track the actual Atlas allowlist expiry. Check networking before a public launch. Use [owner checklist](OWNER_NEXT_STEPS_HINGLISH.md) for the restore and staging gates.

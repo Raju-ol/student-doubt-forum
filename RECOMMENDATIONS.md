@@ -1,4 +1,11 @@
+<!-- consistency-review-2026-11-13 -->
+> Current status, 13 November 2026 — See [current implementation and limits](docs/CURRENT_STATE.md). The active design has Auto/Light/Dark themes and a separate community resource Library. Institution-scoped curriculum and publication review remain planned. Older counts, release IDs and provider checks below are dated evidence, not current certification.
+
 # Recommendations: from college project to a forum any student in the world can use
+
+> **Status update 13 November 2026.** Code reference: `main` at `d56cec9` is live. Two branches are pushed to GitHub but **not merged or deployed**: `feat/design-v3` (`ca187ed`, the sidebar redesign and resource library) and `fix/review-bugs` (`deb4702`, built on the redesign, with the bug fixes). Details: [Design v3 change record](docs/DESIGN_V3_CHANGE_RECORD.md), [Bug fix report](docs/BUG_FIX_REPORT.md), [Polish plan](docs/POLISH_PLAN_NOV_2026.md). Items in this file that the branches now cover: light and dark theme cohesion, search that keeps its context, trending topics and top contributors.
+
+**Roadmap snapshot.** Current implementation and launch priorities are in the [A–Z playbook](docs/DOUBT_FORUM_A_TO_Z_PLAYBOOK.md) and [production readiness review](docs/PRODUCTION_READINESS_REVIEW.md).
 
 Written 9 November 2026, after reading the full codebase (`server/src`, `client/src`, `api/index.js`), the deployment state in `RESUME_HERE.md`, the verification record in `docs/TESTING.md`, and `docs/UI_UX_IMPROVEMENT_PLAN.md`.
 

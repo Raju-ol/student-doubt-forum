@@ -1,3 +1,5 @@
+> Historical report or design milestone. For current implementation and verification limits, read [CURRENT_STATE](CURRENT_STATE.md) and [design review](DESIGN_CONSISTENCY_REVIEW.md). This record does not certify the latest release.
+
 # Design v3 change record
 
 Rebuilds the site chrome and the two main pages to match the supplied mock-ups: a left sidebar

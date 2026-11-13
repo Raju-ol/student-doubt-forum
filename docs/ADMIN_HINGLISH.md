@@ -1,4 +1,13 @@
+<!-- consistency-review-2026-11-13 -->
+> Current status, 13 November 2026 — See [current implementation and limits](CURRENT_STATE.md). The active design has Auto/Light/Dark themes and a separate community resource Library. Institution-scoped curriculum and publication review remain planned. Older counts, release IDs and provider checks below are dated evidence, not current certification.
+
 # Website accounts and role management
+
+## Current admin entry points — 13 November 2026
+
+Desktop aur phone dono par avatar/account menu se Moderation kholo. Users, reports, teacher requests, overview aur audit ka access role ke hisaab se milta hai. Teacher approval student request ko Teacher status deta hai; moderator ko user roles, teacher approval ya platform settings ka access nahi milta. Announcement admin control hai. Har action se pehle intended account/content verify karo.
+
+Teacher status, forum moderator aur institution-library manager alag concepts hain. Institution-scoped Library manager assignments abhi implement nahi hue hain. Current Library public community resource sharing hai. Current permissions aur limitations ke liye [CURRENT_STATE](CURRENT_STATE.md) padho. Purane header/theme steps neeche historical hain.
 
 Updated 11 November 2026.
 

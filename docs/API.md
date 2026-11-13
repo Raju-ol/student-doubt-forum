@@ -1,72 +1,115 @@
+<!-- consistency-review-2026-11-13 -->
+> Current status, 13 November 2026 — See [current implementation and limits](CURRENT_STATE.md). The active design has Auto/Light/Dark themes and a separate community resource Library. Institution-scoped curriculum and publication review remain planned. Older counts, release IDs and provider checks below are dated evidence, not current certification.
+
 # API notes
 
-## Current API changes — 9 November 2026
+## Current additions — 13 November 2026
 
-Academic level and college are optional; legacy semester input is supported.
-Subjects are catalogue-backed. Email endpoints are gated by EMAIL_ENABLED; shared
-Redis throttles return 429/Retry-After or safe 503 on store outage. New account,
-notification, catalogue and feed scope routes are listed in the dated additions
-below and [current handoff](CONTINUE_HERE.md). Historical examples requiring a
-semester describe the old client contract.
+All paths below are relative to `/api/v1`. See [current scope](CURRENT_STATE.md) for the distinction between community resources and the planned institution publishing system. The shared success/error envelope and current-account authorization still apply.
+
+| Method | Path | Behavior/access |
+| --- | --- | --- |
+| GET | `/resources` | Public paginated resources; `search`, `category`, `shelf=teacher`, `page`, `limit` |
+| GET | `/resources/popular` | Public popular resources using download request counts |
+| POST | `/resources` | Signed-in user, verification policy and rate limit; multipart supported document up to 4 MiB or JSON HTTPS link, title/category/description |
+| GET | `/resources/:id/download` | Public redirect and download-request increment, not unique-reader measurement |
+| DELETE | `/resources/:id` | Uploader or permitted moderation staff, with storage cleanup |
+| GET | `/tags/trending`, `/contributors` | Public discovery lists |
+| POST | `/teacher-requests` | Student request; subject list, note, optional institution |
+| GET | `/teacher-requests/me` | Current user's most recent request |
+| GET | `/teacher/queue` | Teacher/admin unresolved-subject queue; paginated |
+| GET, PATCH | `/admin/teacher-requests`, `/admin/teacher-requests/:id` | Admin-only request queue/review |
+| GET | `/admin/overview`, `/admin/audit` | Admin-only statistics and audit history |
+| GET | `/banner` | Public current announcement |
+| PUT | `/admin/banner` | Admin-only announcement update; empty text removes it |
+
+Additional forum behavior includes anonymous questions, related-question suggestions, explicit view tracking, teacher endorsements and newer sort options. Role capabilities are checked against the database on each authenticated request. Consult the route implementation for request fields before extending these APIs. Older API examples below describe earlier milestones and remain historical reference.
+
+Reviewed 10 November 2026 at code reference 827e8df. Base path is /api/v1. JSON success uses { success: true, data, message }, errors use { success: false, message }. Protected calls require Authorization: Bearer <token>. Health, downloads and file uploads have their own response or request formats.
+
+## Authentication and account
+
+| Method and path | Access and input |
+| --- | --- |
+| GET /health | Public readiness and database status. |
+| POST /auth/signup | Public. name, email, password, optional academicLevel and institution. Creates a student. |
+| POST /auth/login | Public. email and password. Returns user and token. |
+| GET /auth/google/config | Public. Configured Google clientId. |
+| POST /auth/google | Public. credential is a Google ID token. Signs in or creates a Google account. |
+| POST /auth/google/link | Signed in. credential and password. Explicitly links matching email to the current password account. |
+| GET /auth/me | Signed in. Current account and role. |
+| POST /auth/logout-all | Signed in. Revokes all existing sessions, including the caller. |
+| POST /auth/forgot-password | Public. email. Generic response. Only eligible password accounts receive a link. |
+| POST /auth/reset-password | Public. token and password. Single-use token, expires after 30 minutes, revokes sessions. |
+| POST /auth/verification-email | Signed in. Requires email verification feature to be enabled. |
+| POST /auth/verify-email | Public. token. Requires email verification feature to be enabled. |
+| GET /users/:id | Public profile and contributions. |
+| PUT /users/me | Signed in. name and optional academicLevel and institution. |
+| GET /users/me/export | Signed in. NDJSON attachment. |
+| DELETE /users/me | Signed-in non-admin. password or linked Google credential plus confirmation value DELETE. Anonymizes account, removes owned images and retains discussion history. |
+
+Normal sign-out clears browser state. Current role and ban status are checked by the API. Gmail recovery can be enabled independently of verification. For flags and setup see [deployment guide](VERCEL_HINGLISH.md). Shared Upstash limiting can return 429 with Retry-After or 503 on store outage.
+
+## Explore and discussion
+
+| Method and path | Access and input |
+| --- | --- |
+| GET /catalog | Public. Returns subjects and institutions in one response. |
+| GET /subjects, GET /institutions | Public. Standalone catalogues retained for existing clients. |
+| GET /doubts | Public. search, subject, tag, status, scope, academicSystem, academicIndex, page, limit. Legacy semester filter accepted. |
+| GET /doubts/:id | Public. Discussion with answers and comments. |
+| POST /doubts | Signed in. title, body, subject, optional academicLevel, tags, imageIds and institution. |
+| PUT /doubts/:id, DELETE /doubts/:id | Question owner or admin. Edit fields or delete. Original college scope is preserved on edit. |
+| POST /doubts/:id/vote, POST /answers/:id/vote | Signed-in non-author. value 1 or -1. |
+| POST /doubts/:id/answers | Signed in. body. |
+| PUT /answers/:id, DELETE /answers/:id | Answer owner or admin. Update body or delete. |
+| PATCH /answers/:id/accept | Question owner. Toggles the single accepted-answer pointer. |
+| POST /answers/:id/comments | Signed in. body. |
+| POST /uploads | Signed in. Multipart image field, 3 MB limit. |
+| DELETE /uploads | Signed in. publicId of an owned, unattached upload. |
+| POST /reports | Signed in. targetType doubt/answer, targetId and reason. |
+| GET /notifications | Signed in. Own inbox, page parameter, 25 per page. |
+| PATCH /notifications/:id/read, POST /notifications/read | Signed in. Mark one or all of the caller's notifications read. |
+
+Search uses weighted English text matching on title, body and tags. Scope supports college, subject and all. College is the default for users who selected one. Subject scope requires a subject. All scopes are public. Filter the demo batch using scope=all and tag=study-library. Academic level supports semester, year, grade or other. Legacy semester inputs and older free-text subject records remain supported. Bodies are stored as raw Markdown and should be sanitized when rendered, as the official client does.
+
+## Moderation
+
+| Method and path | Access and input |
+| --- | --- |
+| GET /admin/users | Admin. Paginated registered users. |
+| GET /admin/reports | Admin or moderator. Paginated pending reports. |
+| PATCH /admin/users/:id/ban | Admin. Boolean isBanned. Admin targets are protected. |
+| PATCH /admin/users/:id/role | Admin. student, teacher, moderator or admin. Own and primary-admin roles are protected. |
+| PATCH /admin/reports/:id | Admin or moderator. status dismissed or removed. |
+| POST /admin/subjects | Admin. name, optional slug, aliases, field, icon. |
+| POST /admin/institutions | Admin. name, optional slug and country. |
+| GET /admin/study-library | Admin. Publication status and preview of counts, subjects and tag. |
+| POST /admin/study-library | Admin. JSON body { "confirm": "study-library-v1" }. One-time publication with deterministic IDs and a completion record. |
+
+Use a staging database to test first publication and repeat requests. See the [A–Z playbook](DOUBT_FORUM_A_TO_Z_PLAYBOOK.md) for schema relationships and operating guidance.
 
 
-Base: `/api/v1`. Success: `{ success: true, data, message }`. Error: `{ success: false, message }`. Protected routes use `Authorization: Bearer <token>`.
+## Update 13 November 2026 (branches `feat/design-v3` and `fix/review-bugs`)
 
-`GET /doubts?search=...` uses weighted English MongoDB text search on title/body/tags, ranked by textScore. Whole-word/stem matches replace substring matching. Existing subject/semester/tag/status filters combine with search. No search retains newest-first order.
+New or changed routes. Not live until the branches are merged and deployed.
 
-POST `/auth/logout-all` (authenticated) revokes all existing JWTs for the current account, including the caller's token. Sign in again to obtain a new token. Normal client sign-out still only clears the current tab. JWT versions are checked against the account on every request.
+| Method and path | Access and input |
+| --- | --- |
+| GET /resources | Public. category (notes, papers, cheatsheets, books, others), search, page, limit. Returns title, kind, size, downloads and the sharer's name, never the file address. |
+| GET /resources/popular | Public. The five most downloaded resources. |
+| POST /resources | Signed in and verified. Multipart `file` (PDF, DOC, DOCX, PPT, PPTX, up to 4 MB, leading bytes checked) or JSON/field `link` (https only), plus title, category and optional description. Files need the Cloudinary variables; without them the file route answers 503 and links still work. 10 per hour per account. |
+| GET /resources/:id/download | Public. Counts one download, then redirects (302) to the stored file or link. |
+| DELETE /resources/:id | The sharer, a moderator or an admin. Also removes the stored file. |
+| GET /tags/trending | Public. Top 8 tags in the last 30 days. Sample library questions are excluded. |
+| GET /contributors | Public. Top 10 active accounts by reputation. Never returns email addresses. |
+| POST /doubts/:id/view | Public. Adds one to the question's view count and returns it. The question page calls it once on open. It does not count against the per-account write limit. |
 
-| Method | Path | Access / action |
-|---|---|---|
-| GET | /health | Public readiness information |
-| POST | /auth/signup | name, email, password, semester; creates student only |
-| POST | /auth/login | email, password; returns user and JWT |
-| GET | /auth/me | Signed-in account |
-| GET | /doubts | search, subject, semester, tag, status, page, limit |
-| POST | /doubts | Signed-in; title, body, subject, semester, tags[], imageIds[] |
+Behaviour changes
 
-`body` is stored as the raw Markdown the student typed and is returned unchanged. The server does not render or sanitise it; the client renders it through marked and sanitises with DOMPurify before display. Any client consuming this API must sanitise it too.
-| GET | /doubts/:id | Public discussion including answers/comments |
-| PUT / DELETE | /doubts/:id | Owner or admin; edit text fields / remove discussion |
-| POST | /doubts/:id/vote | Signed-in non-author; value 1 or -1 |
-| POST | /doubts/:id/answers | Signed-in; body |
-| PUT / DELETE | /answers/:id | Owner or admin |
-| POST | /answers/:id/vote | Signed-in non-author; value 1 or -1 |
-| PATCH | /answers/:id/accept | Question owner; toggles a single accepted-answer pointer |
-| POST | /answers/:id/comments | Signed-in; body |
-| GET | /users/:id | Public name, role, semester, reputation and latest contributions |
-| PUT | /users/me | Signed-in; name, semester only |
-| POST | /uploads | Signed-in; multipart `image`; 3 MB limit |
-| DELETE | /uploads | Signed-in; JSON publicId; only own unused upload |
-| POST | /reports | Signed-in; targetType doubt/answer, targetId, reason |
-| GET | /admin/users | Admin; paginated |
-| PATCH | /admin/users/:id/ban | Admin; boolean isBanned; cannot ban admins |
-| PATCH | /admin/users/:id/role | Admin; student/teacher only |
-| GET | /admin/reports | Admin; paginated pending reports with preview |
-| PATCH | /admin/reports/:id | Admin; status dismissed/removed |
-
-Sign out clears browser state; no server logout/revocation endpoint. Current role/ban state is loaded from MongoDB on each authenticated request. Invalid IDs return 400; missing content 404; duplicate email/report 409.
-
-## Data relationships
-
-User ← Doubt.author. User ← Answer.author. Doubt ← Answer.doubt. Answer ← Comment.answer. Doubt.acceptedAnswer points to at most one answer. A unique Vote record links one user and a doubt/answer target. Upload tracks ownership and its optional attached doubt. Report links reporter, target and moderation status. Reputation is calculated from current answer votes (+10/-2) and accepted answers (+15), avoiding accumulating duplicate rewards from repeated toggles.
-
-Email endpoints: POST /auth/forgot-password {email}, /auth/reset-password {token,password}, /auth/verify-email {token}, /auth/verification-email (authenticated). Disabled with 503 until EMAIL_ENABLED=1. See EMAIL_CHANGE_RECORD.md.
-
-
-GET /users/me/export: authenticated NDJSON attachment (3/hour). DELETE /users/me: {password,confirmation:'DELETE'}, non-admin accounts only (5/hour). Anonymizes account and removes owned images, retains discussions/votes; see ACCOUNT_DATA_CHANGE_RECORD.md.
-
-
-Notifications (authenticated): GET /notifications?page=1, PATCH /notifications/:id/read, POST /notifications/read. 25 items/page, own inbox/read state only.
-
-
-Academic levels: signup/profile/question accept optional academicLevel {system,index,label} or null. Systems semester/year/grade index 1-30; other label 1-60. Legacy semester 1-8 accepted. Feed academicSystem/academicIndex filters. See ACADEMIC_LEVEL_CHANGE_RECORD.md.
-
-
-GET /subjects returns public catalogue (max 500). POST /admin/subjects {name,slug?,aliases?,field?,icon?} requires admin. Known subject aliases canonicalize question writes and filter reads; legacy unknown text accepted. SUBJECT_CATALOG_CHANGE_RECORD.md.
-
-
-Institutions: GET /institutions, admin POST /admin/institutions {name,slug?,country?}. Signup/profile optional institution ID/null. Feed scope=college|subject|all; college defaults for members with a selection, subject requires subject query. All posts remain public. New question inherits user's institution (explicit null selects global), edit preserves original scope. INSTITUTION_CHANGE_RECORD.md.
-
-
-With EMAIL_ENABLED off, valid EMAIL_TEST_RECIPIENT enables forgot/reset-password only for that single existing account. Other addresses receive generic success without mail/token issuance; verification endpoints remain disabled.
+- GET /doubts/:id no longer changes the view count. GET /doubts and GET /doubts/:id include `views`.
+- GET /doubts with no search, subject or tag excludes the sample-library questions. Search, subject browsing and `tag=study-library` still reach them.
+- PATCH /admin/reports/:id answers 409 when the report is not pending, so a dismissed report can no longer remove content later.
+- Upload size errors name the endpoint's own limit (3 MB image, 4 MB resource file).
+- Tags are stored without leading `#` characters and in lower case.
+- DELETE /admin/study-library (admin, body `{ "confirm": "study-library-v1" }`) removes the sample library and its completion record so it can be published again. GET /admin/study-library also returns `presentCount`.
