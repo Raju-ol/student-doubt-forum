@@ -15,12 +15,12 @@ await mkdir(cache, { recursive: true });
 const directory = await mkdtemp(join(cache, 'forum-explore-'));
 const outfile = join(directory, 'pages.mjs');
 await build({
-  stdin: { contents: "export { Feed, Detail } from './pages.jsx'; export { Provider } from './context.jsx'; export { SimilarWhileAsking } from './similar.jsx'; export { GrowthPanel } from './growth.jsx';", resolveDir: dirname(entry), sourcefile: 'qa-explore.jsx', loader: 'jsx' }, outfile, bundle: true, format: 'esm', platform: 'browser',
+  stdin: { contents: "export { Feed, Detail } from './pages.jsx'; export { Provider } from './context.jsx'; export { SimilarWhileAsking } from './similar.jsx'; export { GrowthPanel } from './growth.jsx'; export { SiteBanner, DISMISSED_KEY } from './banner.jsx';", resolveDir: dirname(entry), sourcefile: 'qa-explore.jsx', loader: 'jsx' }, outfile, bundle: true, format: 'esm', platform: 'browser',
   jsx: 'automatic', loader: { '.jsx': 'jsx', '.css': 'empty' },
   external: ['react', 'react-dom', 'react-dom/*', 'react/*', 'react-router-dom'],
   define: { 'import.meta.env.VITE_API_URL': '""' }, logLevel: 'silent'
 });
-const { Feed, Detail, Provider, SimilarWhileAsking, GrowthPanel } = await import(pathToFileURL(outfile).href);
+const { Feed, Detail, Provider, SimilarWhileAsking, GrowthPanel, SiteBanner, DISMISSED_KEY } = await import(pathToFileURL(outfile).href);
 const { createRoot } = await import('react-dom/client');
 const { MemoryRouter, Routes, Route, useSearchParams } = await import('react-router-dom');
 test.after(() => rm(directory, { recursive: true, force: true }));
@@ -42,9 +42,9 @@ function SimilarHarness() {
   return React.createElement(SimilarWhileAsking, { title: params.get('t') || '' });
 }
 
-async function mount(path, { storage = 'memory', detail, similar = SIMILAR, feed = FEED } = {}) {
+async function mount(path, { storage = 'memory', detail, similar = SIMILAR, feed = FEED, banner = { text: '', updatedAt: null }, preset = {} } = {}) {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost/' });
-  const data = new Map();
+  const data = new Map(Object.entries(preset));
   const store = storage === 'blocked'
     ? { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); }, removeItem() { throw new Error('blocked'); } }
     : { getItem: key => data.has(key) ? data.get(key) : null, setItem: (key, value) => data.set(key, String(value)), removeItem: key => data.delete(key) };
@@ -61,6 +61,7 @@ async function mount(path, { storage = 'memory', detail, similar = SIMILAR, feed
   globalThis.fetch = async url => {
     requests.push(String(url));
     const body = String(url).startsWith('/api/v1/catalog') ? { subjects: [{ name: 'DBMS' }, { name: 'Java' }], institutions: [] }
+      : String(url).startsWith('/api/v1/banner') ? banner
       : String(url).startsWith('/api/v1/doubts/similar') || String(url).endsWith('/related') ? similar
       : String(url).startsWith('/api/v1/doubts/') ? detail
       : { items: feed, total: 23, page: 1, pages: 3 };
@@ -74,6 +75,7 @@ async function mount(path, { storage = 'memory', detail, similar = SIMILAR, feed
       React.createElement(Route, { path: '/', element: React.createElement(Feed) }),
       React.createElement(Route, { path: '/similar', element: React.createElement(SimilarHarness) }),
       React.createElement(Route, { path: '/growth', element: React.createElement(GrowthPanel, { growth: GROWTH }) }),
+      React.createElement(Route, { path: '/banner', element: React.createElement(SiteBanner) }),
       React.createElement(Route, { path: '/doubts/:id', element: React.createElement(Detail) }))))));
   await React.act(async () => new Promise(resolve => setTimeout(resolve, 20)));
   return {
@@ -269,6 +271,34 @@ test('the growth panel lists the counts, earned milestones, and progress towards
     // A one-step milestone shows no "0 of 1" counter, only the hint.
     assert.equal(items[2].querySelector('small').textContent, 'Have a teacher endorse one of your answers');
   } finally { await view.cleanup(); }
+});
+
+test('the announcement banner shows its text as plain text and stays dismissed until the text changes', async () => {
+  const live = { text: 'Exam week: <b>extra</b> teachers online Thursday', updatedAt: '2026-11-13T09:00:00.000Z' };
+  const none = await mount('/banner');
+  try { assert.equal(none.host.querySelector('.site-banner'), null, 'no banner when there is no text'); } finally { await none.cleanup(); }
+
+  const view = await mount('/banner', { banner: live });
+  try {
+    const box = view.host.querySelector('.site-banner');
+    assert.equal(box.querySelector('span').textContent, live.text);
+    assert.equal(box.querySelector('b'), null, 'text is not interpreted as HTML');
+    await view.click(box.querySelector('button'));
+    assert.equal(view.host.querySelector('.site-banner'), null);
+    assert.equal(view.data.get(DISMISSED_KEY), live.updatedAt);
+  } finally { await view.cleanup(); }
+
+  const same = await mount('/banner', { banner: live, preset: { [DISMISSED_KEY]: live.updatedAt } });
+  try { assert.equal(same.host.querySelector('.site-banner'), null, 'dismissed on this device'); } finally { await same.cleanup(); }
+  const changed = await mount('/banner', { banner: { ...live, updatedAt: '2026-11-14T09:00:00.000Z' }, preset: { [DISMISSED_KEY]: live.updatedAt } });
+  try { assert.ok(changed.host.querySelector('.site-banner'), 'a new announcement shows again'); } finally { await changed.cleanup(); }
+
+  // Blocked storage: dismissing still hides it for this visit and nothing throws.
+  const blocked = await mount('/banner', { banner: live, storage: 'blocked' });
+  try {
+    await blocked.click(blocked.host.querySelector('.site-banner button'));
+    assert.equal(blocked.host.querySelector('.site-banner'), null);
+  } finally { await blocked.cleanup(); }
 });
 
 test('Share uses the share sheet when there is one, otherwise copies the link, otherwise shows it', async () => {

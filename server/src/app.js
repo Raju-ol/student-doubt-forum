@@ -25,6 +25,7 @@ import { mountSharePage } from './share.js';
 import { growthFor } from './growth.js';
 import { recordAudit, mountAuditRoutes } from './audit.js';
 import { mountOverviewRoutes } from './overview.js';
+import { mountBannerRoutes } from './banner.js';
 import { mountTeacherRoutes, mountTeacherAdminRoutes, teacherRequestFields, teacherSubjectList } from './teachers.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
@@ -320,6 +321,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   mountTeacherAdminRoutes(admin, { wrap, ok });
   mountAuditRoutes(admin, { wrap, ok });
   mountOverviewRoutes(admin, { wrap, ok });
+  mountBannerRoutes(api, admin, { wrap, ok });
   admin.get('/users', requireAdmin, wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const [items, total] = await Promise.all([User.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25), User.countDocuments({ isDeleted: { $ne: true } })]);

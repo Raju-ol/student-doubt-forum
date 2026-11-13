@@ -14,6 +14,7 @@ import { useAuth } from './context';
 import { RelatedQuestions, SimilarWhileAsking } from './similar';
 import { GrowthPanel } from './growth';
 import { AuditList, Overview } from './admin-extras';
+import { BannerEditor } from './banner';
 import { useSavedQuestions, savedStorageAvailable } from './saved-questions';
 import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SameDoubtButton, ShareButton, SemesterSelect, date, Markdown, MarkdownEditor, TeacherRequestFields } from './components';
 
@@ -381,7 +382,7 @@ export function Admin() {
     <div id="admin-tabs-panel" role={managesUsers ? 'tabpanel' : undefined}
       aria-labelledby={managesUsers ? `admin-tabs-${section}` : undefined} tabIndex={0}>
       <ErrorBox message={error} retry={refresh} />
-      {loading ? <Loading /> : error ? null : section === 'overview' ? <Overview data={data} onOpen={value => { setTab(value); setPage(1); }} />
+      {loading ? <Loading /> : error ? null : section === 'overview' ? <><Overview data={data} onOpen={value => { setTab(value); setPage(1); }} /><BannerEditor /></>
         : section === 'audit' ? <AuditList items={data?.items} />
         : section === 'teacher-requests'
         ? data?.items.length ? data.items.map(request => <TeacherRequestCard key={request._id} request={request} busy={busy} onAction={action} />)
