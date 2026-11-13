@@ -12,8 +12,8 @@
   --v3-line:#F0E0CE;
   --v3-hover:#FFEBD8;
   --v3-brand:#6C47E8;
-  --v3-accent:#C9520B;
-  --v3-active:linear-gradient(135deg,#E8701F 0%,#C9520B 100%);
+  --v3-accent:#B84A09;
+  --v3-active:linear-gradient(135deg,#C24E0B 0%,#A24009 100%);
   --v3-active-shadow:0 8px 18px rgba(201,82,11,.28);
   --v3-hero:linear-gradient(120deg,#FFE7D2 0%,#FFD9BC 100%);
   --v3-shadow:0 2px 6px rgba(120,70,20,.06),0 10px 26px rgba(120,70,20,.08);
@@ -46,7 +46,7 @@
   --v3-hover:rgba(139,108,255,.14);
   --v3-brand:#A58BFF;
   --v3-accent:#B9A6FF;
-  --v3-active:linear-gradient(135deg,#8B6CFF 0%,#6C47E8 100%);
+  --v3-active:linear-gradient(135deg,#7B5CF0 0%,#5B3BD6 100%);
   --v3-active-shadow:0 8px 20px rgba(108,71,232,.45);
   --v3-hero:linear-gradient(120deg,#241749 0%,#1B1240 100%);
   --v3-shadow:0 2px 6px rgba(0,0,0,.25),0 12px 28px rgba(5,0,20,.35);
@@ -274,8 +274,8 @@
 @media(max-width:1180px){.dx-page{grid-template-columns:minmax(0,1fr)}.dx-aside{position:static;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.dx-hero__art{right:60px}}
 @media(max-width:1023px){
   .app-shell{padding-left:0}
-  .sidebar{transform:translateX(-102%);transition:transform .22s ease;box-shadow:var(--v3-shadow)}
-  .sidebar--open{transform:none}
+  .sidebar{transform:translateX(-102%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s;box-shadow:var(--v3-shadow)}
+  .sidebar--open{transform:none;visibility:visible;transition:transform .22s ease,visibility 0s}
   .sidebar__close{display:grid}
   .nav-toggle{display:grid;place-items:center;flex:none;width:46px;height:46px;padding:0;border-radius:14px;border:1px solid var(--v3-line);background:var(--v3-surface);color:var(--v3-text);box-shadow:none;transform:none}
   .topbar{flex-wrap:wrap;padding:14px 20px 8px;gap:12px}
@@ -326,3 +326,6 @@
 .panel,.form-layout aside,.auth-form{border-radius:24px}
 .button:not(.button--secondary):not(.button--small),.button--small{border-radius:999px}
 :root[data-theme] .button{box-shadow:none;transform:none}
+
+.labelled-field{display:grid;gap:6px;margin-bottom:18px}
+.labelled-field>label{font-weight:600}

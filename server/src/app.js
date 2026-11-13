@@ -72,7 +72,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   const contentWriteLimit = limiter('content-write', 120, 15 * 60 * 1000, { account: true });
   const contentCreateLimit = limiter('content-create', 60, 60 * 60 * 1000, { account: true });
   api.use((req, res, next) => {
-    if (!req.user || !['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) || !/^\/(doubts|answers|reports|uploads|users\/me)(\/|$)/.test(req.path)) return next();
+    if (!req.user || !['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) || !/^\/(doubts|answers|reports|uploads|users\/me)(\/|$)/.test(req.path) || /^\/doubts\/[^/]+\/view$/.test(req.path)) return next();
     contentWriteLimit(req, res, error => {
       if (error) return next(error);
       const createsContent = req.method === 'POST' && (req.path === '/doubts' || /^\/doubts\/[^/]+\/answers$/.test(req.path) || /^\/answers\/[^/]+\/comments$/.test(req.path));
@@ -162,9 +162,6 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   }));
   api.get('/doubts/:id', wrap(async (req, res) => {
     const doubt = await findDoc(Doubt, req.params.id);
-    // Counted before the response is built so the viewer sees their own view included.
-    doubt.views = (doubt.views || 0) + 1;
-    await Doubt.updateOne({ _id: doubt._id }, { $inc: { views: 1 } }, { timestamps: false });
     await doubt.populate('author', authorFields);
     const answers = await Answer.find({ doubt: doubt._id }).sort({ createdAt: 1 }).populate('author', authorFields);
     // One comment query for the whole page instead of one per answer.
@@ -174,6 +171,12 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const result = decorated.map(answer => ({ ...answer, isAccepted: String(doubt.acceptedAnswer) === String(answer._id), comments: byAnswer.get(String(answer._id)) || [] }));
     result.sort((a, b) => Number(b.isAccepted) - Number(a.isAccepted) || b.votes - a.votes);
     ok(res, { ...await decorate(doubt, 'doubt', req.user), answers: result });
+  }));
+  // The client calls this once when a question page opens, so refreshing after a vote or an answer is not a view.
+  api.post('/doubts/:id/view', wrap(async (req, res) => {
+    await findDoc(Doubt, req.params.id);
+    const doubt = await Doubt.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true, timestamps: false }).select('views');
+    ok(res, { views: doubt?.views ?? 0 });
   }));
   api.put('/doubts/:id', requireUser, wrap(async (req, res) => {
     const doubt = await findDoc(Doubt, req.params.id); owns(req.user, doubt.author);
@@ -267,6 +270,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   admin.patch('/reports/:id', wrap(async (req, res) => {
     const report = await findDoc(Report, req.params.id);
     if (!['dismissed', 'removed'].includes(req.body.status)) fail(400, 'Choose dismiss or remove.');
+    if (report.status !== 'pending') fail(409, 'This report has already been resolved.');
     if (req.body.status === 'removed') { const Model = report.targetType === 'doubt' ? Doubt : Answer; const target = await Model.findById(report.target); if (target) { if (report.targetType === 'doubt') await removeDoubt(target, cloudinary); else await removeAnswer(target); } }
     report.status = req.body.status; await report.save(); ok(res, report, 'Report resolved.');
   }));
@@ -277,7 +281,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     let status = err.status || 500;
     let message = status < 500 || err.expose ? err.message : 'Something went wrong. Please try again.';
     if (err.code === 11000) { status = 409; message = 'This record already exists. For signup, try a different email.'; }
-    if (err.name === 'CastError' || err.name === 'ValidationError' || err.name === 'MulterError') { status = 400; message = err.name === 'MulterError' ? 'Choose one JPG, PNG or WebP image up to 3 MB.' : 'Please check the information you entered.'; }
+    if (err.name === 'CastError' || err.name === 'ValidationError' || err.name === 'MulterError') { status = 400; message = err.name !== 'MulterError' ? 'Please check the information you entered.' : req.path.startsWith('/api/v1/resources') ? 'Choose one PDF, Word or PowerPoint file up to 4 MB.' : 'Choose one JPG, PNG or WebP image up to 3 MB.'; }
     if (err instanceof SyntaxError && 'body' in err) { status = 400; message = 'Invalid JSON request.'; }
     if (status >= 500) console.error('Request failed:', err.name, err.code || 'server_error');
     res.status(status).json({ success: false, message });

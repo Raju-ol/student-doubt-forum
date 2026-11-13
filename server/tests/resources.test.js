@@ -80,8 +80,9 @@ test('resource library, trending tags, contributors and view counts', async t =>
   await Doubt.create({ title: 'A sample library question', body: 'Sample library body text.', subject: 'DBMS', author: student._id, tags: ['sql', 'study-library'] });
   const trending = await request('/tags/trending');
   assert.deepEqual(trending, [{ tag: 'sql', count: 2 }, { tag: 'dbms', count: 1 }]);
-  assert.equal((await request(`/doubts/${question._id}`)).views, 1);
-  assert.equal((await request(`/doubts/${question._id}`)).views, 2);
+  assert.equal((await request(`/doubts/${question._id}`)).views, 0);
+  assert.equal((await request(`/doubts/${question._id}/view`, { method: 'POST' })).views, 1);
+  assert.equal((await request(`/doubts/${question._id}/view`, { method: 'POST' })).views, 2);
   assert.equal((await request('/doubts?scope=all')).items.find(item => item._id === String(question._id)).views, 2);
 
   const contributors = await request('/contributors');

@@ -38,15 +38,20 @@ export function Navbar() {
   useEffect(() => setHeaderSearch(['/', '/library'].includes(location.pathname) ? new URLSearchParams(location.search).get('search') || '' : ''), [location.pathname, location.search]);
   function submitSearch(event) {
     event.preventDefault(); const text = headerSearch.trim();
-    if (location.pathname.startsWith('/library')) navigate(text ? `/library?search=${encodeURIComponent(text)}` : '/library');
-    else navigate(text ? `/?search=${encodeURIComponent(text)}` : '/');
+    // Searching from Explore, Library or Saved keeps the place and its filters; only the page resets.
+    const keep = ['/', '/library'].includes(location.pathname);
+    const next = new URLSearchParams(keep ? location.search : '');
+    next.delete('page');
+    if (text) next.set('search', text); else next.delete('search');
+    const query = next.toString();
+    navigate({ pathname: location.pathname === '/library' ? '/library' : '/', search: query ? `?${query}` : '' });
   }
   useEffect(() => setExpanded(false), [location.pathname, location.search]);
   const navParams = new URLSearchParams(location.search); const onExplore = location.pathname === '/';
   const onLibrary = location.pathname.startsWith('/library') || (onExplore && navParams.get('tag') === 'study-library');
   const here = { library: onLibrary, saved: onExplore && navParams.get('view') === 'saved', me: Boolean(user) && location.pathname === `/users/${user._id}` };
   here.explore = onExplore && !here.library && !here.saved;
-  const searchLabel = location.pathname.startsWith('/library') ? 'Search study materials…' : 'Search questions…';
+  const searchLabel = location.pathname.startsWith('/library') ? 'Search study materials…' : here.saved ? 'Search saved questions…' : 'Search questions…';
   function closeMenu(event) { if (expanded && event.key === 'Escape') { event.preventDefault(); setExpanded(false); menuButton.current?.focus(); } }
   const item = (key, to, Glyph, label) => <Link className="sidebar__item" to={to} aria-current={here[key] ? 'page' : undefined}><Glyph aria-hidden="true" size={22} /><span>{label}</span></Link>;
   return <div className="chrome" onKeyDown={closeMenu}>
