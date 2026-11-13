@@ -19,7 +19,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import mongoose from 'mongoose';
-import { User, Doubt, Answer, Comment, Report, Upload } from './models.js';
+import { User, Doubt, Answer, Comment, Report, Upload, TeacherRequest } from './models.js';
+import { mountTeacherRoutes, mountTeacherAdminRoutes, teacherRequestFields, teacherSubjectList } from './teachers.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
 import { changeUserRole } from './admin-roles.js';
@@ -84,8 +85,19 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   const authEmailLimit = limiter('auth-email', 30, 15 * 60 * 1000, { email: true });
   api.post('/auth/signup', authLimit, authEmailLimit, wrap(async (req, res) => {
     const fields = { name: text(req.body.name, 'Name', 2, 60), email: email(req.body.email), ...academicFields(req.body), ...await institutionFields(req.body) };
+    // "I teach at a college or coaching institute" at sign-up: the account is a
+    // normal student account plus a pending teacher request an admin reviews.
+    let teacher = null;
+    if (req.body.teacher !== undefined && req.body.teacher !== null) {
+      if (typeof req.body.teacher !== 'object' || Array.isArray(req.body.teacher)) fail(400, 'Invalid teacher request.');
+      teacher = await teacherRequestFields(req.body.teacher);
+    }
     const hash = await bcrypt.hash(password(req.body.password), 12);
     const user = await User.create({ ...fields, passwordHash: hash, reputation: 0 });
+    if (teacher) {
+      try { await TeacherRequest.create({ ...teacher, institution: teacher.institution ?? user.institution ?? null, user: user._id }); }
+      catch { console.error('Teacher request creation failed at signup'); }
+    }
     if (verificationRequired()) { try { await issueEmail(user, 'verify', sendEmail); } catch { console.error('Email delivery failed: signup_verification'); } }
     ok(res, { user: safeUser(user), token: tokenFor(user) }, 'Welcome to Doubt Forum!', 201);
   }));
@@ -109,6 +121,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   mountSubjectRoutes(api, { wrap, ok });
   mountInstitutionRoutes(api, { wrap, ok });
   mountResourceRoutes(api, { wrap, ok, limiter, cloudinary });
+  mountTeacherRoutes(api, { wrap, ok });
   api.get('/catalog', wrap(async (req, res) => {
     const [subjects, institutions] = await Promise.all([listSubjects(), listInstitutions()]);
     ok(res, { subjects, institutions });
@@ -169,7 +182,9 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const byAnswer = new Map();
     for (const comment of comments) { const key = String(comment.answer); if (!byAnswer.has(key)) byAnswer.set(key, []); byAnswer.get(key).push(comment); }
     const result = decorated.map(answer => ({ ...answer, isAccepted: String(doubt.acceptedAnswer) === String(answer._id), comments: byAnswer.get(String(answer._id)) || [] }));
-    result.sort((a, b) => Number(b.isAccepted) - Number(a.isAccepted) || b.votes - a.votes);
+    // Accepted first, then teacher answers, then everything else by votes.
+    const rank = answer => answer.isAccepted ? 2 : answer.author?.role === 'teacher' ? 1 : 0;
+    result.sort((a, b) => rank(b) - rank(a) || b.votes - a.votes);
     ok(res, { ...await decorate(doubt, 'doubt', req.user), answers: result });
   }));
   // The client calls this once when a question page opens, so refreshing after a vote or an answer is not a view.
@@ -212,7 +227,15 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const [doubts, answers, score] = await Promise.all([Doubt.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('author', authorFields), Answer.find({ author: user._id }).sort({ createdAt: -1 }).limit(50).populate('doubt', 'title'), reputation(user._id)]);
     ok(res, { user: { _id: user._id, name: user.name, role: user.role, semester: user.semester, academicLevel: effectiveLevel(user), institution: user.institution || null, createdAt: user.createdAt, reputation: score }, doubts: await decorateMany(doubts, 'doubt', req.user), answers });
   }));
-  api.put('/users/me', requireUser, wrap(async (req, res) => { req.user.name = text(req.body.name, 'Name', 2, 60); Object.assign(req.user, academicFields(req.body), await institutionFields(req.body)); await req.user.save(); ok(res, safeUser(req.user), 'Profile updated.'); }));
+  api.put('/users/me', requireUser, wrap(async (req, res) => {
+    req.user.name = text(req.body.name, 'Name', 2, 60);
+    Object.assign(req.user, academicFields(req.body), await institutionFields(req.body));
+    if (req.body.teacherSubjects !== undefined) {
+      if (req.user.role !== 'teacher') fail(403, 'Only verified teachers can set teaching subjects.');
+      req.user.teacherSubjects = await teacherSubjectList(req.body.teacherSubjects);
+    }
+    await req.user.save(); ok(res, safeUser(req.user), 'Profile updated.');
+  }));
   api.post('/reports', requireUser, wrap(async (req, res) => {
     if (!['doubt', 'answer'].includes(req.body.targetType)) fail(400, 'Invalid report type.');
     const target = await findDoc(req.body.targetType === 'doubt' ? Doubt : Answer, req.body.targetId);
@@ -240,6 +263,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   const admin = express.Router(); api.use('/admin', requireUser, requireModerator, admin);
   admin.use('/study-library', requireAdmin);
   mountStudyLibraryRoutes(admin, { wrap, ok, limiter });
+  mountTeacherAdminRoutes(admin, { wrap, ok });
   admin.get('/users', requireAdmin, wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const [items, total] = await Promise.all([User.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25), User.countDocuments({ isDeleted: { $ne: true } })]);

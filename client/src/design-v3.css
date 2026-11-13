@@ -375,3 +375,18 @@
 .about__cta h2{font:700 20px var(--font-ui)}
 .about__cta p{font:400 14px var(--font-ui);color:var(--v3-muted)}
 .about .dx-hero__art{right:60px}
+
+/* ---- Teacher features (role slice 1): sign-up opt-in, subject picker, dashboard ---- */
+.subject-picker{margin:0 0 14px;padding:12px 14px;border:var(--edge) var(--edge-style) var(--border);border-radius:14px}
+.subject-picker legend{padding:0 6px;font-weight:700;font-size:14px}
+.subject-picker__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 10px;max-height:180px;overflow-y:auto}
+.subject-picker__item{display:flex;align-items:center;gap:8px;font-size:14px;min-height:30px}
+.subject-picker__item input{width:16px;height:16px;flex:none;accent-color:var(--primary)}
+.teacher-optin{margin:4px 0 10px;padding:12px 14px;border:var(--edge) dashed var(--border);border-radius:14px}
+.teacher-optin__check{display:flex;align-items:center;gap:10px;font-weight:600}
+.teacher-optin__check input{width:18px;height:18px;flex:none;accent-color:var(--primary)}
+.teacher-optin__fields{margin-top:12px}
+.teach{max-width:880px;margin:24px auto 64px}
+.teach h1{display:inline-flex;align-items:center;gap:10px}
+.teach__subjects{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 18px;color:var(--muted);font-size:14px}
+.teacher-request .form-actions{margin-top:12px}
