@@ -26,6 +26,7 @@ import { growthFor } from './growth.js';
 import { recordAudit, mountAuditRoutes } from './audit.js';
 import { mountOverviewRoutes } from './overview.js';
 import { mountBannerRoutes } from './banner.js';
+import { mountModerationContextRoutes } from './moderation.js';
 import { mountTeacherRoutes, mountTeacherAdminRoutes, teacherRequestFields, teacherSubjectList } from './teachers.js';
 import { fail, text, semester, email, password, tags, positiveInt } from './validation.js';
 import { identify, requireUser, requireAdmin, requireModerator, owns, safeUser, tokenFor } from './auth.js';
@@ -322,6 +323,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
   mountAuditRoutes(admin, { wrap, ok });
   mountOverviewRoutes(admin, { wrap, ok });
   mountBannerRoutes(api, admin, { wrap, ok });
+  mountModerationContextRoutes(admin, { wrap, ok });
   admin.get('/users', requireAdmin, wrap(async (req, res) => {
     const page = positiveInt(req.query.page, 1, 10000);
     const [items, total] = await Promise.all([User.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25), User.countDocuments({ isDeleted: { $ne: true } })]);
@@ -348,7 +350,7 @@ export function createApp({ serveClient = true, sendEmail = sendTransactionalEma
     const page = positiveInt(req.query.page, 1, 10000);
     const filter = { status: 'pending' };
     const [reports, total] = await Promise.all([Report.find(filter).sort({ createdAt: -1 }).skip((page - 1) * 25).limit(25).populate('reporter', 'name'), Report.countDocuments(filter)]);
-    const items = await Promise.all(reports.map(async report => ({ ...report.toObject(), content: await (report.targetType === 'doubt' ? Doubt : Answer).findById(report.target).select('title body doubt') })));
+    const items = await Promise.all(reports.map(async report => ({ ...report.toObject(), content: await (report.targetType === 'doubt' ? Doubt : Answer).findById(report.target).select('title body doubt author') })));
     ok(res, { items, page, pages: Math.ceil(total / 25), total });
   }));
   admin.patch('/reports/:id', wrap(async (req, res) => {

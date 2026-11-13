@@ -13,7 +13,7 @@ import { InstitutionSelect } from './institution-select';
 import { useAuth } from './context';
 import { RelatedQuestions, SimilarWhileAsking } from './similar';
 import { GrowthPanel } from './growth';
-import { AuditList, Overview } from './admin-extras';
+import { AuditList, Overview, AuthorContext } from './admin-extras';
 import { BannerEditor } from './banner';
 import { useSavedQuestions, savedStorageAvailable } from './saved-questions';
 import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SameDoubtButton, ShareButton, SemesterSelect, date, Markdown, MarkdownEditor, TeacherRequestFields } from './components';
@@ -399,6 +399,7 @@ export function Admin() {
             <p className="prose">{report.reason}</p>
             <p className="muted">Reported by {report.reporter?.name} · {date(report.createdAt)}</p>
             {report.content && <Link to={`/doubts/${report.targetType === 'doubt' ? report.target : report.content.doubt}`}>View discussion →</Link>}
+            {report.content?.author && <AuthorContext userId={report.content.author} />}
             <div className="form-actions">
               <button className="button button--secondary" disabled={busy}
                 onClick={() => action(`/admin/reports/${report._id}`, { status: 'dismissed' })}>Dismiss report</button>

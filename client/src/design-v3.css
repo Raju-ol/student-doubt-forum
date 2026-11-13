@@ -466,3 +466,11 @@
 .banner-editor{margin-top:20px}
 .banner-editor h2{margin:0 0 6px;font-size:18px}
 .banner-editor input{width:100%}
+
+/* ---- Moderator context on a report (role slice 4) ---- */
+.author-context-box{margin:8px 0}
+.author-context{margin-top:8px;padding:12px 16px;border:var(--edge) dashed var(--border);border-radius:14px}
+.author-context p{margin:0 0 6px}
+.author-context h4{margin:10px 0 4px;font-size:14px}
+.author-context ul{margin:0;padding-left:18px}
+.author-context li{overflow-wrap:anywhere}

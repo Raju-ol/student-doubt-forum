@@ -41,6 +41,24 @@ test('the overview compares this week with last and links to what is waiting', (
   assert.equal(html(React.createElement(components.Overview, { data: null })), '');
 });
 
+test('the author context lists the record, report history and recent posts, flagging anonymous ones', () => {
+  const data = {
+    user: { _id: 'u9', name: 'Troll', role: 'student', createdAt: '2026-08-01T00:00:00Z', isBanned: true },
+    counts: { questions: 1, answers: 3 },
+    reportsAbout: { pending: 1, dismissed: 0, removed: 2 },
+    recentQuestions: [{ _id: 'q1', title: 'A shy question', isAnonymous: true }, { _id: 'q2', title: 'An open question', isAnonymous: false }],
+    recentAnswers: [{ _id: 'r1', doubt: { _id: 'q3', title: 'Some thread' }, excerpt: 'A rude <i>reply</i>' }, { _id: 'r2', doubt: null, excerpt: 'Orphaned' }]
+  };
+  const markup = html(React.createElement(components.ContextView, { data }));
+  assert.match(markup, /<strong>1<\/strong> question · <strong>3<\/strong> answers/);
+  assert.match(markup, /Reports about their posts: <strong>1<\/strong> pending · <strong>2<\/strong> removed · <strong>0<\/strong> dismissed/);
+  assert.match(markup, /Suspended/);
+  assert.match(markup, /A shy question<\/a><span class="muted"> \(anonymous\)<\/span>/);
+  assert.ok(!/An open question<\/a><span class="muted"> \(anonymous\)/.test(markup));
+  assert.match(markup, /Question removed<span class="muted"> — Orphaned/);
+  assert.ok(!markup.includes('<i>reply</i>'), 'excerpts are escaped');
+});
+
 test('the audit list shows who did what, with the action, newest first as given', () => {
   const markup = html(React.createElement(components.AuditList, { items: [
     { _id: 'a2', action: 'user.role', summary: 'Changed Riya from student to teacher <b>x</b>', createdAt: '2026-11-13T10:30:00Z', actor: { name: 'Anita', role: 'admin' } },
