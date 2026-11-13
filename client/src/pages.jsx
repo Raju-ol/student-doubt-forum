@@ -19,10 +19,23 @@ import { useSavedQuestions, savedStorageAvailable } from './saved-questions';
 import { Mark, Avatar, Badge, Author, ErrorBox, Loading, Empty, Tags, DoubtCard, QuestionRow, toneOf, SaveButton, Icon, Pager, VoteButtons, SameDoubtButton, ShareButton, SemesterSelect, date, Markdown, MarkdownEditor, TeacherRequestFields } from './components';
 
 export function useResource(route) {
-  const { token } = useAuth(); const [data, setData] = useState(null); const [error, setError] = useState(''); const [loading, setLoading] = useState(true); const [version, setVersion] = useState(0);
-  useEffect(() => { if (!route) { setLoading(false); return undefined; } const controller = new AbortController(); setLoading(true); setError(''); api(route, { token, signal: controller.signal }).then(result => { if (!controller.signal.aborted) setData(result); }).catch(err => { if (err.name !== 'AbortError') setError(err.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [route, token, version]);
+  const { token } = useAuth(); const [version, setVersion] = useState(0);
+  const [result, setResult] = useState(null);
+  useEffect(() => {
+    if (!route) return;
+    const controller = new AbortController(); const key = { route, token, version };
+    api(route, { token, signal: controller.signal }).then(data => {
+      if (!controller.signal.aborted) setResult({ ...key, data, error: '' });
+    }).catch(err => {
+      if (!controller.signal.aborted) setResult({ ...key, data: null, error: err.message });
+    });
+    return () => controller.abort();
+  }, [route, token, version]);
   const refresh = () => setVersion(value => value + 1);
-  return { data, error, loading, refresh };
+  // A changed tab renders before its effect runs. Never expose another route's
+  // payload (or another session's data) during that first render.
+  const current = result?.route === route && result?.token === token && result?.version === version;
+  return { data: route && current ? result.data : null, error: route && current ? result.error : '', loading: Boolean(route) && !current, refresh };
 }
 const STATUS_LABELS = { solved: 'Resolved', open: 'Unresolved' };
 const SORTS = [['newest', 'Newest'], ['votes', 'Most same-doubt'], ['answers', 'Most answered'], ['unanswered', 'Unanswered first']];

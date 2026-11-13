@@ -8,3 +8,5 @@ dist/
 coverage/
 .vercel/
 output/design-consistency/
+output/guides/
+output/test-accounts/
